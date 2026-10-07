@@ -35,7 +35,7 @@ Decide these when the plan reaches them. Each one names the item that needs it. 
 - Every new feature has a switch per quality tier (`QUALITY` in `src/config/graphics.ts`) and a value in the graphics tuner (T key, dev builds).
 - Phones must not get slower: heavy features are High only until Phase 2 adds automatic quality.
 ### 1.0 Baseline and guard rails — S
-Status: done (commit pending; exact SHA is recorded by the next item and in HANDOFF.md).
+Status: done (commit 896f619e794d5268659ba8cb964b878d5a955b8b).
 - **Do:**
   1. Pick 12 matched viewpoints: the 12 corner shots of `scripts/capture-evidence.mjs`, each with a real photo from `docs/references/` taken from a similar place and angle. Add 3 car close-ups (one per make) against race photos.
   2. Write `docs/REALISM.md` with the viewpoints, the photos and the scoring sheet (Appendix A).
@@ -44,6 +44,7 @@ Status: done (commit pending; exact SHA is recorded by the next item and in HAND
   5. Add CI: a GitHub Actions workflow that runs types, tests and the build on every push and pull request.
 - **Done when:** `docs/REALISM.md` has the baseline scores; the performance baseline is in `artifacts/review/realism-baseline/metrics.json`; CI is green on the preview branch (latest user delivery override); the real-iPhone baseline remains pending.
 ### 1.1 Art direction update — S
+Status: done (commit pending; exact SHA is recorded by the next item and in HANDOFF.md).
 - **Depends on:** D1 (decided: about 75 % of the way to photoreal).
 - **Do:** Rewrite `docs/ART_DIRECTION.md` for "about 75 % of the way to photoreal": physically based light and materials; procedural normal, roughness and detail maps allowed; smooth shading allowed for terrain and car bodies; the medium-poly geometry may show on close inspection; generated assets only; new budgets for texture memory per tier. Add 3 reference-photo pairs that show "75 %" (what to match and what may stay stylised).
 - **Done when:** the document states the new rules and the old rules that stay (no logos, generated assets, real scale, triangle budgets).

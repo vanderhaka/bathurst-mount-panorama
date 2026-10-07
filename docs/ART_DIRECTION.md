@@ -1,36 +1,89 @@
-# Art direction — Mount Panorama (medium poly)
+# Art direction — Mount Panorama (about 75 % of the way to photoreal)
 
 ## Target look
-- **Medium poly**: clean faceted forms with enough segments to read curves correctly. It is NOT low-poly cartoon (no 6-sided wheels, no boxy cars). It is NOT photoreal (no photo textures, no normal maps).
-- **Shape first**: the silhouette must be right. Real proportions, real dimensions (metres), real details at the size a player sees at 5–30 m.
-- **Colour from vertex colours** and a small shared palette (`src/art/palette.ts`). Textures only where geometry cannot do the job: asphalt grain, text/numbers, screens, livery graphics, catch-fence mesh.
-- **Lighting**: October afternoon at Bathurst. Warm sun from the north-west (~38° high), soft sky fill, light haze. Same lighting in harness and game (`src/world/lighting.ts`, `src/world/sky.ts`). ACES tone mapping.
-- **Shading**: `flatShading: true` for terrain, foliage, rocks, buildings. Car body may use smooth normals with hard edges at real creases (split normals) so paint reflections read as a car.
 
-## Hard rules
-1. Never build organic or vehicle forms from stacked primitives (boxes, capsules, spheres). Use lofted cross-sections, extrusions, or displaced meshes. A primitive-built car or tree fails review.
-2. Every asset class in view must meet the same bar: environment, props AND cars.
-3. When a mesh uses instance colours, its material colour is white. Never multiply a palette colour twice.
-4. Real-world scale: a Gen3 Supercar is 4.97 m long and 1.2 m high. A concrete wall is ~1.1 m high; catch fence ~3–4 m; a eucalyptus 12–25 m.
-5. No real brand logos or sponsor names. Car shapes may resemble the Camaro ZL1 and Mustang GT; liveries and text are generic.
-6. Procedural canvas textures must tile: use periodic noise (frequencies that are whole multiples of 2π/size).
+The target is about **75 / 100 on the Realism Index**: a game whose daylight,
+materials, surface detail and Australian landscape read as the real place.
+Medium-poly geometry may show at close range. Shape, metre-scale dimensions
+and silhouettes take priority over adding polygons.
 
-## Budgets (triangles)
+- Use physically based lighting and materials, sky-derived environment reflections,
+  measured solar direction and restrained tone mapping. October race-day afternoon
+  is the default; the graphics tuner can change the time live.
+- Generated normal, roughness, colour and detail maps are allowed. No photographic
+  textures or downloaded assets enter the runtime. Reference photographs are for review.
+- Smooth terrain and car-body normals are allowed. Keep real hard edges at creases,
+  kerbs and structural joints. Rocks and selected built objects may stay faceted.
+- Procedural detail should appear at 5–50 m without obvious stretching or repetition.
+  Whole-period noise and wrap-safe seams are required for tiling maps.
+- Preserve one connected, rounded, ragged eucalyptus crown at every LOD. Small
+  edge gaps are acceptable; separated parasol pads and spherical lollipops are not.
+- Every feature has a per-tier switch in `QUALITY` and an appropriate tuner value.
+  Expensive effects start on High; phone tiers prioritise stable frame time.
+
+## Rules that stay
+
+1. Organic and vehicle forms use lofts, extrusions or displaced meshes, not stacked
+   boxes, capsules or spheres. Geometry must match the reference silhouette.
+2. All visible asset classes share the quality bar: environment, props and cars.
+3. Materials for instance-coloured meshes start white; never tint the palette twice.
+4. Use real metres and the measured data in `docs/research/`: current car dimensions
+   stay unchanged; walls about 1.1 m, fences 3–4 m and eucalypts 12–25 m.
+5. No real brand logos or sponsor names. Preserve the three generated car shapes and
+   their existing fictional liveries. References may depict real sponsor liveries.
+6. Preserve the user-tuned handling, control mapping and `DEV_TOOLS` gating.
+
+## Geometry and frame budgets
+
 | Asset | Near (LOD0) | Far (LOD1) |
 |---|---|---|
-| Player car (exterior + interior) | ≤ 40k | ≤ 6k (ghost / far) |
-| Eucalyptus tree | 200–450 | ≤ 60 |
-| Small prop (post, tyre stack, sign) | ≤ 300 | — |
-| Tent / car / caravan | ≤ 800 | — |
-| Unique structure (pit building, grandstand) | ≤ 15k | — |
+| Player car (exterior + interior) | ≤ 40k triangles | ≤ 6k triangles |
+| Eucalyptus tree | 200–450 triangles | ≤ 60 triangles |
+| Small prop (post, tyre stack, sign) | ≤ 300 triangles | — |
+| Tent / car / caravan | ≤ 800 triangles | — |
+| Unique structure (pit building, grandstand) | ≤ 15k triangles | — |
 
-Draw calls in the race view: target < 250. Frame time target: 60 fps at 1080p on an Apple M-series laptop with quality `high`.
+Target fewer than 250 draw calls in the race view. Appendix B of `docs/PLAN.md`
+is the frame-rate contract: High at 1080p on an Apple M-series laptop ≥ 60 fps,
+Medium on the user's iPhone ≥ 50 fps, and Low on an older phone ≥ 30 fps.
+Phone emulation is a separate measurement and never proves an iPhone budget.
 
-## Palette summary
-- Grass `#7f9a47` (light `#9bb05a`, dry `#b2a865`); clay `#a06c45`; gravel `#bfab8c`.
-- Eucalyptus crown `#6f8050` / `#5c6c44` / silver `#8c9a72`; trunk `#d2c9b6`.
-- Asphalt `#4a4c4f`, racing groove `#333436`, kerbs red `#c62a2a` / white `#efefea`.
-- Concrete wall `#c9c5ba`; catch-fence posts `#6c7277`; tyre walls `#1d1e20` with belt covers.
+## Texture memory budgets
+
+| Tier | Total resident texture / render-target budget | Detail maps | Livery atlas | Environment |
+|---|---:|---:|---:|---:|
+| Low | ≤ 64 MiB | ≤ 256² | ≤ 512² | ≤ 128² cube faces |
+| Medium | ≤ 128 MiB | ≤ 512² | ≤ 1024² | ≤ 128² cube faces |
+| High | ≤ 256 MiB | ≤ 1024² | ≤ 2048² | ≤ 256² cube faces |
+
+Count mip chains, colour/depth attachments, multisample storage and shadow maps.
+Reuse maps and atlases. Dispose replaced targets and unused textures. Texture memory
+estimates must state their format/sample assumptions; renderer texture counts alone
+are not memory measurements. These are ceilings, not allocations to fill.
+
+## Palette
+
+Keep the established greens and warm dry grass, pale clay and grey-green gums;
+procedural material variation may refine them toward the photographs. Asphalt is
+neutral dark grey, with a darker, smoother rubber groove. Kerb red/white and wall
+concrete keep the existing palette, with generated wear and dirt.
+
+## Three reference pairs: what 75 % means
+
+Use the verified photographs and game captures in `docs/REALISM.md`:
+
+| Pair | Match | May remain stylised |
+|---|---|---|
+| [Skyline game / real crest](references/REALISM-PAIRS.md#environment-pairs) | Dropping road, distant plain and haze, grey-green oval crowns, sky luminance | Medium-poly branch and distant-building geometry; generated leaf cards |
+| [Hell Corner game / real track](references/REALISM-PAIRS.md#environment-pairs) | Rough aggregate, rubber and kerb wear, grounded walls, plausible sunlight | Small cracks and fictional wall panels; crowd faces at driving distance |
+| [Camaro game / real Gen3 car](references/REALISM-PAIRS.md#car-pairs) | Body proportions, clearcoat glints, rubber/carbon/glass response and panel creases | Generated livery, bounded polygon count and simplified unseen engine components |
+
+These pairs define a direction, not a claim that the baseline already reaches it.
+The same references and fixed reviewer briefs measure later rounds.
 
 ## Verification
-Every builder renders its work in its harness page (`harness/*.html`) and checks screenshots with `node scripts/shot.mjs`. Compare against the references in `docs/references/` at close range and at game distance.
+
+Capture before and after from a frozen preview, including the 15 Realism Index
+viewpoints and the four performance points. Inspect close-ups and game-distance
+screenshots. Keep photo-pair limitations visible. Generated maps must tile, effects
+must respect the quality table, and real-device checks stay pending until observed.
