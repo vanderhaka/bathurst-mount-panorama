@@ -5,7 +5,7 @@
 // Scenario: [{ "key": "Enter" } | { "down": "ArrowUp" } | { "up": "ArrowUp" } | { "wait": 1500 }
 //            | { "shot": "artifacts/x.png" } | { "eval": "js expression" } | { "waitFor": "js expression" }
 //            | { "tap": [x, y] } | { "tapOn": "css selector" } | { "viewport": [w, h] }
-//            | { "touch": "start" | "move" | "end", "points": [[x, y], ...] }]
+//            | { "touch": "start" | "move" | "end", "points": [[x, y], ...] } | { "pinch": [x, y, scale] }]
 // --mobile emulates an iPhone (touch screen, 3x pixels, mobile user agent); "touch" sends real
 // multi-finger touch events (Chrome DevTools protocol), one point per finger in a fixed order.
 import { mkdirSync, readFileSync } from 'node:fs';
@@ -47,6 +47,7 @@ for (const s of steps) {
     if (!box) throw new Error(`tapOn: ${s.tapOn} is not visible`);
     await page.touchscreen.tap(box.x + box.width / 2, box.y + box.height / 2);
   } else if (s.viewport) await page.setViewportSize({ width: s.viewport[0], height: s.viewport[1] });
+  else if (s.pinch) await cdp.send('Input.synthesizePinchGesture', { x: s.pinch[0], y: s.pinch[1], scaleFactor: s.pinch[2], gestureSourceType: 'touch' });
   else if (s.touch) {
     const touchPoints = s.touch === 'end' || s.touch === 'cancel' ? [] : s.points.map(([x, y], id) => ({ x, y, id }));
     await cdp.send('Input.dispatchTouchEvent', { type: TOUCH[s.touch], touchPoints });

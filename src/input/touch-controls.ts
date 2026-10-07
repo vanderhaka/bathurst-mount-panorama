@@ -66,7 +66,7 @@ export class TouchControls {
   }
 
   private range(): number {
-    return STEER_RANGE * Math.min(window.innerWidth, window.innerHeight);
+    return STEER_RANGE * Math.min(this.el.clientWidth, this.el.clientHeight);
   }
 
   /** Brake left of throttle: the pedal under a thumb is the one on its side of the gap. */

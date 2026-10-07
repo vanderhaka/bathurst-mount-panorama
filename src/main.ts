@@ -1,4 +1,5 @@
 import { Game } from '@/game/game';
+import { installTouchGuards } from '@/input/touch-guards';
 
 declare global {
   interface Window { __game?: Game; __shotReady?: boolean }
@@ -17,6 +18,13 @@ if (!root) {
 } else if (!document.createElement('canvas').getContext('webgl2')) {
   showError('This game needs WebGL 2. Please use a current version of Chrome, Edge, Firefox or Safari.');
 } else {
+  installTouchGuards(root);
+  // iOS can drop the WebGL context when the phone runs short of memory: offer a reload.
+  root.addEventListener('webglcontextlost', (e) => {
+    e.preventDefault();
+    showError('The graphics stopped because the device ran short of memory. Tap to reload. If this happens again, set Settings > Graphics quality to Low.');
+    document.getElementById('boot-error')?.addEventListener('click', () => location.reload(), { once: true });
+  }, true);
   Game.create(root)
     .then((game) => {
       window.__game = game;

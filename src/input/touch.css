@@ -1,6 +1,7 @@
-/* On-screen touch controls (src/input/touch-controls.ts). Sizes follow the screen
-   height (landscape phones are about 380-440 px tall); safe areas keep them clear
-   of the notch and the home bar. Tokens: src/hud/theme.css */
+/* On-screen touch controls (src/input/touch-controls.ts). Sizes follow the height of
+   the game area (cqh: #game is a size container; landscape phones are about 330-440 px
+   tall, less with Safari's bar); safe areas keep them clear of the notch and the home
+   bar. Tokens: src/hud/theme.css */
 .bx-touch {
   position: absolute;
   inset: 0;
@@ -26,9 +27,9 @@
 }
 .tc-wheel {
   position: absolute;
-  left: max(calc(env(safe-area-inset-left) + 16vh), 22%);
+  left: max(calc(env(safe-area-inset-left) + 16cqh), 22%);
   top: 72%;
-  height: 0.5vh;
+  height: 0.5cqh;
   min-height: 3px;
   border-radius: 999px;
   background: rgb(255 255 255 / 0.28);
@@ -43,17 +44,17 @@
   content: '';
   position: absolute;
   left: 50%;
-  top: -1.2vh;
+  top: -1.2cqh;
   width: 2px;
-  height: 3vh;
+  height: 3cqh;
   background: rgb(255 255 255 / 0.5);
 }
 .tc-wheel__knob {
   position: absolute;
   left: calc(50% + var(--tc-steer, 0) * 50%);
   top: 50%;
-  width: 12vh;
-  height: 12vh;
+  width: 12cqh;
+  height: 12cqh;
   border: 2px solid rgb(255 255 255 / 0.85);
   border-radius: 50%;
   background: rgb(var(--hud-panel-rgb) / 0.55);
@@ -61,10 +62,10 @@
 }
 .tc-steer__hint {
   position: absolute;
-  left: max(calc(env(safe-area-inset-left) + 16vh), 22%);
-  top: calc(72% + 8vh);
+  left: max(calc(env(safe-area-inset-left) + 16cqh), 22%);
+  top: calc(72% + 8cqh);
   transform: translateX(-50%);
-  font-size: 2.6vh;
+  font-size: 2.6cqh;
   font-weight: 700;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -80,36 +81,36 @@
 .tc-pedals,
 .tc-buttons {
   position: absolute;
-  right: max(3vh, calc(env(safe-area-inset-right) + 1vh));
+  right: max(3cqh, calc(env(safe-area-inset-right) + 1cqh));
   display: flex;
-  gap: 2.5vh;
+  gap: 2.5cqh;
 }
 .tc-pedals {
-  bottom: max(3vh, env(safe-area-inset-bottom));
+  bottom: max(3cqh, env(safe-area-inset-bottom));
   align-items: flex-end;
 }
 .tc-buttons {
-  bottom: calc(max(3vh, env(safe-area-inset-bottom)) + 41vh);
+  bottom: calc(max(3cqh, env(safe-area-inset-bottom)) + 41cqh);
 }
 .tc-pedal {
   display: grid;
   place-items: end center;
-  width: 21vh;
-  padding-bottom: 2.4vh;
-  font-size: 2.8vh;
+  width: 21cqh;
+  padding-bottom: 2.4cqh;
+  font-size: 2.8cqh;
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--hud-text-dim);
   background: rgb(var(--hud-panel-rgb) / 0.5);
   border: 1px solid rgb(255 255 255 / 0.2);
-  border-radius: 1.6vh;
+  border-radius: 1.6cqh;
 }
 .tc-pedal--brake {
-  height: 30vh;
+  height: 30cqh;
 }
 .tc-pedal--throttle {
-  height: 38vh;
+  height: 38cqh;
 }
 .tc-pedal--brake.is-on {
   color: #fff;
@@ -120,12 +121,12 @@
   background: rgb(64 186 104 / 0.6);
 }
 .tc-btn {
-  width: 12vh;
-  height: 12vh;
+  width: 12cqh;
+  height: 12cqh;
   min-width: 40px;
   min-height: 40px;
   padding: 0;
-  font: 700 2.6vh/1 var(--hud-font-display);
+  font: 700 2.6cqh/1 var(--hud-font-display);
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--hud-text);

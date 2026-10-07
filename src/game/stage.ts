@@ -15,10 +15,11 @@ export class Stage {
   readonly post: PostChain;
   private quality: QualityPreset;
 
-  constructor(container: HTMLElement, quality: QualityPreset) {
+  constructor(private readonly container: HTMLElement, quality: QualityPreset) {
     this.quality = quality;
     this.renderer = createRenderer({ quality });
-    this.renderer.domElement.style.display = 'block';
+    // The canvas always fills the game area (CSS); resize() only sets its pixel size.
+    Object.assign(this.renderer.domElement.style, { display: 'block', width: '100%', height: '100%' });
     container.appendChild(this.renderer.domElement);
     const g = getGraphics();
     this.camera = new THREE.PerspectiveCamera(g.fov, 1, 0.1, 16000);
@@ -29,7 +30,9 @@ export class Stage {
     this.post.setEnabled(QUALITY[quality].post, QUALITY[quality].msaa);
     this.applyGraphics();
     onGraphicsChange(() => this.applyGraphics());
-    window.addEventListener('resize', () => this.resize());
+    // The game area's own size, not the window's: on a phone, window.innerWidth/innerHeight
+    // follow the zoomed visual viewport and lag behind a turn of the phone.
+    new ResizeObserver(() => this.resize()).observe(container);
     this.resize();
   }
 
@@ -61,8 +64,9 @@ export class Stage {
   }
 
   resize(): void {
-    const w = window.innerWidth, h = window.innerHeight;
-    this.renderer.setSize(w, h);
+    const w = Math.max(1, this.container.clientWidth || window.innerWidth);
+    const h = Math.max(1, this.container.clientHeight || window.innerHeight);
+    this.renderer.setSize(w, h, false);
     this.post.setSize(w, h);
     this.camera.aspect = w / h;
     this.camera.updateProjectionMatrix();

@@ -49,7 +49,8 @@ export function orbitCamera(cam: THREE.PerspectiveCamera, target: THREE.Vector3,
   cam.position.set(target.x + Math.sin(angle) * dist, target.y + 1.7, target.z + Math.cos(angle) * dist);
   cam.lookAt(target.x, target.y + 0.55, target.z);
   cam.fov = 34;
-  const w = window.innerWidth, h = window.innerHeight;
+  // Offset in units of the view (camera aspect), not the window: the game area can differ.
+  const w = 1000 * cam.aspect, h = 1000;
   cam.setViewOffset(w, h, -w * 0.17, 0, w, h);
   cam.updateProjectionMatrix();
 }

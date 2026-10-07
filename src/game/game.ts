@@ -85,8 +85,11 @@ export class Game {
     hud.setVisible(false);
     game = new Game(stage, world, hud, menus);
     if (navigator.maxTouchPoints > 0) game.input.attachTouch(new TouchControls(root));
-    // Landscape only on phones: turning to portrait pauses a race (index.html shows a turn-the-phone note).
-    matchMedia('(orientation: portrait) and (pointer: coarse)').addEventListener('change', (e) => { if (e.matches && game?.state === 'race') game.pause(); });
+    // A race pauses when the player can no longer drive it: the phone turns to portrait
+    // (index.html shows a turn-the-phone note) or the page is hidden (app switch, lock, call).
+    const pauseRace = (): void => { if (game?.state === 'race') game.pause(); };
+    matchMedia('(orientation: portrait) and (pointer: coarse)').addEventListener('change', (e) => { if (e.matches) pauseRace(); });
+    document.addEventListener('visibilitychange', () => { if (document.hidden) pauseRace(); });
     menus.showLoading(1, 'Ready');
     game.enterTitle();
     const limiter = new FrameLimiter();

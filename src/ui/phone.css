@@ -1,9 +1,10 @@
 /* Phones in landscape (touch screen, at most 540 px tall): smaller menu text so the
    panels fit, no keyboard / controller hint bar (taps work on every item), and the
-   safe areas keep content clear of the notch. */
+   safe areas keep content clear of the notch. Sizes use cqh (the height of the game
+   area), not vh: Safari measures vh with its bars hidden. */
 @media (pointer: coarse) and (max-height: 540px) {
   :root {
-    --menu-font-size: clamp(9px, 2.5vh, 13px);
+    --menu-font-size: clamp(9px, 2.5cqh, 13px);
   }
   .bx-menus {
     padding: 0 env(safe-area-inset-right) 0 env(safe-area-inset-left);
@@ -18,4 +19,14 @@
   .mn-tabpage {
     touch-action: pan-y;
   }
+}
+
+/* Title-screen tip (only built for touch screens outside the Home Screen app). */
+.mn-tip {
+  max-width: 26em;
+  margin: 1em 0 0;
+  font-family: var(--hud-font-text);
+  font-size: 0.85em;
+  line-height: 1.4;
+  color: var(--hud-text-dim);
 }

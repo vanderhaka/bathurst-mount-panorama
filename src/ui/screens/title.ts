@@ -15,6 +15,13 @@ const FACTS: Array<[string, string, string]> = [
   ['Elevation change', '174', 'm'],
 ];
 
+/** Phones in the browser (not started from the Home Screen): how to get full screen. */
+function fullScreenTip(): HTMLElement | null {
+  const standalone = matchMedia('(display-mode: standalone), (display-mode: fullscreen)').matches || (navigator as Navigator & { standalone?: boolean }).standalone === true;
+  if (standalone || !matchMedia('(pointer: coarse)').matches) return null;
+  return h('p', 'mn-tip', undefined, ['For full screen, tap Share, then Add to Home Screen, and start the game from its icon.']);
+}
+
 export class TitleScreen implements Screen {
   readonly id = 'title' as const;
   readonly el = screenEl('title', 'Main menu', 'mn-screen--side');
@@ -37,6 +44,7 @@ export class TitleScreen implements Screen {
           FACTS.map(([k, v, u]) => h('div', 'mn-fact', undefined, [h('dt', undefined, undefined, [k]), h('dd', undefined, undefined, [v, u ? h('small', undefined, undefined, [u]) : null])])),
         ),
         h('nav', 'mn-list', { 'aria-label': 'Main menu' }, this.buttons),
+        fullScreenTip(),
       ]),
       hintBar(STD_HINTS.slice(0, 2)),
     );

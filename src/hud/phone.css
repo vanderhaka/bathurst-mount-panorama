@@ -1,11 +1,12 @@
 /* Phones in landscape (touch screen, at most 540 px tall). The left thumb steers and
    the right thumb works the pedals (src/input/touch.css), so the bottom corners stay
    clear: the tyre / fuel and inputs panels hide, and speed and gear move to the
-   bottom centre. Safe areas keep panels clear of the notch. */
+   bottom centre. Safe areas keep panels clear of the notch. Sizes use cqh (the height of
+   the game area), not vh: Safari measures vh with its bars hidden. */
 @media (pointer: coarse) and (max-height: 540px) {
   :root {
-    --hud-base-size: clamp(6px, 1.9vh, 11px);
-    --hud-margin-y: max(1.4vh, env(safe-area-inset-top));
+    --hud-base-size: clamp(6px, 1.9cqh, 11px);
+    --hud-margin-y: max(1.4cqh, env(safe-area-inset-top));
   }
   /* Panels scale with their region's font size (all HUD sizes are in em). */
   .hud-region--tl {
@@ -25,7 +26,7 @@
   .hud-region--br {
     right: auto;
     left: 50%;
-    bottom: max(1.4vh, env(safe-area-inset-bottom));
+    bottom: max(1.4cqh, env(safe-area-inset-bottom));
     transform: translateX(-50%);
     align-items: center;
     font-size: 0.8em;
