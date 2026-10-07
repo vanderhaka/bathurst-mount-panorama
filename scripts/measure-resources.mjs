@@ -72,9 +72,8 @@ await page.addInitScript(() => {
 await page.goto(url);
 await page.waitForFunction(() => window.__shotReady, null, { timeout: 120000 });
 await page.keyboard.press('Enter');
-await page.keyboard.press('ArrowDown');
-await page.keyboard.press('ArrowDown');
-await page.keyboard.press('Enter');
+await page.waitForTimeout(400);
+await page.getByRole('button', { name: 'Start time trial', exact: true }).click();
 await page.waitForFunction(() => window.__game?.race?.session.lights < 0, null, { timeout: 30000 });
 await page.waitForTimeout(1000);
 const result = await page.evaluate(() => {

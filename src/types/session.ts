@@ -1,6 +1,7 @@
 import type { CarKind } from '@/car/car-specs';
 import type { QualityPreset } from '@/render/renderer';
 import type { TouchSteeringMode } from '@/input/touch-model';
+import type { TyreCompound } from '@/physics/tyre-state';
 
 export type CameraMode = 'chase' | 'chaseFar' | 'bonnet' | 'cockpit' | 'tv';
 
@@ -67,6 +68,8 @@ export interface SessionConfig {
   car: CarKind;
   /** Livery preset index (0..n-1) offered on the car-select screen. */
   liveryIndex: number;
+  /** Fitted at session start; Restart keeps this choice and fits a fresh set. */
+  tyres?: TyreCompound;
   settings: Settings;
 }
 

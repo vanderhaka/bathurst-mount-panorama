@@ -1,6 +1,7 @@
 import type { CarKind } from '@/car/car-specs';
 import type { LapRecord, SessionConfig, Settings } from '@/types/session';
 import type { PadStyle } from '@/input/pad-style';
+import type { TyreCompound } from '@/physics/tyre-state';
 
 export type SectorState = 'none' | 'personalBest' | 'overallBest' | 'slower';
 
@@ -69,6 +70,8 @@ export interface HudState {
   wheels?: ReadonlyArray<{ load: number; slip: number }>;
   /** Real tyre values (FL, FR, RL, RR); when present they replace the HUD's display-only estimate. */
   tyres?: ReadonlyArray<{ tempC: number; wear: number }>;
+  /** Compound fitted for this session; controls the tyre temperature bands. */
+  tyreCompound?: TyreCompound;
   /** Real fuel values; when present they replace the HUD's display-only estimate. lapsLeft null = not known yet. */
   fuel?: { litres: number; lapsLeft: number | null };
 }

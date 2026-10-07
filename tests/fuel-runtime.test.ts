@@ -53,7 +53,7 @@ describe('fuel runtime wiring without a renderer', () => {
     expect(v.stint.completedLaps).toBe(0);
   });
 
-  it('shows real litres against the 132 L capacity, while identifying the estimated tyres', () => {
+  it('shows real litres against the 132 L capacity with simulation-owned tyre readings', () => {
     vi.stubGlobal('document', { createElement: (tag: string) => new TouchElement(tag) });
     try {
       const car = entity(), session = new RaceSession('camaro', track, line, car);
@@ -64,7 +64,7 @@ describe('fuel runtime wiring without a renderer', () => {
       const root = panel.el as unknown as TouchElement;
       expect(root.find('hud-fuel__v').textContent).toBe('132.0');
       expect(root.find('hud-fuel__fill').properties['--f']).toBe('1');
-      expect(root.find('hud-chip--est').text).toEqual(['TYRES EST']);
+      expect(root.find('hud-chip--est')).toHaveProperty('hidden', true);
       expect(car.vehicle.stint.fuel.litres).toBe(132);
     } finally { vi.unstubAllGlobals(); }
   });

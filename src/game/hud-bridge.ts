@@ -96,6 +96,8 @@ export function buildHudState(session: RaceSession, profile: SpeedProfile, setti
   state.gLong = t.gLong;
   state.wheels = t.wheels;
   state.fuel = t.fuel;
+  state.tyres = t.tyres;
+  state.tyreCompound = v.stint.tyreModel.compound;
   if (!state.entry) {
     const lv = session.entity.livery;
     state.entry = { number: lv.number, code: CAR_CODES[session.car], colour: `#${lv.primary.toString(16).padStart(6, '0')}` };

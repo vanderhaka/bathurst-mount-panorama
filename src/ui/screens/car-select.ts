@@ -1,5 +1,6 @@
 // Car select: car and livery pickers over the live 3D preview, spec sheet, RACE.
 import type { CarKind } from '@/car/car-specs';
+import type { TyreCompound } from '@/physics/tyre-state';
 import { LIVERY_PRESETS } from '@/car/liveries';
 import { h } from '@/hud/dom';
 import { CAR_ORDER, carSheet, hexColour, LIVERY_COUNT } from '@/ui/car-data';
@@ -7,7 +8,7 @@ import { hintBar, kicker, menuButton, type Screen, screenEl, STD_HINTS, valueRow
 
 export interface CarSelectActions {
   preview(car: CarKind, livery: number): void;
-  start(car: CarKind, livery: number): void;
+  start(car: CarKind, livery: number, tyres: TyreCompound): void;
   back(): void;
 }
 
@@ -27,8 +28,10 @@ export class CarSelectScreen implements Screen {
   readonly el = screenEl('car', 'Car select', 'mn-screen--side');
   private carIdx = 0;
   private livery = 0;
+  private tyres: TyreCompound = 'soft';
   private readonly carRow;
   private readonly liveryRow;
+  private readonly tyreRow;
   private readonly specs = h('dl', 'mn-specs');
   private readonly note = h('p', 'mn-specs__note');
   private readonly race: HTMLButtonElement;
@@ -37,7 +40,8 @@ export class CarSelectScreen implements Screen {
   constructor(private readonly actions: CarSelectActions) {
     this.carRow = valueRow('Car', (d) => this.step('car', d), 'mn-value--car');
     this.liveryRow = valueRow('Livery', (d) => this.step('livery', d), 'mn-value--livery');
-    this.race = menuButton('Start time trial', () => actions.start(this.car, this.livery), { variant: 'primary', aria: 'Start time trial' });
+    this.tyreRow = valueRow('Tyres', () => { this.tyres = this.tyres === 'soft' ? 'hard' : 'soft'; this.renderTyres(); });
+    this.race = menuButton('Start time trial', () => actions.start(this.car, this.livery, this.tyres), { variant: 'primary', aria: 'Start time trial' });
     this.backBtn = menuButton('Back', () => actions.back());
     this.el.append(
       h('div', 'mn-side mn-side--car', undefined, [
@@ -45,11 +49,13 @@ export class CarSelectScreen implements Screen {
         this.carRow.el,
         h('div', 'mn-specs-wrap', undefined, [this.specs, this.note]),
         this.liveryRow.el,
+        this.tyreRow.el,
         h('div', 'mn-actions', undefined, [this.race, this.backBtn]),
       ]),
       hintBar([['←→', 'DPAD', 'Change'], ...STD_HINTS.slice(0, 1), ['Enter', 'A', 'Confirm'], ['Esc', 'B', 'Back']]),
     );
     this.render();
+    this.renderTyres();
   }
 
   get car(): CarKind {
@@ -86,8 +92,14 @@ export class CarSelectScreen implements Screen {
     this.liveryRow.el.setAttribute('aria-label', `Livery: ${preset.name}, number ${l.number}. Left and right to change.`);
   }
 
+  private renderTyres(): void {
+    const label = this.tyres === 'soft' ? 'Soft' : 'Hard';
+    this.tyreRow.value.textContent = label;
+    this.tyreRow.el.setAttribute('aria-label', `Tyres: ${label}. Left and right to change for the next session.`);
+  }
+
   items(): HTMLElement[] {
-    return [this.carRow.el, this.liveryRow.el, this.race, this.backBtn];
+    return [this.carRow.el, this.liveryRow.el, this.tyreRow.el, this.race, this.backBtn];
   }
 
   back(): void {

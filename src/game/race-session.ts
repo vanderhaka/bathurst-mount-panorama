@@ -9,6 +9,7 @@ import type { RacingLine } from '@/track/racing-line';
 import type { Track } from '@/track/track-model';
 import type { HudState } from '@/types/hud';
 import type { LapRecord } from '@/types/session';
+import type { TyreCompound } from '@/physics/tyre-state';
 
 
 type Message = NonNullable<HudState['message']>;
@@ -30,7 +31,7 @@ export class RaceSession {
   readonly ghostPose: GhostPose = { x: 0, y: 0, z: 0, heading: 0, pitch: 0, roll: 0, steer: 0, speed: 0 };
   ghostVisible = false;
 
-  constructor(readonly car: CarKind, readonly track: Track, readonly line: RacingLine, readonly entity: CarEntity) {
+  constructor(readonly car: CarKind, readonly track: Track, readonly line: RacingLine, readonly entity: CarEntity, readonly tyres: TyreCompound = 'soft') {
     this.records = loadRecords(car);
     const sectorStarts = SECTOR_STARTS_S.map((s) => track.wrapS(s - track.startLineS));
     const saved = this.records && Number.isFinite(this.records.bestS) ? this.records : null;
@@ -41,7 +42,7 @@ export class RaceSession {
 
   /** Puts the car on pole position behind the standing-start line and arms the lights. */
   placeOnGrid(): void {
-    this.entity.vehicle.stint.reset();
+    this.entity.vehicle.stint.reset({ compound: this.tyres });
     const s = this.track.gridLineS - 7;
     const i = Math.round(s / this.track.spacing);
     this.entity.reset(s, Math.max(-this.track.right.edge[i] + 2, Math.min(this.track.left.edge[i] - 2, -2.2)));

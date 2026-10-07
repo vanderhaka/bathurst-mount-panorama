@@ -2,7 +2,7 @@
 // Scripted play-through for verification. Drives the real game with keyboard
 // events and takes screenshots.
 // Usage: node scripts/play.mjs <scenario.json> [--url http://127.0.0.1:5180/] [--size 1600x900] [--mobile] [--android] [--engine chromium|webkit]
-// Scenario: [{ "key": "Enter" } | { "down": "ArrowUp" } | { "up": "ArrowUp" } | { "wait": 1500 }
+// Scenario: [{ "clickOn": "css selector" } | { "key": "Enter" } | { "down": "ArrowUp" } | { "up": "ArrowUp" } | { "wait": 1500 }
 //            | { "shot": "artifacts/x.png" } | { "eval": "js expression" } | { "waitFor": "js expression" }
 //            | { "tap": [x, y] } | { "tapOn": "css selector" } | { "viewport": [w, h] }
 //            | { "touch": "start" | "move" | "end", "points": [[x, y], ...] } | { "pinch": [x, y, scale] }]
@@ -51,6 +51,7 @@ try {
     else if (s.waitFor) await page.waitForFunction(s.waitFor, null, { timeout: s.timeout ?? 60000, polling: 100 });
     else if (s.eval) log.push({ eval: s.eval, result: await page.evaluate(s.eval) });
     else if (s.tap) await page.touchscreen.tap(s.tap[0], s.tap[1]);
+    else if (s.clickOn) await page.locator(s.clickOn).first().click();
     else if (s.tapOn) {
       const box = await page.locator(s.tapOn).first().boundingBox();
       if (!box) throw new Error(`tapOn: ${s.tapOn} is not visible`);

@@ -24,6 +24,9 @@ export class TyreFuelPanel {
   private readonly gaugeFill = h('i', 'hud-fuel__fill');
   private readonly gauge = new VarSlot(this.gaugeFill, '--f', 200);
   private readonly low: AttrSlot;
+  private readonly estimate = new TextSlot(h('span', 'hud-chip hud-chip--est', { title: 'Estimated values' }));
+  private readonly heading = new TextSlot(h('span', 'hud-micro'));
+  private readonly label: AttrSlot;
 
   constructor() {
     const grid = h('div', 'hud-tyres__grid');
@@ -44,27 +47,32 @@ export class TyreFuelPanel {
       h('span', 'hud-fuel__laps', undefined, [this.laps.el, h('span', 'hud-micro', undefined, ['LAPS'])]),
     ]);
     this.low = new AttrSlot(fuel, 'data-low');
-    // Tyres remain estimated until their physics model is enabled.
-    this.el = h('section', 'hud-panel hud-tyrefuel', { 'aria-label': 'Tyre estimates and fuel' }, [
+    this.el = h('section', 'hud-panel hud-tyrefuel', { 'aria-label': 'Tyre and fuel estimates' }, [
       h('header', 'hud-panel__head', undefined, [
         h('span', 'hud-micro hud-micro--strong', undefined, ['TYRES · FUEL']),
-        h('span', 'hud-chip hud-chip--est', { title: 'Estimated tyre values' }, ['TYRES EST']),
+        this.estimate.el,
       ]),
       h('div', 'hud-tyrefuel__body', undefined, [
-        h('div', 'hud-tyres', undefined, [h('span', 'hud-micro', undefined, ['TYRES °C']), grid]),
+        h('div', 'hud-tyres', undefined, [this.heading.el, grid]),
         h('i', 'hud-tyrefuel__rule'),
         fuel,
       ]),
     ]);
+    this.label = new AttrSlot(this.el, 'aria-label');
   }
 
   update(st: HudState): void {
-    this.model.update(st);
-    const tyres = st.tyres && st.tyres.length === 4 ? st.tyres : this.model.tyres;
+    const actualTyres = st.tyres && st.tyres.length === 4 ? st.tyres : null;
+    if (!actualTyres || !st.fuel) this.model.update(st);
+    (this.estimate.el as HTMLElement).hidden = !!actualTyres && !!st.fuel;
+    this.estimate.set(st.fuel && !actualTyres ? 'TYRES EST' : 'EST');
+    this.label.set(actualTyres && st.fuel ? 'Tyres and fuel' : st.fuel ? 'Tyre estimates and fuel' : 'Tyre and fuel estimates');
+    this.heading.set(actualTyres && st.tyreCompound ? `${st.tyreCompound.toUpperCase()} °C` : 'TYRES °C');
+    const tyres = actualTyres ?? this.model.tyres;
     for (let i = 0; i < 4; i++) {
       const t = tyres[i];
       const v = this.tyres[i];
-      v.band.set(tyreBand(t.tempC));
+      v.band.set(tyreBand(t.tempC, st.tyreCompound));
       v.temp.set(String(Math.round(t.tempC)));
       v.life.set(Math.max(0, Math.min(1, 1 - t.wear)));
     }

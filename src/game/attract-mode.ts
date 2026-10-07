@@ -19,7 +19,7 @@ export class AttractMode {
   /** Replaces the demo car (the entity's model must already be in the scene). */
   set(entity: CarEntity, line: RacingLine): void {
     this.drop();
-    entity.vehicle.stint.reset();
+    entity.vehicle.stint.reset({ tempC: 95 });
     const profiles = new SessionProfiles(entity.vehicle, line);
     this.demo = { entity, pilot: new Autopilot(entity.vehicle.track, line, profiles.ai), profiles };
   }
@@ -39,7 +39,7 @@ export class AttractMode {
       const v = entity.vehicle;
       entity.simulate(pilot.drive(v, { throttle: 0, brake: 0, steer: 0, shiftUp: false, shiftDown: false }), dt, (input) => {
         if (v.stint.completedLaps > 0) {
-          v.stint.reset();
+          v.stint.reset({ tempC: 95 });
           v.stint.placeOnTrack(v.tp.s);
           profiles.reset();
         }

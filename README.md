@@ -77,7 +77,7 @@ The colours and the HUD "next corner" speed use a profile that a real driver can
 - Broadcast-style timing tower (lap, your live entry against your best lap, sectors).
 - A delta bar at the top centre (green when faster, red when slower) and a start-light strip during the countdown. The grid gantry lights up at the same time.
 - Speed, gear, rpm and shift lights, the next-corner speed, the track map with corner name and altitude, damage, and pedal and steering inputs.
-- Fuel comes from the simulation: a 132 L tank, 0.75 kg per litre and throttle-dependent burn. Sessions start at the calibrated 80 L reference load; recovery preserves fuel and Restart refills it. Laps left appears after a complete lap. Tyre temperatures and wear remain display-only estimates from slip and load (`src/hud/tyre-fuel-model.ts`).
+- Fuel and tyre values come from the simulation. A 132 L tank adds 0.75 kg per litre and burns fuel with throttle. Sessions start at the calibrated 80 L reference load; laps left appears after a complete lap. Each tyre heats from slip and load, and temperature and wear change its grip. Select Soft or Hard tyres on car select for the next session. Recovery preserves fuel and tyres; Restart refills 80 L and fits a fresh cold set of the chosen compound.
 
 ## Cockpit
 
@@ -127,7 +127,7 @@ The car feels a change at once, and the game saves it. The taller tick under eac
 | Downforce | Grip at high speed. |
 | Steering speed | How fast the front wheels turn to the steering input. |
 
-The racing-line colours and corner-speed hints follow handling and fuel load once per simulation second. Tyre temperature on the HUD is for display only: it does not change the grip.
+The racing-line colours and corner-speed hints follow handling, fuel load and actual tyre grip once per simulation second. Fresh warm soft tyres preserve the tuned grip; cold, overheated or worn tyres have less grip. The compound windows and wear rates are game estimates, since measured Gen3 Dunlop curves are unpublished.
 
 ## Menus
 

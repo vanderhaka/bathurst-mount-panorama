@@ -41,7 +41,7 @@ await shot('02-car-select');
 await key('ArrowRight'); await wait(1500);
 await shot('03-car-select-other');
 await key('ArrowLeft'); await wait(1200);
-await key('ArrowDown'); await key('ArrowDown'); await key('Enter');
+await page.getByRole('button', { name: 'Start time trial', exact: true }).click();
 await wait(2600);
 await shot('04-grid-lights');
 await page.waitForFunction(() => window.__game?.race?.session.lights < 0, null, { timeout: 20000 });

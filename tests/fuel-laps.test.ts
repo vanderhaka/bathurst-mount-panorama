@@ -14,7 +14,7 @@ const track = new Track(), line = computeRacingLine(track), kerbs = placeKerbs(t
 const DT = 1 / 360;
 function lap(fuelL: number, fixedTarget = false): { timeS: number; fuelL: number; maxImpact: number } {
   const v = new Vehicle(CAR_SPECS.camaro, track, kerbs);
-  v.stint.reset({ fuelL });
+  v.stint.reset({ fuelL, tempC: 95 });
   const s0 = track.wrapS(track.startLineS - 300);
   v.reset(s0, line.offset[Math.round(s0 / track.spacing) % track.n]);
   const profiles = new SessionProfiles(v, line);

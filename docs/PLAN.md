@@ -184,10 +184,11 @@ Status: done — awaiting the user's iPhone check and physical Android vibration
 ## Phase 3 — Racing realism
 **Goal.** The car behaves like a real Gen3 car over a stint. Every physics change keeps the existing tests green (autopilot laps, line-follower test) and re-checks the lap times: the user-tuned car near 2:04 for the test AI.
 ### 3.1 Fuel weight — S
-Status: done (commit recorded by next item; evidence `artifacts/review/item-3.1/`).
+Status: done (commit e2d24102565f41fe47508bfabbb067d30c52e050; evidence `artifacts/review/item-3.1/`).
 - **Do:** the fuel load adds mass (about 0.75 kg per litre); the fuel burns per lap; a full car is slower than a light one.
 - **Done when:** a test shows a lap time difference between full and light fuel in the expected size (a few tenths of a second).
 ### 3.2 Tyre temperature and wear change the grip — M
+Status: done (commit recorded by next item; evidence `artifacts/review/item-3.2/`).
 - **Do:**
   1. Move the display tyre model (`src/hud/tyre-heat.ts`, `tyre-fuel-model.ts`) into the physics: grip falls below and above a temperature window; wear lowers grip over a stint.
   2. Two compounds (soft and hard) with different windows and wear rates.

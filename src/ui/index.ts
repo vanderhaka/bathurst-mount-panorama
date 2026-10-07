@@ -17,6 +17,7 @@ import { h } from '@/hud/dom';
 import type { PadStyle } from '@/input/pad-style';
 import type { MenuCallbacks, MenuNav, Menus } from '@/types/hud';
 import type { LapRecord, SessionConfig, Settings } from '@/types/session';
+import type { TyreCompound } from '@/physics/tyre-state';
 import { LIVERY_COUNT } from '@/ui/car-data';
 import { applyPadStyle } from '@/ui/pad-glyphs';
 import { adjust, itemBeside, type Screen } from '@/ui/screen';
@@ -84,7 +85,7 @@ class MenuController implements Menus {
     const screens: ScreenSet = {
       loading: new LoadingScreen(),
       title: new TitleScreen({ race: () => this.showCarSelect(), settings: () => sub(screens.settings), controls: () => sub(screens.controls) }),
-      car: new CarSelectScreen({ preview: (c, l) => this.cb.onPreviewCar(c, l), start: (c, l) => this.start(c, l), back: () => this.showTitle() }),
+      car: new CarSelectScreen({ preview: (c, l) => this.cb.onPreviewCar(c, l), start: (c, l, t) => this.start(c, l, t), back: () => this.showTitle() }),
       settings: new SettingsScreen({ get: () => this.settings, set: (s) => this.applySettings(s), back: backFromSub, toggleTuner: () => this.cb.onToggleTuner() }),
       pause: new PauseScreen({
         resume: () => this.leave(() => this.cb.onResume()),
@@ -115,8 +116,8 @@ class MenuController implements Menus {
     this.cb.onSettingsChange({ ...s });
   }
 
-  private start(car: CarKind, liveryIndex: number): void {
-    const config: SessionConfig = { car, liveryIndex, settings: { ...this.settings } };
+  private start(car: CarKind, liveryIndex: number, tyres: TyreCompound): void {
+    const config: SessionConfig = { car, liveryIndex, tyres, settings: { ...this.settings } };
     this.lastConfig = config;
     this.leave(() => this.cb.onStart(config));
   }

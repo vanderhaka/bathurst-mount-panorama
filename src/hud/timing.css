@@ -61,12 +61,15 @@
 .hud-timing[data-valid='false'] .hud-chip--bad {
   display: inline-block;
 }
-/* Estimate marker (tyres / fuel): same chip, neutral colours, always shown. */
+/* HUD harness estimates; the game hides this when simulation values are present. */
 .hud-chip--est {
   display: inline-block;
   margin-right: 0;
   color: var(--hud-text);
   background: var(--hud-est-bg);
+}
+.hud-chip--est[hidden] {
+  display: none;
 }
 
 /* ---- position rows (you vs best lap) */

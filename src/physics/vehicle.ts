@@ -69,7 +69,7 @@ export class Vehicle {
     this.wheels = this.corners.map(() => ({ load: 0, slip: 0, surface: 'road' as const, spin: 0, compression: 0, steer: 0 }));
     this.telemetry = {
       speed: 0, rpm: spec.engine.idleRpm, gear: 1, throttle: 0, brake: 0, steer: 0, onLimiter: false,
-      fuel: this.stint.fuel,
+      fuel: this.stint.fuel, tyres: this.stint.tyres,
       tcActive: false, absActive: false, shifted: false, gLong: 0, gLat: 0, wheels: this.wheels, airborne: false, load: 0,
     };
   }
@@ -209,7 +209,7 @@ export class Vehicle {
       const u = uB * cs + wB * sn;
       const wl = -uB * sn + wB * cs;
       const sideDamage = c.x > 0 ? this.damage.left : this.damage.right;
-      const mu = spec.tyreMu * hc.grip * (front ? 1 : hc.rearGrip) * S.grip * (1 - 0.18 * sideDamage * this.damage.suspension);
+      const mu = spec.tyreMu * hc.grip * (front ? 1 : hc.rearGrip) * S.grip * this.stint.tyres[w].grip * (1 - 0.18 * sideDamage * this.damage.suspension);
       const bias = front ? spec.brakeBiasFront : 1 - spec.brakeBiasFront;
       const brakeF = (brakePedal * spec.maxBrakeTorqueNm * (bias / spec.brakeBiasFront)) / R;
       const driveF = front ? 0 : drive / 2;
