@@ -21,6 +21,7 @@ const PLAYSTATION: Record<string, string> = {
   A: '✕', B: '○', X: '□', Y: '△',
   LB: 'L1', RB: 'R1', LT: 'L2', RT: 'R2',
   Menu: 'Options',
+  'LS click': 'L3', 'RS click': 'R3',
 };
 
 /** Name of a control for a controller family. `label` is the standard name (A, B, LT, View, …). */

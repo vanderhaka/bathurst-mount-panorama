@@ -1,5 +1,6 @@
 import { tunedSpec } from '@/config/handling';
 import { stintSpec } from '@/physics/stint-spec';
+import { setupSpec } from '@/physics/setup-forces';
 import type { Vehicle } from '@/physics/vehicle';
 import { AI_PROFILE } from '@/race/autopilot';
 import type { RacingLine } from '@/track/racing-line';
@@ -18,7 +19,7 @@ export class SessionProfiles {
     this.refreshedS = vehicle.simulationS;
   }
 
-  private spec() { return stintSpec(tunedSpec(this.vehicle.spec, this.vehicle.handling), this.vehicle.stint); }
+  private spec() { return stintSpec(setupSpec(tunedSpec(this.vehicle.spec, this.vehicle.handling), this.vehicle.setup), this.vehicle.stint); }
 
   /** Render time and pauses cannot advance the refresh clock. */
   update(): void {

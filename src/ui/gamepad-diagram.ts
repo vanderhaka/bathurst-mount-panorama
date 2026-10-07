@@ -75,7 +75,7 @@ export function gamepadDiagram(style: PadStyle): HTMLElement {
   const behind: SVGElement[] = [];
   const front: SVGElement[] = [];
   for (const c of [...COMMON, ...layout.controls]) {
-    const el = control(c.shape, c.label, c.glyph, style, `mn-gp__ctl ${bound.has(c.label) ? 'is-bound' : ''} mn-gp__ctl--${c.glyph ? c.shape.kind : 'small'}`);
+    const el = control(c.shape, c.label, c.glyph, style, `mn-gp__ctl ${bound.has(c.label) || bound.has(`${c.glyph} click`) ? 'is-bound' : ''} mn-gp__ctl--${c.glyph ? c.shape.kind : 'small'}`);
     (c.behind ? behind : front).push(el);
   }
   const [dx, dy] = layout.dpad;
@@ -90,7 +90,7 @@ export function gamepadDiagram(style: PadStyle): HTMLElement {
     dpad,
   ]);
   const legend = h('dl', 'mn-gp-legend');
-  const order = ['RT', 'LT', 'Left stick', 'A', 'X', 'Y', 'B', 'View', 'Menu', 'LB', 'RB'];
+  const order = ['RT', 'LT', 'Left stick', 'A', 'X', 'Y', 'B', 'View', 'Menu', 'LB', 'RB', 'LS click', 'RS click'];
   for (const label of order) {
     const action = bound.get(label);
     if (!action) continue;

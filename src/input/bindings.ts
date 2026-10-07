@@ -16,6 +16,8 @@ export type GameAction =
   | 'ghost'
   | 'racingLine'
   | 'hud'
+  | 'brakeBiasRear'
+  | 'brakeBiasFront'
   | 'tuner';
 
 export interface Binding {
@@ -47,6 +49,8 @@ export const BINDINGS: Binding[] = [
   { action: 'ghost', label: 'Toggle ghost', keys: ['KeyG'], keyLabels: ['G'], pad: { kind: 'button', index: 4, label: 'LB' } },
   { action: 'racingLine', label: 'Cycle racing line', keys: ['KeyL'], keyLabels: ['L'], pad: { kind: 'button', index: 3, label: 'Y' } },
   { action: 'hud', label: 'Toggle HUD', keys: ['KeyH'], keyLabels: ['H'] },
+  { action: 'brakeBiasRear', label: 'Brake bias rearward', keys: ['BracketLeft'], keyLabels: ['['], pad: { kind: 'button', index: 10, label: 'LS click' } },
+  { action: 'brakeBiasFront', label: 'Brake bias forward', keys: ['BracketRight'], keyLabels: [']'], pad: { kind: 'button', index: 11, label: 'RS click' } },
   // The graphics tuner is a dev tool (local builds and preview deployments only).
   ...(DEV_TOOLS ? [TUNER] : []),
 ];

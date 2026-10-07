@@ -1,5 +1,6 @@
 import type { CarSpec } from '@/car/car-specs';
 import { DEFAULT_HANDLING, type HandlingConfig } from '@/config/handling';
+import { defaultSetup, type CarSetup } from '@/config/setup';
 import type { KerbLayout } from '@/track/kerbs';
 import type { Track } from '@/track/track-model';
 import { createTrackPoint, heightAt, projectToTrack, sampleArray, surfaceAt, VERGE_FALL, type SurfaceKind, type TrackPoint } from '@/track/track-query';
@@ -7,6 +8,7 @@ import { resolveWalls } from '@/physics/collision';
 import { applyImpactDamage, createDamage } from '@/physics/damage';
 import { createPowertrain, stepPowertrain, type PowertrainState } from '@/physics/powertrain';
 import { VehicleStint } from '@/physics/vehicle-stint';
+import { pressureGrip, suspensionCorners, suspensionForce, type SuspensionCorner } from '@/physics/setup-forces';
 import { SURFACE, tyreCurve, tyreForces, type TyreResult } from '@/physics/tyre';
 import type { DamageState, ImpactReport, VehicleInput, VehicleTelemetry, WheelTelemetry } from '@/physics/types';
 
@@ -19,9 +21,6 @@ export interface VehicleAssists {
   autoGears: boolean;
   mechanicalDamage: boolean; // false = impacts leave the mechanics as new (damage setting "Visual only" or "Off")
 }
-
-/** Corner geometry: lateral x (+ left), longitudinal z (+ forward) from the CG. */
-interface Corner { x: number; z: number; k: number; c: number; h0: number }
 
 /**
  * Gen3 Supercar dynamics: planar 4-wheel tyre model on the real track surface
@@ -42,8 +41,9 @@ export class Vehicle {
   simulationS = 0;
   assists: VehicleAssists = { abs: true, tc: true, autoGears: true, mechanicalDamage: true };
   handling: Readonly<HandlingConfig> = DEFAULT_HANDLING; // multipliers from Settings > Handling
+  setup: Readonly<CarSetup>;
   steerAngle = 0;
-  private readonly corners: Corner[];
+  private readonly corners: SuspensionCorner[];
   private readonly wtp: TrackPoint[] = [0, 1, 2, 3].map(() => createTrackPoint());
   private readonly tyre: TyreResult = { fx: 0, fy: 0, use: 0, absActive: false, tcActive: false };
   private prevComp = [0, 0, 0, 0];
@@ -56,15 +56,8 @@ export class Vehicle {
     const d = spec.dimensions;
     this.b = d.wheelbase * spec.frontWeight; // CG to rear axle
     this.a = d.wheelbase - this.b; // CG to front axle
-    const mg = spec.massKg * G;
-    const loadF = (mg * spec.frontWeight) / 2, loadR = (mg * (1 - spec.frontWeight)) / 2;
-    const mk = (x: number, z: number, k: number, load: number): Corner => ({ x, z, k, c: 2 * 0.5 * Math.sqrt(k * (load / G)), h0: spec.cgHeight + load / k });
-    this.corners = [
-      mk(d.trackFront / 2, this.a, 125000, loadF),
-      mk(-d.trackFront / 2, this.a, 125000, loadF),
-      mk(d.trackRear / 2, -this.b, 112000, loadR),
-      mk(-d.trackRear / 2, -this.b, 112000, loadR),
-    ];
+    this.corners = suspensionCorners(spec, this.a, this.b);
+    this.setup = defaultSetup(spec.kind);
     this.pt = createPowertrain(spec);
     this.wheels = this.corners.map(() => ({ load: 0, slip: 0, surface: 'road' as const, spin: 0, compression: 0, steer: 0 }));
     this.telemetry = {
@@ -190,15 +183,8 @@ export class Vehicle {
       const surf = surfs[w];
       const S = SURFACE[surf];
       const comp = comps[w];
-      const compRate = (comp - this.prevComp[w]) / dt;
-      const staticComp = c.h0 - spec.cgHeight;
-      // Spring + damper (damper force limited like a real blow-off valve) + bump stop.
-      const damper = Math.max(-9000, Math.min(14000, c.c * compRate));
-      let fs = comp > 0 ? c.k * comp + damper : 0;
-      if (comp > staticComp + 0.07) fs += (comp - staticComp - 0.07) * 900000;
-      // Anti-roll bars: part of the suspension force, so they move load between the corners of an axle.
-      if (comp > 0) fs += (front ? 52000 : 26000) * (comp - comps[w ^ 1]) * 0.5;
-      fs = Math.max(0, fs);
+      const arb = front ? this.setup.frontArbNpm : this.setup.rearArbNpm;
+      const fs = suspensionForce(c, comp, this.prevComp[w], comps[w ^ 1], spec.cgHeight, arb, dt);
       const fz = fs;
       if (fz > 0) anyGround = true;
       // Velocity of the contact patch in body axes, then in wheel axes.
@@ -209,8 +195,9 @@ export class Vehicle {
       const u = uB * cs + wB * sn;
       const wl = -uB * sn + wB * cs;
       const sideDamage = c.x > 0 ? this.damage.left : this.damage.right;
-      const mu = spec.tyreMu * hc.grip * (front ? 1 : hc.rearGrip) * S.grip * this.stint.tyres[w].grip * (1 - 0.18 * sideDamage * this.damage.suspension);
-      const bias = front ? spec.brakeBiasFront : 1 - spec.brakeBiasFront;
+      const pressure = pressureGrip(front ? this.setup.frontPressureKpa : this.setup.rearPressureKpa);
+      const mu = spec.tyreMu * hc.grip * (front ? 1 : hc.rearGrip) * S.grip * pressure * this.stint.tyres[w].grip * (1 - 0.18 * sideDamage * this.damage.suspension);
+      const bias = front ? this.setup.brakeBiasFront : 1 - this.setup.brakeBiasFront;
       const brakeF = (brakePedal * spec.maxBrakeTorqueNm * (bias / spec.brakeBiasFront)) / R;
       const driveF = front ? 0 : drive / 2;
       const r = tyreForces(fz, mu, u, wl, driveF, brakeF, this.assists.abs, this.assists.tc, fz / G, dt, this.tyre, curve);

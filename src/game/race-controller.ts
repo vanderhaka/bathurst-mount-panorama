@@ -11,6 +11,7 @@ import type { InputManager } from '@/input/input-manager';
 import { impactSeverity } from '@/physics/damage';
 import type { VehicleInput } from '@/physics/types';
 import { applyAssists } from '@/race/assists';
+import { updateRaceSetup } from '@/race/setup-controls';
 import type { Autopilot } from '@/race/autopilot';
 import { SessionProfiles } from '@/game/session-profiles';
 import type { CarAudio, Surface } from '@/types/audio';
@@ -102,6 +103,7 @@ export class RaceController {
       this.damageMode = settings.damage;
     }
     v.handling = getHandling();
+    v.setup = updateRaceSetup(this.session.car, input, (text) => this.session.say(text, 'info', 2));
     const shiftUp = input.consume('shiftUp');
     const shiftDown = input.consume('shiftDown');
     // Game logic runs in steps of at most 1/60 s of game time (time-scaled runs stay stable).

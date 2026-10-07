@@ -195,10 +195,11 @@ Status: done (commit 09ef32914d0f95876e7c44564f2d3f9c92a6284c; evidence `artifac
   3. The HUD shows the real values (no longer "display only").
 - **Done when:** the out-lap is slower than a warm lap; a long stint loses lap time; tests cover the grip curve.
 ### 3.3 Telemetry compare — M
-Status: done (commit recorded by next item; evidence `artifacts/review/item-3.3/`).
+Status: done (commit d6e59ed6bb497d99f378fa6fefc49fcbbe7c24b7; CI repair a1b463a9d1e67cf25b88e459bc5f5a944d6182bb; evidence `artifacts/review/item-3.3/`).
 - **Do:** after a lap, a screen with speed, throttle and brake traces against the best lap and the ghost; the time gained or lost per corner; open it from the pause menu and the results screen.
 - **Done when:** the screen shows real data for two laps and the corner deltas add up to the lap delta.
 ### 3.4 Setup screen and brake bias — M
+Status: done (commit recorded by next item; evidence `artifacts/review/item-3.4/`).
 - **Do:** a Setup tab (every build) with brake bias, front and rear anti-roll bars and tyre pressures, inside safe ranges; brake bias also on a button during the race; one setup per car.
 - **Done when:** each setting changes the car in a test (balance, stopping distance) and the defaults equal today's car.
 ### 3.5 Tyre load sensitivity — M

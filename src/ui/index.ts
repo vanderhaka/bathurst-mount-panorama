@@ -89,7 +89,7 @@ class MenuController implements Menus {
       loading: new LoadingScreen(),
       title: new TitleScreen({ race: () => this.showCarSelect(), settings: () => sub(screens.settings), controls: () => sub(screens.controls) }),
       car: new CarSelectScreen({ preview: (c, l) => this.cb.onPreviewCar(c, l), start: (c, l, t) => this.start(c, l, t), back: () => this.showTitle() }),
-      settings: new SettingsScreen({ get: () => this.settings, set: (s) => this.applySettings(s), back: backFromSub, toggleTuner: () => this.cb.onToggleTuner() }),
+      settings: new SettingsScreen({ get: () => this.settings, set: (s) => this.applySettings(s), back: backFromSub, toggleTuner: () => this.cb.onToggleTuner(), car: () => this.lastConfig?.car ?? 'camaro' }),
       pause: new PauseScreen({
         resume: () => this.leave(() => this.cb.onResume()),
         restart: () => this.leave(() => this.cb.onRestart()),

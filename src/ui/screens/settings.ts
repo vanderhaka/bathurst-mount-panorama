@@ -2,12 +2,14 @@
 // Handling) of adjustable rows with live help text. LB / RB (L1 / R1) or Q / E change
 // the tab. Dev builds also get the "Graphics tuner" button.
 import { DEV_TOOLS } from '@/config/build-flags';
+import type { CarKind } from '@/car/car-specs';
 import { h } from '@/hud/dom';
 import { DEFAULT_SETTINGS, type Settings } from '@/types/session';
 import { fillPadText } from '@/input/pad-style';
 import { currentPadStyle, padText } from '@/ui/pad-glyphs';
 import { hintBar, kicker, menuButton, type Screen, screenEl, STD_HINTS, valueRow } from '@/ui/screen';
 import { HandlingPage } from '@/ui/screens/handling-page';
+import { SetupPage } from '@/ui/screens/setup-page';
 import { adjustSetting, optionIndex, rangeFraction, SETTING_GROUPS, type SettingField, valueLabel } from '@/ui/settings-model';
 import { TabBar } from '@/ui/tab-bar';
 
@@ -28,6 +30,7 @@ export interface SettingsActions {
   back(): void;
   /** Opens or closes the live graphics tuner. */
   toggleTuner(): void;
+  car(): CarKind;
 }
 
 function indicator(field: SettingField, settings: Settings): HTMLElement {
@@ -54,6 +57,7 @@ export class SettingsScreen implements Screen {
   private readonly help = padText('p', 'mn-help', '');
   private readonly done: HTMLButtonElement;
   private readonly handling = DEV_TOOLS ? new HandlingPage((text) => this.showHelp(text)) : null;
+  private readonly setup = new SetupPage((text) => this.showHelp(text));
   private readonly pages: Page[];
   private readonly tabs: TabBar;
   private tabIndex = 0;
@@ -63,8 +67,9 @@ export class SettingsScreen implements Screen {
       const items = g.fields.map((field) => this.row(field));
       return { el: h('div', 'mn-tabpage__rows', undefined, items), items };
     });
+    this.pages.push(this.setup);
     if (this.handling) this.addDevTools(this.handling);
-    this.tabs = new TabBar([...SETTING_GROUPS.map((g) => g.title), ...(this.handling ? ['Handling'] : [])], 'Settings sections', (i) => {
+    this.tabs = new TabBar([...SETTING_GROUPS.map((g) => g.title), 'Setup', ...(this.handling ? ['Handling'] : [])], 'Settings sections', (i) => {
       this.selectTab(i);
       this.items()[0]?.focus({ preventScroll: true });
     });
@@ -124,6 +129,7 @@ export class SettingsScreen implements Screen {
       r.el.setAttribute('aria-label', `${r.field.label}: ${text}. Left and right to change.`);
     }
     this.handling?.render();
+    this.setup.render();
   }
 
   items(): HTMLElement[] {
@@ -135,6 +141,7 @@ export class SettingsScreen implements Screen {
   }
 
   onShow(): void {
+    this.setup.show(this.actions.car());
     this.render();
   }
 
