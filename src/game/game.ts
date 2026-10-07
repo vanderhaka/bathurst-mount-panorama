@@ -22,6 +22,7 @@ import { Stage } from '@/game/stage';
 import { createHud, loadHudFonts, setHudOpacity, setHudScale } from '@/hud';
 import { InputManager } from '@/input/input-manager';
 import { TouchControls } from '@/input/touch-controls';
+import { supportsTouchControls } from '@/input/touch-capability';
 import { Autopilot } from '@/race/autopilot';
 import type { CarAudio } from '@/types/audio';
 import type { CarModel } from '@/types/car-model';
@@ -95,7 +96,7 @@ export class Game {
     hud.mount(root, hudTrackInfo(world.track));
     hud.setVisible(false);
     game = new Game(stage, world, hud, menus);
-    if (navigator.maxTouchPoints > 0) game.input.attachTouch(new TouchControls(root));
+    if (supportsTouchControls(navigator.maxTouchPoints, matchMedia('(pointer: coarse)').matches)) game.input.attachTouch(new TouchControls(root));
     // A race pauses when the player can no longer drive it: the phone turns to portrait
     // (index.html shows a turn-the-phone note) or the page is hidden (app switch, lock, call).
     const pauseRace = (): void => { if (game?.state === 'race') game.pause(); };

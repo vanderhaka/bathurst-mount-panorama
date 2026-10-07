@@ -67,3 +67,15 @@ It uses raw render intervals for ten active race seconds, respects an intentiona
 and saves the tier and pixel density per device. Selecting a tier disables adaptation.
 D3 adopts **50 fps on Medium for three laps on James's iPhone**. Mac Chrome phone
 emulation proves code paths and console cleanliness; the physical check is pending.
+
+## WebKit phone checks
+
+D4 accepts the Playwright WebKit download. Install it with `npx playwright install webkit`.
+Run `node scripts/play.mjs scripts/scenarios/phone-controls.json --engine webkit --mobile --size 844x390 --url http://127.0.0.1:5181/`;
+repeat with `--engine chromium`. Native taps start the race, pause and resume it.
+Chrome uses native CDP for held two-thumb input and pinch. WebKit uses synthetic
+DOM pointers and Safari gesture events for those two checks; the output labels this.
+Both engines check release, cancelled zoom gestures and portrait pause. WebKit's
+coarse pointer also enables controls when its emulation reports zero maxTouchPoints.
+These runs do not reproduce iOS Safari toolbar movement, physical pinch zoom,
+rotation hardware or real device performance. Check those on James's iPhone.

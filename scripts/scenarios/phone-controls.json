@@ -1,0 +1,117 @@
+[
+  {
+    "eval": "(() => { if (window.__game.state !== 'title') throw new Error('Title did not load'); return document.title; })()"
+  },
+  {
+    "tapOn": ".mn-screen--title .mn-btn--primary"
+  },
+  {
+    "wait": 500
+  },
+  {
+    "tapOn": "[aria-label='Start time trial']"
+  },
+  {
+    "waitFor": "window.__game?.state === 'race' && window.__game.race.session.lights < 0",
+    "timeout": 30000
+  },
+  {
+    "tap": [
+      200,
+      280
+    ]
+  },
+  {
+    "wait": 200
+  },
+  {
+    "touch": "start",
+    "points": [
+      [
+        200,
+        280
+      ],
+      [
+        790,
+        300
+      ]
+    ]
+  },
+  {
+    "wait": 300
+  },
+  {
+    "touch": "move",
+    "points": [
+      [
+        245,
+        280
+      ],
+      [
+        790,
+        300
+      ]
+    ]
+  },
+  {
+    "wait": 500
+  },
+  {
+    "eval": "(() => { const g=window.__game, c=g.input.update(0); if(c.throttle<0.5||c.steer>-0.2) throw new Error('Two-thumb steering/throttle failed: '+JSON.stringify({controls:c,device:g.input.device,target:document.elementFromPoint(790,300)?.className,rect:document.querySelector('.tc-pedal--throttle')?.getBoundingClientRect()})); return {controls:c,viewportScale:visualViewport.scale}; })()"
+  },
+  {
+    "shot": "artifacts/review/item-2.5/two-thumb.png"
+  },
+  {
+    "touch": "end"
+  },
+  {
+    "wait": 300
+  },
+  {
+    "eval": "(() => {const c=window.__game.input.update(0); if(c.throttle>0.1||Math.abs(c.steer)>0.1) throw new Error('Touch release left stale controls');return c;})()"
+  },
+  {
+    "pinch": [
+      400,
+      200,
+      1.8
+    ]
+  },
+  {
+    "wait": 400
+  },
+  {
+    "eval": "(() => { if(visualViewport.scale>1.01) throw new Error('Pinch zoom escaped guard');return visualViewport.scale;})()"
+  },
+  {
+    "viewport": [
+      390,
+      844
+    ]
+  },
+  {
+    "wait": 600
+  },
+  {
+    "eval": "(() => { if(window.__game.state!=='paused') throw new Error('Portrait did not pause');return window.__game.state;})()"
+  },
+  {
+    "viewport": [
+      844,
+      390
+    ]
+  },
+  {
+    "wait": 500
+  },
+  {
+    "tapOn": ".mn-screen--pause .mn-btn:has-text('Resume')"
+  },
+  {
+    "wait": 300
+  },
+  {
+    "shot": "artifacts/review/item-2.5/phone-after.png"
+  }
+]
