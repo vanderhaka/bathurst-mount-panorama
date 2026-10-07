@@ -1,13 +1,7 @@
 /* Panel screens: settings, pause, controls, results. Tokens: src/hud/theme.css */
 /* ---- settings */
 .mn-panel--settings {
-  width: min(66em, 94vw);
-}
-.mn-settings__cols {
-  columns: 2;
-  column-gap: 2.2em;
-  overflow-y: auto;
-  min-height: 0;
+  width: min(48em, 94vw);
 }
 .mn-group {
   break-inside: avoid;

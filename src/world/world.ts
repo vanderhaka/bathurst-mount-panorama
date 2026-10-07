@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { CAR_SPECS } from '@/car/car-specs';
+import { DEFAULT_HANDLING, tunedSpec } from '@/config/handling';
 import { placeKerbs, type KerbLayout } from '@/track/kerbs';
 import { computeRacingLine, type RacingLine } from '@/track/racing-line';
 import { computeSpeedProfile, LINE_PROFILE, type SpeedProfile } from '@/track/speed-profile';
@@ -39,7 +40,7 @@ export async function buildWorld(
   const track = reuse?.track ?? new Track();
   await progress(0.12, 'Computing the racing line');
   const line = reuse?.line ?? computeRacingLine(track);
-  const profile = reuse?.profile ?? computeSpeedProfile(track, line, CAR_SPECS.camaro, LINE_PROFILE);
+  const profile = reuse?.profile ?? computeSpeedProfile(track, line, tunedSpec(CAR_SPECS.camaro, DEFAULT_HANDLING), LINE_PROFILE);
   const kerbs = reuse?.kerbs ?? placeKerbs(track, line);
   await progress(0.25, 'Laying the asphalt');
   root.add(buildRoad(track, line, kerbs, renderer));

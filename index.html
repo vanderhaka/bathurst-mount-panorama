@@ -2,19 +2,38 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- viewport-fit=cover: draw under the notch; the HUD and touch controls use the safe-area insets. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <!-- Add to Home Screen: full screen with no Safari bars (iPhone has no Fullscreen API for a page). -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Bathurst" />
+    <meta name="theme-color" content="#0d1014" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="/icon-180.png" />
     <meta name="description" content="Drive a Gen3 Camaro or Mustang Supercar around a real-scale Mount Panorama, Bathurst." />
     <title>Mount Panorama — Bathurst</title>
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='4' fill='%23c8102e'/%3E%3Cpath d='M5 24 L13 9 L18 17 L21 13 L27 24 Z' fill='%23fff'/%3E%3C/svg%3E" />
     <style>
-      html, body { margin: 0; height: 100%; overflow: hidden; background: #0d1014; }
-      #game { position: fixed; inset: 0; }
+      html, body { margin: 0; height: 100%; overflow: hidden; background: #0d1014; overscroll-behavior: none; }
+      /* No double-tap zoom, text selection or long-press menu on touch screens. */
+      body { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; -webkit-text-size-adjust: 100%; }
+      #game { position: fixed; inset: 0; touch-action: none; }
+      /* Phones: landscape only. In portrait a note covers the game (and a running race pauses). */
+      #rotate { position: fixed; inset: 0; z-index: 100; display: none; place-content: center; gap: 18px; padding: 32px; text-align: center; color: #f3f4f0; background: #0d1014; font: 600 18px/1.4 system-ui, sans-serif; }
+      #rotate svg { margin: 0 auto; }
+      @media (orientation: portrait) and (pointer: coarse) { #rotate { display: grid; } }
       #boot-error { position: fixed; inset: 0; display: none; place-items: center; color: #eee; font: 16px system-ui, sans-serif; background: #111; padding: 24px; text-align: center; }
     </style>
   </head>
   <body>
     <main id="game" aria-label="Mount Panorama racing game"></main>
     <div id="boot-error" role="alert"></div>
+    <div id="rotate" role="alert">
+      <svg width="72" height="72" viewBox="0 0 72 72" aria-hidden="true"><rect x="14" y="24" width="44" height="26" rx="5" fill="none" stroke="#f3f4f0" stroke-width="3"/><path d="M50 14 a18 18 0 0 1 10 12" fill="none" stroke="#d7262e" stroke-width="3"/><path d="M61 20 l-1 7 -6 -3" fill="none" stroke="#d7262e" stroke-width="3"/></svg>
+      <div>Turn your phone sideways to play.</div>
+    </div>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

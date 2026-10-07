@@ -70,7 +70,7 @@ export class Autopilot {
     // Trail braking: release the brake as the steering winds on and as the
     // cornering load rises (friction ellipse, from the current lateral g).
     out.brake *= Math.max(0.25, 1 - Math.abs(out.steer) * 1.1);
-    const lateralUse = Math.min(1, Math.abs(speed * v.yawRate) / (v.spec.tyreMu * 9.81));
+    const lateralUse = Math.min(1, Math.abs(speed * v.yawRate) / (v.spec.tyreMu * v.handling.grip * 9.81));
     out.brake *= Math.max(0.3, Math.sqrt(1 - lateralUse * lateralUse));
     // Catch a slide: when the rear steps out, come off the brake and the throttle.
     const sn = Math.sin(v.heading), cs = Math.cos(v.heading);

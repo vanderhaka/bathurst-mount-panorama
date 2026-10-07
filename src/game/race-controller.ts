@@ -74,6 +74,7 @@ export class RaceController {
   /** Verification hook: when set, this driver replaces the player's controls. */
   autopilot: Autopilot | null = null;
   private stuckT = 0;
+  private damageMode: Settings['damage'] | null = null;
 
   constructor(readonly session: RaceSession, readonly player: CarEntity, private readonly d: RaceDeps) {}
 
@@ -82,7 +83,14 @@ export class RaceController {
     const settings = this.d.settings();
     const v = this.player.vehicle;
     const controls = input.update(dt);
-    v.assists = { abs: settings.abs, tc: settings.tractionControl, autoGears: settings.autoGears };
+    v.assists = { abs: settings.abs, tc: settings.tractionControl, autoGears: settings.autoGears, mechanicalDamage: settings.damage === 'full' };
+    this.player.visualDamage = settings.damage !== 'off';
+    if (settings.damage !== this.damageMode) {
+      // A change in the race removes the damage that the new mode does not keep.
+      if (settings.damage === 'off') this.player.repair();
+      else if (settings.damage === 'visual') v.repair();
+      this.damageMode = settings.damage;
+    }
     v.handling = getHandling();
     const shiftUp = input.consume('shiftUp');
     const shiftDown = input.consume('shiftDown');
@@ -109,7 +117,7 @@ export class RaceController {
         this.d.rig.addShake(0.25 + sev);
         this.d.audio?.impact(Math.min(1, 0.15 + sev));
         input.rumble(0.4 + sev, 0.6, 120 + sev * 300);
-        if (sev > 0.35) this.session.say('HEAVY IMPACT — DAMAGE', 'warn');
+        if (sev > 0.35) this.session.say(settings.damage === 'full' ? 'HEAVY IMPACT — DAMAGE' : 'HEAVY IMPACT', 'warn');
       }
       this.session.update(h);
       // The verification driver never gives up: reset when stuck.

@@ -77,6 +77,7 @@ menus.mount(
     onResume: () => menus.hide(),
     onRestart: () => menus.hide(),
     onResetCar: () => menus.hide(),
+    onToggleTuner: () => console.info('[harness] tuner'),
     onQuitToMenu: () => menus.showTitle(),
     onSettingsChange: (s) => console.info('[harness] settings', JSON.stringify(s)),
     onPreviewCar: (car, livery) => console.info('[harness] preview', car, livery),

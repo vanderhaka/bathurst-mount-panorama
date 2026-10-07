@@ -88,7 +88,7 @@ export interface Hud {
   dispose(): void;
 }
 
-export type MenuNav = 'up' | 'down' | 'left' | 'right' | 'accept' | 'back';
+export type MenuNav = 'up' | 'down' | 'left' | 'right' | 'accept' | 'back' | 'prevTab' | 'nextTab';
 
 export interface MenuCallbacks {
   /** Player pressed "Race" on car select. */
@@ -97,6 +97,8 @@ export interface MenuCallbacks {
   onRestart(): void;
   /** Pause menu "Reset to track": the car goes back on the racing line, repaired. */
   onResetCar(): void;
+  /** Settings "Graphics tuner" button: opens or closes the live graphics tuner (mouse). */
+  onToggleTuner(): void;
   onQuitToMenu(): void;
   onSettingsChange(settings: Settings): void;
   /** The car shown on the car-select screen changed (the game updates the 3D preview). */

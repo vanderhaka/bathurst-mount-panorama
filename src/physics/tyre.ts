@@ -28,7 +28,7 @@ export function makeTyreCurve(peakSlip: number, slideGrip: number): TyreCurve {
   return { b: Math.tan(Math.PI / (2 * c)) / peakSlip, c, peak: peakSlip, slide: slideGrip };
 }
 
-/** Warm slicks: peak at 6.3 degrees, 59 % of the peak left in a full slide (the handling defaults). */
+/** Warm slicks: peak at 6.3 degrees, 59 % of the peak left in a full slide (the measured car). */
 export const DEFAULT_CURVE: TyreCurve = makeTyreCurve((6.3 * Math.PI) / 180, 0.59);
 
 let lastCurve = DEFAULT_CURVE;

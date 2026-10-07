@@ -1,5 +1,4 @@
 import GUI from 'three/addons/libs/lil-gui.module.min.js';
-import { addHandlingFolder } from '@/debug/handling-tuner';
 import { DEFAULT_GRAPHICS, exportGraphics, getGraphics, importGraphics, resetGraphics, saveGraphics, setGraphics, type GraphicsConfig } from '@/config/graphics';
 
 interface LooseController { onChange(fn: (v: unknown) => void): LooseController }
@@ -9,8 +8,8 @@ interface LooseFolder {
 }
 
 /**
- * Live tuner (F2). The "Handling" folder edits the car (debug/handling-tuner.ts).
- * The other sliders edit the central graphics config; lighting,
+ * Live graphics tuner (T or F2, or Settings > Graphics and audio). Sliders edit the
+ * central graphics config; lighting,
  * fog, sky, colour grade and camera apply at once. World-content values apply
  * after "Rebuild world". "Copy settings" puts the changed values on the clipboard
  * so they can be sent back for permanent tuning.
@@ -28,7 +27,7 @@ export class GraphicsTuner {
       return;
     }
     Object.assign(this.model, getGraphics());
-    const gui = new GUI({ title: 'Tuner (F2)', width: 320 });
+    const gui = new GUI({ title: 'Graphics tuner (T)', width: 320 });
     gui.domElement.style.zIndex = '60';
     const live = (folder: GUI, key: keyof GraphicsConfig, min?: number, max?: number, step?: number) => {
       // lil-gui's generic typing cannot express a mixed-type config; use a loose view.
@@ -39,7 +38,6 @@ export class GraphicsTuner {
       c.onChange((v: unknown) => setGraphics({ [key]: v } as Partial<GraphicsConfig>));
       return c;
     };
-    addHandlingFolder(gui);
     const light = gui.addFolder('Light & sky');
     live(light, 'exposure', 0.4, 2, 0.01);
     live(light, 'sunIntensity', 0, 8, 0.05);
@@ -77,7 +75,7 @@ export class GraphicsTuner {
       hud.add(h, 'scale', 0.6, 1.6, 0.01).onChange((v: number) => this.hud?.setScale(v));
       hud.add(h, 'opacity', 0.2, 1, 0.01).onChange((v: number) => this.hud?.setOpacity(v));
     }
-    const io = gui.addFolder('Graphics: save / share');
+    const io = gui.addFolder('Save / share');
     io.add({ save: () => saveGraphics() }, 'save').name('Save as my default');
     io.add({ copy: () => void navigator.clipboard?.writeText(exportGraphics()).catch(() => {}) }, 'copy').name('Copy settings (JSON)');
     io.add({ paste: () => {

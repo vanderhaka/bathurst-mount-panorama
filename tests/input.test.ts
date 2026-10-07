@@ -78,6 +78,31 @@ describe('InputManager', () => {
     w.key('keydown', 'F2');
     expect(input.consume('reset')).toBe(false);
     expect(input.consume('tuner')).toBe(true);
+    w.key('keydown', 'KeyT'); // T opens the tuner on a Mac keyboard (F2 is screen brightness there)
+    expect(input.consume('tuner')).toBe(true);
+  });
+
+  it('changes the camera with R1 / RB in a race, and the tab with L1 / R1 in the menus', () => {
+    const input = new InputManager(new FakeWindow() as unknown as Window);
+    pads = [fakePad({ 5: 1 })]; // RB / R1
+    input.update(1 / 60);
+    expect(input.consume('camera')).toBe(true);
+    expect(input.takeMenuNav()).toBeUndefined();
+    pads = [fakePad({ 3: 1 })]; // Y / triangle
+    input.update(1 / 60);
+    expect(input.consume('racingLine')).toBe(true);
+    input.menusOpen = true;
+    pads = [fakePad({})];
+    input.update(1 / 60);
+    for (const [button, nav] of [[4, 'prevTab'], [5, 'nextTab']] as const) {
+      pads = [fakePad({ [button]: 1 })];
+      input.update(1 / 60);
+      expect(input.takeMenuNav()).toBe(nav);
+      pads = [fakePad({})];
+      input.update(1 / 60);
+    }
+    expect(input.consume('camera')).toBe(false);
+    expect(input.consume('ghost')).toBe(false);
   });
 });
 

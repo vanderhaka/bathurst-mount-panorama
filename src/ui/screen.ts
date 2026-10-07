@@ -12,6 +12,8 @@ export interface Screen {
   /** Escape / B / Backspace. */
   back(): void;
   onShow?(): void;
+  /** LB / RB or Q / E: previous / next tab (screens with tabs). */
+  tab?(dir: -1 | 1): void;
 }
 
 /** Left/right handlers for value rows (settings, car, livery). */
@@ -57,16 +59,39 @@ export function kicker(text: string): HTMLElement {
   return h('p', 'mn-kicker', undefined, [h('i', 'mn-kicker__bar', { 'aria-hidden': 'true' }), text]);
 }
 
-/** Bottom hint bar: keyboard and gamepad glyphs for the current screen. */
+/** Bottom hint bar: keyboard and gamepad glyphs for the current screen. `pad` may hold several controls ("LB RB"). */
 export function hintBar(hints: Array<[key: string, pad: string, label: string]>): HTMLElement {
   return h(
     'footer',
     'mn-hints',
     { 'aria-hidden': 'true' },
     hints.map(([key, pad, label]) =>
-      h('span', 'mn-hint', undefined, [h('kbd', 'mn-key mn-key--sm', undefined, [key]), padChip(pad), label]),
+      h('span', 'mn-hint', undefined, [h('kbd', 'mn-key mn-key--sm', undefined, [key]), ...pad.split(' ').map((p) => padChip(p)), label]),
     ),
   );
+}
+
+/**
+ * The item beside `from` in direction `dir` (-1 = left, 1 = right): the nearest item
+ * whose centre is to that side and that overlaps `from` vertically. Null when none.
+ */
+export function itemBeside(items: HTMLElement[], from: HTMLElement, dir: -1 | 1): HTMLElement | null {
+  const a = from.getBoundingClientRect();
+  const ax = a.left + a.width / 2;
+  let best: HTMLElement | null = null;
+  let bestScore = Infinity;
+  for (const el of items) {
+    if (el === from) continue;
+    const b = el.getBoundingClientRect();
+    const dx = (b.left + b.width / 2 - ax) * dir;
+    const overlap = Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top);
+    if (dx <= 1 || overlap <= 0) continue;
+    if (dx < bestScore) {
+      bestScore = dx;
+      best = el;
+    }
+  }
+  return best;
 }
 
 export const STD_HINTS: Array<[string, string, string]> = [

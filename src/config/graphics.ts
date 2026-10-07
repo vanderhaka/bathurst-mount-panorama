@@ -1,5 +1,5 @@
 // Central, tunable graphics configuration. Every visual value that a person may
-// want to adjust lives here. The live tuner (F2) edits this object; `live`
+// want to adjust lives here. The live graphics tuner (T or F2) edits this object; `live`
 // values apply at once, `rebuild` values apply after "Rebuild world".
 import type { QualityPreset } from '@/render/renderer';
 

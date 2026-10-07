@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { CAR_SPECS, type CarKind } from '@/car/car-specs';
+import { DEFAULT_HANDLING, tunedSpec } from '@/config/handling';
 import { Vehicle } from '@/physics/vehicle';
 import { Autopilot } from '@/race/autopilot';
 import { placeKerbs } from '@/track/kerbs';
@@ -18,7 +19,8 @@ describe('racing-line colours are achievable', () => {
   for (const kind of ['camaro', 'mustang'] as CarKind[]) {
     it(`a colour-following driver laps cleanly in the ${kind}`, () => {
       const spec = CAR_SPECS[kind];
-      const prof = computeSpeedProfile(track, line, spec, LINE_PROFILE);
+      // The game's racing line: the line profile for the default handling (world.ts, profile-cache.ts).
+      const prof = computeSpeedProfile(track, line, tunedSpec(spec, DEFAULT_HANDLING), LINE_PROFILE);
       const v = new Vehicle(spec, track, kerbs);
       const steer = new Autopilot(track, line, prof);
       v.reset(100, line.offset[Math.round(100 / track.spacing)]);

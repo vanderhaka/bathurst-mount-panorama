@@ -4,6 +4,8 @@ import { defineConfig } from 'vitest/config';
 const root = import.meta.dirname;
 
 export default defineConfig({
+  // Dev tools on everywhere except the Vercel production deployment (src/config/build-flags.ts).
+  define: { __DEV_TOOLS__: JSON.stringify(process.env.VERCEL_ENV !== 'production') },
   resolve: { alias: { '@': resolve(root, 'src') } },
   build: {
     target: 'es2022',

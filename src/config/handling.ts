@@ -1,8 +1,9 @@
 // Tunable handling: multipliers on the measured car data in car-specs.ts, edited
-// live in the tuner (F2, "Handling"). Defaults reproduce the measured car exactly.
-// The physics reads the values every frame; the racing-line speeds follow at the
-// next race start.
+// live in Settings > Handling (dev builds only). The defaults are the user's tuned
+// feel; MEASURED_HANDLING reproduces the measured car. The physics reads the values
+// every frame; the racing-line speeds follow at the next race start.
 import type { CarSpec } from '@/car/car-specs';
+import { DEV_TOOLS } from '@/config/build-flags';
 
 export interface HandlingConfig {
   /** Multiplies the tyre friction coefficient of all four tyres. */
@@ -19,7 +20,8 @@ export interface HandlingConfig {
   steerSpeedDeg: number;
 }
 
-export const DEFAULT_HANDLING: Readonly<HandlingConfig> = {
+/** The measured car (car-specs.ts and the warm-slick tyre curve) with no changes. */
+export const MEASURED_HANDLING: Readonly<HandlingConfig> = {
   grip: 1,
   rearGrip: 1,
   slideGrip: 0.59,
@@ -28,20 +30,30 @@ export const DEFAULT_HANDLING: Readonly<HandlingConfig> = {
   steerSpeedDeg: 149,
 };
 
-/** Slider ranges for the tuner: [min, max, step]. */
-export const HANDLING_RANGES: Record<keyof HandlingConfig, [number, number, number]> = {
-  grip: [0.7, 1.4, 0.01],
-  rearGrip: [0.8, 1.25, 0.01],
-  slideGrip: [0.4, 0.95, 0.01],
-  peakSlipDeg: [3.5, 12, 0.1],
-  downforce: [0.5, 1.6, 0.01],
-  steerSpeedDeg: [60, 300, 1],
+/** The game's handling: tuned by the user on 2026-10-07 (more grip, a softer and more forgiving limit). */
+export const DEFAULT_HANDLING: Readonly<HandlingConfig> = {
+  grip: 1.2,
+  rearGrip: 1.1,
+  slideGrip: 0.89,
+  peakSlipDeg: 9.1,
+  downforce: 1.1,
+  steerSpeedDeg: 149,
+};
+
+/** Allowed range of each value: [min, max]. */
+export const HANDLING_RANGES: Record<keyof HandlingConfig, [number, number]> = {
+  grip: [0.7, 1.4],
+  rearGrip: [0.8, 1.25],
+  slideGrip: [0.4, 0.95],
+  peakSlipDeg: [3.5, 12],
+  downforce: [0.5, 1.6],
+  steerSpeedDeg: [60, 300],
 };
 
 const STORAGE_KEY = 'bathurst.handling.v1';
 const KEYS = Object.keys(DEFAULT_HANDLING) as (keyof HandlingConfig)[];
 
-/** Keeps only known keys with finite numbers, clamped to the tuner ranges. */
+/** Keeps only known keys with finite numbers, clamped to the allowed ranges. */
 export function sanitiseHandling(raw: unknown): Partial<HandlingConfig> {
   const clean: Partial<HandlingConfig> = {};
   if (!raw || typeof raw !== 'object') return clean;
@@ -62,7 +74,8 @@ function loadSaved(): Partial<HandlingConfig> {
   }
 }
 
-let current: HandlingConfig = { ...DEFAULT_HANDLING, ...loadSaved() };
+// Saved changes apply only where the Handling tab exists (dev builds).
+let current: HandlingConfig = { ...DEFAULT_HANDLING, ...(DEV_TOOLS ? loadSaved() : {}) };
 
 export function getHandling(): Readonly<HandlingConfig> {
   return current;
@@ -87,22 +100,6 @@ export function resetHandling(): void {
     /* ignore */
   }
   current = { ...DEFAULT_HANDLING };
-}
-
-/** JSON of the values that differ from the defaults (what to send back for tuning). */
-export function exportHandling(): string {
-  const diff: Partial<HandlingConfig> = {};
-  for (const k of KEYS) if (current[k] !== DEFAULT_HANDLING[k]) diff[k] = current[k];
-  return JSON.stringify(diff, null, 2);
-}
-
-export function importHandling(json: string): boolean {
-  try {
-    setHandling(sanitiseHandling(JSON.parse(json)));
-    return true;
-  } catch {
-    return false;
-  }
 }
 
 /** A car spec with the handling multipliers applied (for the racing-line speed profile). */

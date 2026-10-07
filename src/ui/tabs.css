@@ -1,0 +1,63 @@
+/* Tab strip and tab pages (settings). Tokens: src/hud/theme.css */
+.mn-tabs {
+  display: flex;
+  align-items: center;
+  gap: 0.2em;
+  margin: -0.3em 0 1em;
+  border-bottom: 1px solid var(--hud-hairline);
+}
+.mn-tabs__key {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3em;
+  padding: 0 0.5em;
+  font-size: 0.8em;
+}
+.mn-tabs__key:last-child {
+  margin-left: auto;
+}
+.mn-tab {
+  padding: 0.55em 0.8em 0.6em;
+  font: 700 0.95em/1 var(--hud-font-display);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--hud-text-dim);
+  background: none;
+  border: 0;
+  border-bottom: 0.18em solid transparent;
+  margin-bottom: -1px;
+  cursor: pointer;
+}
+.mn-tab:hover {
+  color: var(--hud-text);
+}
+.mn-tab.is-active {
+  color: var(--hud-text);
+  border-bottom-color: var(--hud-accent);
+}
+/* All pages share one grid cell, so the panel keeps the height of the tallest page. */
+.mn-tabpage {
+  display: grid;
+  overflow-y: auto;
+  min-height: 0;
+}
+.mn-tabpage > * {
+  grid-area: 1 / 1;
+}
+.mn-tabpage > [hidden] {
+  display: block;
+  visibility: hidden;
+}
+.mn-tabpage__note {
+  margin: 0 0 0.8em;
+  font-size: 0.85em;
+  color: var(--hud-text-dim);
+}
+.mn-tabpage__rows > .mn-btn {
+  margin-top: 0.6em;
+}
+/* Handling meter: the tick under the measured car's value stands taller. */
+.mn-meter i.is-default {
+  height: 0.85em;
+  margin-top: -0.3em;
+}

@@ -7,7 +7,9 @@ import { LIVERY_PRESETS } from '@/car/liveries';
 import { createCarModel } from '@/car/model-factory';
 import { GraphicsTuner } from '@/debug/tuner';
 import { Particles } from '@/fx/particles';
+import { AttractMode } from '@/game/attract-mode';
 import { CarEntity } from '@/game/car-entity';
+import { FrameLimiter } from '@/game/frame-limiter';
 import { hudTrackInfo } from '@/game/hud-bridge';
 import { ProfileCache } from '@/game/profile-cache';
 import { RaceController } from '@/game/race-controller';
@@ -16,13 +18,14 @@ import { loadSettings, saveSettings } from '@/game/settings-store';
 import { Stage } from '@/game/stage';
 import { createHud, loadHudFonts, setHudOpacity, setHudScale } from '@/hud';
 import { InputManager } from '@/input/input-manager';
+import { TouchControls } from '@/input/touch-controls';
 import { Autopilot } from '@/race/autopilot';
 import type { CarAudio } from '@/types/audio';
 import type { CarModel } from '@/types/car-model';
 import type { Hud, Menus } from '@/types/hud';
 import type { SessionConfig, Settings } from '@/types/session';
 import { createMenus } from '@/ui';
-import { orbitCamera, teleport } from '@/game/debug-tools';
+import { teleport } from '@/game/debug-tools';
 import { RacingLineMesh } from '@/world/racing-line-mesh';
 import { buildWorld, disposeWorld, type World } from '@/world/world';
 
@@ -37,7 +40,7 @@ export class Game {
   private readonly lineMesh: RacingLineMesh;
   private readonly tuner: GraphicsTuner;
   private readonly profiles = new ProfileCache(() => this.world);
-  private demo: { entity: CarEntity; pilot: Autopilot } | null = null;
+  private readonly attract: AttractMode;
   private race: RaceController | null = null;
   private ghostModel: CarModel | null = null;
   private audio: CarAudio | null = null;
@@ -50,6 +53,7 @@ export class Game {
     this.lineMesh = new RacingLineMesh(world.track, world.line, world.profile);
     stage.scene.add(this.lineMesh.mesh);
     this.particles = new Particles(stage.scene);
+    this.attract = new AttractMode(stage.scene, stage.camera);
     this.tuner = new GraphicsTuner(() => this.rebuildWorld(), { setScale: setHudScale, setOpacity: setHudOpacity });
     this.timer.connect(document);
   }
@@ -64,6 +68,7 @@ export class Game {
       onResume: () => game?.resume(),
       onRestart: () => game?.restart(),
       onResetCar: () => game?.resetCar(),
+      onToggleTuner: () => game?.tuner.toggle(),
       onQuitToMenu: () => game?.quitToTitle(),
       onSettingsChange: (s) => game?.applySettings(s),
       onPreviewCar: (car, livery) => game?.preview(car, livery),
@@ -79,9 +84,13 @@ export class Game {
     hud.mount(root, hudTrackInfo(world.track));
     hud.setVisible(false);
     game = new Game(stage, world, hud, menus);
+    if (navigator.maxTouchPoints > 0) game.input.attachTouch(new TouchControls(root));
+    // Landscape only on phones: turning to portrait pauses a race (index.html shows a turn-the-phone note).
+    matchMedia('(orientation: portrait) and (pointer: coarse)').addEventListener('change', (e) => { if (e.matches && game?.state === 'race') game.pause(); });
     menus.showLoading(1, 'Ready');
     game.enterTitle();
-    stage.renderer.setAnimationLoop((t) => game?.frame(t));
+    const limiter = new FrameLimiter();
+    stage.renderer.setAnimationLoop((t) => { if (game && limiter.ready(t, game.settings.frameRate)) game.frame(t); });
     return game;
   }
 
@@ -93,37 +102,30 @@ export class Game {
     return e;
   }
 
-  private dropDemo(): void {
-    if (!this.demo) return;
-    this.stage.scene.remove(this.demo.entity.model.root);
-    this.demo.entity.model.dispose();
-    this.demo = null;
-  }
-
   /** Title screen: an AI car laps the mountain behind the menu (attract mode). */
   private enterTitle(): void {
     this.state = 'title';
     this.hud.setVisible(false);
-    this.dropDemo();
+    this.attract.drop();
     const entity = this.makeEntity('camaro', 0);
     const s = 900;
     entity.reset(s, this.world.line.offset[Math.round(s / this.world.track.spacing)]);
-    this.demo = { entity, pilot: new Autopilot(this.world.track, this.world.line, this.profiles.get('camaro').ai) };
+    this.attract.set(entity, new Autopilot(this.world.track, this.world.line, this.profiles.get('camaro').ai));
     this.rig.mode = 'tv';
     this.menus.showTitle();
   }
 
   private preview(car: CarKind, liveryIndex: number): void {
     this.state = 'carSelect';
-    this.dropDemo();
+    this.attract.drop();
     const entity = this.makeEntity(car, liveryIndex);
     entity.reset(this.world.track.gridLineS - 7, -2.2);
-    this.demo = { entity, pilot: new Autopilot(this.world.track, this.world.line, this.profiles.get(car).ai) };
+    this.attract.set(entity, new Autopilot(this.world.track, this.world.line, this.profiles.get(car).ai));
   }
 
   private startRace(cfg: SessionConfig): void {
     this.applySettings(cfg.settings);
-    this.dropDemo();
+    this.attract.drop();
     this.endRace();
     const player = this.makeEntity(cfg.car, cfg.liveryIndex);
     const session = new RaceSession(cfg.car, this.world.track, this.world.line, player);
@@ -160,6 +162,12 @@ export class Game {
     this.lineMesh.mesh.visible = false;
   }
 
+  private pause(): void {
+    this.state = 'paused';
+    this.audio?.suspend();
+    this.menus.showPause();
+  }
+
   private resume(): void {
     if (this.state !== 'paused') return;
     this.state = 'race';
@@ -176,8 +184,7 @@ export class Game {
 
   /** Pause menu: back on the racing line here, repaired (the lap becomes invalid). */
   private resetCar(): void {
-    if (!this.race) return;
-    this.race.session.resetToTrack();
+    this.race?.session.resetToTrack();
     this.rig.snap();
     this.resume();
   }
@@ -222,7 +229,11 @@ export class Game {
     if (this.input.consume('tuner')) this.tuner.toggle();
     if (this.state === 'race' && this.race) this.raceFrame(dt);
     else if (this.state !== 'paused') this.demoFrame(dt);
-    else this.input.update(dt);
+    else {
+      this.input.update(dt);
+      // Options / Menu toggles the pause, like a console game.
+      if (this.input.consume('pause')) { this.menus.hide(); this.resume(); }
+    }
     this.world.scenery.update(this.stage.camera.position);
     this.particles.update(this.state === 'paused' ? 0 : dt);
     this.stage.render(this.focus);
@@ -231,12 +242,7 @@ export class Game {
   private raceFrame(dt: number): void {
     const race = this.race!;
     const input = this.input;
-    if (input.consume('pause')) {
-      this.state = 'paused';
-      this.audio?.suspend();
-      this.menus.showPause();
-      return;
-    }
+    if (input.consume('pause')) return this.pause();
     const before = JSON.stringify(this.settings);
     if (input.consume('camera')) this.settings.camera = this.rig.cycle();
     if (input.consume('reset')) race.session.resetToTrack();
@@ -256,9 +262,7 @@ export class Game {
   /** Verification hooks (used by scripts/capture-evidence.mjs). */
   timeScale = 1;
   setDebugAutopilot(on: boolean): void {
-    if (!this.race) return;
-    const car = this.race.session.car;
-    this.race.autopilot = on ? new Autopilot(this.world.track, this.world.line, this.profiles.get(car).ai) : null;
+    if (this.race) this.race.autopilot = on ? new Autopilot(this.world.track, this.world.line, this.profiles.get(this.race.session.car).ai) : null;
   }
   /** Places the player at distance s on the racing line, at the AI target speed, and skips the start lights. */
   debugTeleport(s: number): void {
@@ -269,24 +273,7 @@ export class Game {
 
   private demoFrame(dt: number): void {
     this.input.update(dt);
-    if (!this.demo) return;
-    const { entity, pilot } = this.demo;
-    if (this.state === 'title') {
-      const vin = pilot.drive(entity.vehicle, { throttle: 0, brake: 0, steer: 0, shiftUp: false, shiftDown: false });
-      entity.simulate(vin, dt);
-      entity.sync(dt);
-      this.followCamera(entity, dt);
-    } else {
-      entity.sync(dt);
-      this.orbitPreview(entity, dt);
-    }
-  }
-
-  private orbitAngle = 0.9;
-  private orbitPreview(entity: CarEntity, dt: number): void {
-    this.orbitAngle += dt * 0.16;
-    orbitCamera(this.stage.camera, entity.model.root.position, this.orbitAngle);
-    this.focus.copy(entity.model.root.position);
+    this.attract.frame(dt, this.state === 'title', (e, h) => this.followCamera(e, h), this.focus);
   }
 
   private followCamera(entity: CarEntity, dt: number): void {

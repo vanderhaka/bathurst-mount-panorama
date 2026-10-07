@@ -46,6 +46,17 @@ export const SETTING_GROUPS: ReadonlyArray<{ title: string; fields: SettingField
       { key: 'tractionControl', kind: 'choice', label: 'Traction control', help: 'Cuts power when the rear tyres spin. The TC lamp lights when it works.', options: ON_OFF },
       { key: 'abs', kind: 'choice', label: 'ABS', help: 'Stops the wheels locking under hard braking. The ABS lamp lights when it works.', options: ON_OFF },
       { key: 'steeringAssist', kind: 'choice', label: 'Steering assist', help: 'Smooths keyboard steering and limits lock at high speed.', options: ON_OFF },
+      {
+        key: 'damage',
+        kind: 'choice',
+        label: 'Damage',
+        help: 'Full: crashes hurt the engine, aero and steering. Visual only: the body dents, but the car drives as new. Off: no damage.',
+        options: [
+          { value: 'full', label: 'Full' },
+          { value: 'visual', label: 'Visual only' },
+          { value: 'off', label: 'Off' },
+        ],
+      },
     ],
   },
   {
@@ -66,7 +77,7 @@ export const SETTING_GROUPS: ReadonlyArray<{ title: string; fields: SettingField
         key: 'camera',
         kind: 'choice',
         label: 'Camera',
-        help: 'Starting camera. Press C or Y while driving to change it.',
+        help: 'Starting camera. Press C or {RB} while driving to change it.',
         options: [
           { value: 'chase', label: 'Chase' },
           { value: 'chaseFar', label: 'Chase far' },
@@ -90,6 +101,18 @@ export const SETTING_GROUPS: ReadonlyArray<{ title: string; fields: SettingField
           { value: 'low', label: 'Low' },
           { value: 'medium', label: 'Medium' },
           { value: 'high', label: 'High' },
+        ],
+      },
+      {
+        key: 'frameRate',
+        kind: 'choice',
+        label: 'Frame rate limit',
+        help: 'Most frames per second. A lower limit saves battery and heat. Max follows your display.',
+        options: [
+          { value: 30, label: '30' },
+          { value: 60, label: '60' },
+          { value: 120, label: '120' },
+          { value: 0, label: 'Max' },
         ],
       },
       { key: 'masterVolume', kind: 'range', label: 'Master volume', help: 'Engine, tyres and ambient sound.', step: 0.05 },

@@ -1,5 +1,6 @@
 import { BINDINGS, PAD_MENU, type GameAction } from '@/input/bindings';
 import { padStyleOf, type PadStyle } from '@/input/pad-style';
+import type { TouchControls } from '@/input/touch-controls';
 import type { MenuNav } from '@/types/hud';
 
 /** Raw driver controls this frame (before assists). steer: +1 = full left. */
@@ -15,11 +16,13 @@ const AXIS_DEADZONE = 0.09;
 const TRIGGER_DEADZONE = 0.04;
 
 /**
- * Keyboard + Gamepad API input. Analog values are polled every frame; actions are
- * edge-triggered and consumed with `consume(action)`.
+ * Keyboard + Gamepad API + touch input. Analog values are polled every frame; actions
+ * are edge-triggered and consumed with `consume(action)`. The last device used drives.
  */
 export class InputManager {
-  device: 'keyboard' | 'gamepad' = 'keyboard';
+  device: 'keyboard' | 'gamepad' | 'touch' = 'keyboard';
+  /** On-screen touch controls (touch screens only). */
+  private touch: TouchControls | null = null;
   private readonly keys = new Set<string>();
   private readonly pressed = new Set<GameAction>();
   private readonly padPrev = new Map<number, boolean>();
@@ -43,6 +46,8 @@ export class InputManager {
   }
 
   private readonly onKeyDown = (e: KeyboardEvent) => {
+    // Typing in a text field (the graphics tuner's number boxes) is not game input.
+    if (typeof HTMLInputElement !== 'undefined' && e.target instanceof HTMLInputElement) return;
     const action = this.codeToAction.get(e.code);
     if (action === 'tuner') {
       this.pressed.add('tuner');
@@ -55,6 +60,14 @@ export class InputManager {
     this.keys.add(e.code);
     this.device = 'keyboard';
   };
+
+  /** Connects the on-screen touch controls; their buttons become actions while racing. */
+  attachTouch(touch: TouchControls): void {
+    this.touch = touch;
+    touch.onAction = (action) => {
+      if (!this.menusOpen) this.pressed.add(action);
+    };
+  }
 
   private readonly onKeyUp = (e: KeyboardEvent) => {
     this.keys.delete(e.code);
@@ -104,6 +117,10 @@ export class InputManager {
   /** Polls devices. Call once per frame before reading controls. */
   update(dt: number): DriverControls {
     const pad = this.pad();
+    if (this.touch?.touched) {
+      this.touch.touched = false;
+      this.device = 'touch';
+    }
     let padSteer = 0, padThrottle = 0, padBrake = 0;
     if (pad && pad.id !== this.padId) {
       this.padId = pad.id;
@@ -152,6 +169,8 @@ export class InputManager {
     this.kbThrottle += Math.max(-8 * dt, Math.min(6 * dt, (this.held('throttle') ? 1 : 0) - this.kbThrottle));
     this.kbBrake += Math.max(-10 * dt, Math.min(9 * dt, (this.held('brake') ? 1 : 0) - this.kbBrake));
 
+    const touch = this.touch?.update(dt, this.device === 'touch' && !this.menusOpen);
+    if (this.device === 'touch' && touch) return { ...touch, analogSteer: true };
     if (this.device === 'gamepad' && pad) {
       return { steer: padSteer, throttle: padThrottle, brake: padBrake, analogSteer: true };
     }

@@ -1,0 +1,33 @@
+/* Phones in landscape (touch screen, at most 540 px tall). The left thumb steers and
+   the right thumb works the pedals (src/input/touch.css), so the bottom corners stay
+   clear: the tyre / fuel and inputs panels hide, and speed and gear move to the
+   bottom centre. Safe areas keep panels clear of the notch. */
+@media (pointer: coarse) and (max-height: 540px) {
+  :root {
+    --hud-base-size: clamp(6px, 1.9vh, 11px);
+    --hud-margin-y: max(1.4vh, env(safe-area-inset-top));
+  }
+  /* Panels scale with their region's font size (all HUD sizes are in em). */
+  .hud-region--tl {
+    left: max(1.2em, env(safe-area-inset-left));
+    font-size: 0.9em;
+  }
+  .hud-region--tr {
+    right: max(1.2em, env(safe-area-inset-right));
+    font-size: 0.72em;
+  }
+  .hud-region--tc {
+    font-size: 0.8em;
+  }
+  .hud-region--bl {
+    display: none;
+  }
+  .hud-region--br {
+    right: auto;
+    left: 50%;
+    bottom: max(1.4vh, env(safe-area-inset-bottom));
+    transform: translateX(-50%);
+    align-items: center;
+    font-size: 0.8em;
+  }
+}

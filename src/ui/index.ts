@@ -1,13 +1,16 @@
 // DOM menus. createMenus() implements the Menus contract (src/types/hud.ts).
 // While a menu is open it owns the keyboard: a window capture listener handles
-// arrows / WASD / Enter / Space / Esc / Backspace and stops their propagation.
-// Every other key (e.g. F2) passes through. Gamepad input arrives via nav().
+// arrows / WASD / Enter / Space / Esc / Backspace / Q / E and stops their propagation.
+// Every other key (e.g. T for the tuner) passes through. Gamepad input arrives via nav().
+// Left / right change a value row, else move to the item beside; LB / RB change the tab.
 import '@/hud/fonts';
 import '@/hud/theme.css';
 import '@/ui/menus.css';
 import '@/ui/glyphs.css';
 import '@/ui/screens.css';
 import '@/ui/screens-panels.css';
+import '@/ui/tabs.css';
+import '@/ui/phone.css';
 import { CAR_SPECS, type CarKind } from '@/car/car-specs';
 import { LIVERY_PRESETS } from '@/car/liveries';
 import { h } from '@/hud/dom';
@@ -16,7 +19,7 @@ import type { MenuCallbacks, MenuNav, Menus } from '@/types/hud';
 import type { LapRecord, SessionConfig, Settings } from '@/types/session';
 import { LIVERY_COUNT } from '@/ui/car-data';
 import { applyPadStyle } from '@/ui/pad-glyphs';
-import { adjust, type Screen } from '@/ui/screen';
+import { adjust, itemBeside, type Screen } from '@/ui/screen';
 import { CarSelectScreen } from '@/ui/screens/car-select';
 import { ControlsScreen } from '@/ui/screens/controls';
 import { LoadingScreen } from '@/ui/screens/loading';
@@ -39,6 +42,10 @@ const KEYS: Record<string, MenuNav> = {
   Space: 'accept',
   Escape: 'back',
   Backspace: 'back',
+  KeyQ: 'prevTab',
+  KeyE: 'nextTab',
+  PageUp: 'prevTab',
+  PageDown: 'nextTab',
 };
 
 interface ScreenSet {
@@ -78,7 +85,7 @@ class MenuController implements Menus {
       loading: new LoadingScreen(),
       title: new TitleScreen({ race: () => this.showCarSelect(), settings: () => sub(screens.settings), controls: () => sub(screens.controls) }),
       car: new CarSelectScreen({ preview: (c, l) => this.cb.onPreviewCar(c, l), start: (c, l) => this.start(c, l), back: () => this.showTitle() }),
-      settings: new SettingsScreen({ get: () => this.settings, set: (s) => this.applySettings(s), back: backFromSub }),
+      settings: new SettingsScreen({ get: () => this.settings, set: (s) => this.applySettings(s), back: backFromSub, toggleTuner: () => this.cb.onToggleTuner() }),
       pause: new PauseScreen({
         resume: () => this.leave(() => this.cb.onResume()),
         restart: () => this.leave(() => this.cb.onRestart()),
@@ -163,6 +170,8 @@ class MenuController implements Menus {
 
   private readonly onKey = (e: KeyboardEvent): void => {
     if (!this.current || this.current.id === 'loading') return;
+    // Typing in a field outside the menus (the graphics tuner's number boxes) is not menu input.
+    if (e.target instanceof HTMLInputElement && !this.root?.contains(e.target)) return;
     const action = KEYS[e.code];
     if (!action || e.altKey || e.metaKey || e.ctrlKey) return;
     e.preventDefault();
@@ -180,13 +189,24 @@ class MenuController implements Menus {
     const screen = this.current;
     if (!screen) return;
     if (action === 'back') return screen.back();
+    if (action === 'prevTab' || action === 'nextTab') {
+      if (!screen.tab) return;
+      screen.tab(action === 'prevTab' ? -1 : 1);
+      return this.focus(screen.items()[0]);
+    }
     const items = screen.items();
     if (items.length === 0) return;
     let idx = items.indexOf(document.activeElement as HTMLElement);
     if (idx < 0) return this.focus(items[0]);
     if (action === 'accept') return items[idx].click();
-    if ((action === 'left' || action === 'right') && adjust(items[idx], action === 'left' ? -1 : 1)) return;
-    idx = action === 'up' || action === 'left' ? (idx - 1 + items.length) % items.length : (idx + 1) % items.length;
+    if (action === 'left' || action === 'right') {
+      const dir = action === 'left' ? -1 : 1;
+      if (adjust(items[idx], dir)) return;
+      const beside = itemBeside(items, items[idx], dir);
+      if (beside) this.focus(beside);
+      return;
+    }
+    idx = action === 'up' ? (idx - 1 + items.length) % items.length : (idx + 1) % items.length;
     this.focus(items[idx]);
   }
 

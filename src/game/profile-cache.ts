@@ -29,7 +29,7 @@ export class ProfileCache {
     if (!p) {
       const { track, line, profile } = this.world();
       const spec = tunedSpec(CAR_SPECS[car], h);
-      // The world already holds the Camaro's line profile for the default handling.
+      // The world holds the Camaro's line profile for the default handling (world.ts).
       const reuse = car === 'camaro' && limitsKey(h) === limitsKey(DEFAULT_HANDLING);
       p = {
         player: reuse ? profile : computeSpeedProfile(track, line, spec, LINE_PROFILE),

@@ -1,0 +1,21 @@
+/* Phones in landscape (touch screen, at most 540 px tall): smaller menu text so the
+   panels fit, no keyboard / controller hint bar (taps work on every item), and the
+   safe areas keep content clear of the notch. */
+@media (pointer: coarse) and (max-height: 540px) {
+  :root {
+    --menu-font-size: clamp(9px, 2.5vh, 13px);
+  }
+  .bx-menus {
+    padding: 0 env(safe-area-inset-right) 0 env(safe-area-inset-left);
+  }
+  .mn-hints,
+  .mn-tabs__key {
+    display: none;
+  }
+  .mn-panel {
+    max-height: calc(100% - 2.4em);
+  }
+  .mn-tabpage {
+    touch-action: pan-y;
+  }
+}

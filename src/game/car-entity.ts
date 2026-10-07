@@ -19,6 +19,8 @@ const PHYS_DT = 1 / 360;
 export class CarEntity {
   readonly vehicle: Vehicle;
   readonly model: CarModel;
+  /** False = impacts do not dent the body (damage setting "Off"). */
+  visualDamage = true;
   private acc = 0;
   private prev: Pose = { x: 0, y: 0, z: 0, heading: 0, pitch: 0, roll: 0 };
   private cur: Pose = { x: 0, y: 0, z: 0, heading: 0, pitch: 0, roll: 0 };
@@ -62,7 +64,7 @@ export class CarEntity {
       this.capture(this.cur);
       this.acc -= PHYS_DT;
     }
-    for (const imp of this.impacts) this.applyVisualDamage(imp);
+    if (this.visualDamage) for (const imp of this.impacts) this.applyVisualDamage(imp);
     return this.impacts;
   }
 

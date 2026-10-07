@@ -1,5 +1,6 @@
 // Single source of truth for controls. The input layer reads these tables and
 // the controls-help screen displays them.
+import { DEV_TOOLS } from '@/config/build-flags';
 
 export type GameAction =
   | 'steerLeft'
@@ -28,6 +29,9 @@ export interface Binding {
   pad?: { kind: 'button'; index: number; label: string } | { kind: 'axis'; index: number; sign: 1 | -1; label: string };
 }
 
+// T works on every keyboard (a Mac sends F2 to the screen brightness unless fn is held).
+const TUNER: Binding = { action: 'tuner', label: 'Graphics tuner', keys: ['KeyT', 'F2'], keyLabels: ['T', 'F2'] };
+
 export const BINDINGS: Binding[] = [
   { action: 'steerLeft', label: 'Steer left', keys: ['ArrowLeft', 'KeyA'], keyLabels: ['←', 'A'], pad: { kind: 'axis', index: 0, sign: -1, label: 'Left stick' } },
   { action: 'steerRight', label: 'Steer right', keys: ['ArrowRight', 'KeyD'], keyLabels: ['→', 'D'], pad: { kind: 'axis', index: 0, sign: 1, label: 'Left stick' } },
@@ -35,15 +39,17 @@ export const BINDINGS: Binding[] = [
   { action: 'brake', label: 'Brake', keys: ['ArrowDown', 'KeyS'], keyLabels: ['↓', 'S'], pad: { kind: 'button', index: 6, label: 'LT' } },
   { action: 'shiftUp', label: 'Shift up', keys: ['KeyE', 'ShiftLeft'], keyLabels: ['E', 'Shift'], pad: { kind: 'button', index: 0, label: 'A' } },
   { action: 'shiftDown', label: 'Shift down', keys: ['KeyQ', 'ControlLeft'], keyLabels: ['Q', 'Ctrl'], pad: { kind: 'button', index: 2, label: 'X' } },
-  { action: 'camera', label: 'Change camera', keys: ['KeyC'], keyLabels: ['C'], pad: { kind: 'button', index: 3, label: 'Y' } },
+  // R1 / RB changes the view, like Gran Turismo 7 and F1.
+  { action: 'camera', label: 'Change camera', keys: ['KeyC'], keyLabels: ['C'], pad: { kind: 'button', index: 5, label: 'RB' } },
   { action: 'lookBack', label: 'Look back (hold)', keys: ['KeyV'], keyLabels: ['V'], pad: { kind: 'button', index: 1, label: 'B' } },
   { action: 'reset', label: 'Reset to track', keys: ['KeyR'], keyLabels: ['R'], pad: { kind: 'button', index: 8, label: 'View' } },
   { action: 'pause', label: 'Pause', keys: ['Escape', 'KeyP'], keyLabels: ['Esc', 'P'], pad: { kind: 'button', index: 9, label: 'Menu' } },
   { action: 'ghost', label: 'Toggle ghost', keys: ['KeyG'], keyLabels: ['G'], pad: { kind: 'button', index: 4, label: 'LB' } },
-  { action: 'racingLine', label: 'Cycle racing line', keys: ['KeyL'], keyLabels: ['L'], pad: { kind: 'button', index: 5, label: 'RB' } },
+  { action: 'racingLine', label: 'Cycle racing line', keys: ['KeyL'], keyLabels: ['L'], pad: { kind: 'button', index: 3, label: 'Y' } },
   { action: 'hud', label: 'Toggle HUD', keys: ['KeyH'], keyLabels: ['H'] },
-  { action: 'tuner', label: 'Graphics tuner', keys: ['F2'], keyLabels: ['F2'] },
+  // The graphics tuner is a dev tool (local builds and preview deployments only).
+  ...(DEV_TOOLS ? [TUNER] : []),
 ];
 
-/** Gamepad buttons used for menu navigation (standard mapping). */
-export const PAD_MENU = { up: 12, down: 13, left: 14, right: 15, accept: 0, back: 1 } as const;
+/** Gamepad buttons used for menu navigation (standard mapping). LB / RB change the tab. */
+export const PAD_MENU = { up: 12, down: 13, left: 14, right: 15, accept: 0, back: 1, prevTab: 4, nextTab: 5 } as const;

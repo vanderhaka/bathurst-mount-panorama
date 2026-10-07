@@ -16,6 +16,7 @@ export interface VehicleAssists {
   abs: boolean;
   tc: boolean;
   autoGears: boolean;
+  mechanicalDamage: boolean; // false = impacts leave the mechanics as new (damage setting "Visual only" or "Off")
 }
 
 /** Corner geometry: lateral x (+ left), longitudinal z (+ forward) from the CG. */
@@ -35,8 +36,8 @@ export class Vehicle {
   readonly tp: TrackPoint = createTrackPoint();
   readonly wheels: WheelTelemetry[];
   readonly telemetry: VehicleTelemetry;
-  assists: VehicleAssists = { abs: true, tc: true, autoGears: true };
-  handling: Readonly<HandlingConfig> = DEFAULT_HANDLING; // tuner multipliers (F2, Handling)
+  assists: VehicleAssists = { abs: true, tc: true, autoGears: true, mechanicalDamage: true };
+  handling: Readonly<HandlingConfig> = DEFAULT_HANDLING; // multipliers from Settings > Handling
   steerAngle = 0;
   private readonly corners: Corner[];
   private readonly wtp: TrackPoint[] = [0, 1, 2, 3].map(() => createTrackPoint());
@@ -277,7 +278,7 @@ export class Vehicle {
     this.roll = Math.max(-0.3, Math.min(0.3, this.roll));
 
     const impacts = resolveWalls(this, track);
-    for (const imp of impacts) applyImpactDamage(this, imp);
+    if (this.assists.mechanicalDamage) for (const imp of impacts) applyImpactDamage(this, imp);
 
     const t = this.telemetry;
     t.speed = this.speed;

@@ -21,14 +21,19 @@ Production build: `npm run build`, then `npm run preview` (http://127.0.0.1:5181
 | Throttle / brake | ↑ ↓ or W S | RT / LT |
 | Reverse (automatic gears) | Stop, release the brake, then press and hold it to drive backwards | Same with LT |
 | Shift up / down | E or Shift / Q or Ctrl | A / X |
-| Change camera (chase, far chase, bonnet, cockpit, TV) | C | Y |
+| Change camera (chase, far chase, bonnet, cockpit, TV) | C | RB (R1), like Gran Turismo 7 and F1 |
 | Look back (hold; from the in-car views a rear roof camera) | V | B |
-| Reset to track | R | View |
-| Pause | Esc or P | Menu |
+| Reset to track (also repairs the car; also in the pause menu) | R | View |
+| Pause (press again to resume) | Esc or P | Menu (Options on PlayStation) |
 | Ghost on/off | G | LB |
-| Racing line (off / braking / full) | L | RB |
+| Racing line (off / braking / full) | L | Y (△) |
 | Hide HUD | H | — |
-| Graphics tuner | F2 | — |
+| Graphics tuner (a Mac sends F2 to the screen brightness, so use T) | T or F2 | — |
+
+**Damage** (Settings, under Driving assists) has three modes:
+- **Full:** crashes hurt the engine, aero and steering, and the body dents.
+- **Visual only:** the body dents, but the car drives as new.
+- **Off:** crashes do not damage the car.
 
 The gamepad column uses the Xbox names. A PlayStation controller (DualShock 4 or DualSense, USB or Bluetooth) works with the same buttons: RT/LT = R2/L2, A/B/X/Y = ✕/○/□/△, LB/RB = L1/R1, View = Share (PS4) or Create (PS5), Menu = Options. When a PlayStation controller is connected, the menus, hints and controls screen show its symbols and layout. Press a button once after you connect a controller, because the browser shows a gamepad to the page only after a press. Chrome, Edge and Safari read both controllers in the standard mapping. Firefox can read a PlayStation controller in a different mapping.
 
@@ -40,7 +45,8 @@ The gamepad column uses the Xbox names. A PlayStation controller (DualShock 4 or
 - **Walls, sand traps and fences:** these come from the OSM barrier and sand polygons. Tyre walls are placed where the research found them.
 - **Trackside features:** buildings (extruded from their real footprints), grandstands, the pit complex, 1,304 camp pitches, marshal posts, big screens, footbridges, car parks, mapped trees and the white-stone "MOUNT PANORAMA" sign come from OSM.
 - **Cars:** dimensions, mass, power (447 kW rated, ×0.92 altitude derate), gearing, aero (ClA 0.89) and shift times come from `docs/research/car-specs.md`.
-- **Validation:** the ideal lap of the racing-line profile is 2:05.7. The real Gen3 pole is 2:04.0, and the race lap record is 2:06.7. The test AI uses 90 % of the grip and laps both cars cleanly (no wall contact) in about 2:12.
+- **Validation:** with the measured car (`MEASURED_HANDLING`), the ideal lap of the racing-line profile is 2:05.7. The real Gen3 pole is 2:04.0, and the race lap record is 2:06.7.
+- **Game feel:** the game uses the handling that the user tuned (`DEFAULT_HANDLING` in `src/config/handling.ts`): 20 % more tyre grip, 10 % more rear grip and downforce, and a softer, more forgiving limit. With it, the ideal lap is 1:57.5, and the test AI (90 % of the grip) laps both cars cleanly in about 2:04.
 
 ## Racing line
 
@@ -66,9 +72,58 @@ The cockpit view has a live rear-view mirror (a small second render at half rate
 
 Best laps, sectors, the delta trace and the ghost are saved per car in the browser (localStorage key `bathurst.records.v2.<car>`). A lap counts only after you drive at least 90 % of it forwards. The standing-start lap (from the grid) is shown, but it never becomes your best lap, delta reference or ghost. Version 2 drops records from older builds, because those builds could save a ghost that replayed too fast.
 
+## Play on a phone
+
+The game runs in the phone's web browser (Safari on iPhone, Chrome on Android). It plays in landscape only: in portrait, a note asks you to turn the phone, and a running race pauses.
+
+1. Open the game's web address on the phone.
+2. Turn the phone sideways.
+3. For full screen, tap **Share > Add to Home Screen**, then start the game from the new icon.
+
+Touch controls show while you race, after your first touch:
+
+| Control | Use |
+|---|---|
+| Steer | Put your left thumb down anywhere on the left half of the screen, then drag it sideways. |
+| Throttle and brake | Use the two pedals at the bottom right. Slide your thumb from one pedal to the other. |
+| II | Pause. |
+| View | Change the camera. |
+
+- A Bluetooth controller (PS5, PS4 or Xbox) also works on a phone. The touch controls hide while you use it.
+- Phones start on **Medium** graphics. If the game stutters, set **Low** in **Settings > Graphics and audio**.
+- The phone version is tested in Chrome's iPhone emulation only. Real iPhone speed and memory are not tested yet.
+
+## Tune the handling
+
+The Handling tab and the graphics tuner are dev tools. They show in local builds and on Vercel preview deployments, but not on the production deployment.
+
+1. Open **Settings** from the title screen or the pause menu.
+2. Press **LB / RB** (L1 / R1) or **Q / E** to go to the **Handling** tab.
+3. Select a value with up and down. Change it with left and right.
+
+The car feels a change at once, and the game saves it. The taller tick under each meter shows the default. **Reset handling** puts all values back to the defaults. The help text for each value gives the measured car's value.
+
+| Value | Effect |
+|---|---|
+| Tyre grip | Grip of all four tyres (1.00 = the measured car). |
+| Grip in a slide | Grip that stays when the car slides (0.59 = the measured car). Higher = slides are easier to catch. |
+| Rear grip | Above 1.00 = a more stable rear. Below 1.00 = a looser rear. |
+| Peak slip angle | Higher = the grip limit comes on more gently. |
+| Downforce | Grip at high speed. |
+| Steering speed | How fast the front wheels turn to the steering input. |
+
+The racing-line colours and corner-speed hints use the new values from the next race start. Tyre temperature on the HUD is for display only: it does not change the grip.
+
+## Menus
+
+Every build has **Settings > Graphics and audio > Frame rate limit** (30, 60, 120 or Max).
+
+- Up and down move between items. Left and right change a value, or move to the button beside.
+- **LB / RB** (L1 / R1) or **Q / E** change the Settings tab.
+
 ## Tune the graphics
 
-1. Press **F2** in the game.
+1. Press **T** in the game (or **F2**, or select **Graphics tuner** in Settings > Graphics and audio). Use the mouse.
 2. Move the sliders. Lighting, sky, fog, colour grade and camera change at once.
 3. For world content (tree density, terrain colour noise, rubber groove), click **Rebuild world**.
 4. Click **Save as my default** to keep your settings.

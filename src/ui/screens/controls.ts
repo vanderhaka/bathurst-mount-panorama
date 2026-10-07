@@ -40,7 +40,7 @@ export class ControlsScreen implements Screen {
           h('section', 'mn-controls__col', { 'aria-label': 'Keyboard' }, [h('h3', 'mn-group__title', undefined, ['Keyboard']), keys]),
           h('section', 'mn-controls__col', { 'aria-label': 'Gamepad' }, [h('h3', 'mn-group__title', undefined, ['Gamepad']), this.diagram]),
         ]),
-        h('footer', 'mn-panel__foot', undefined, [padText('p', 'mn-help', 'Menus: arrow keys or D-pad to move, Enter or {A} to confirm, Esc or {B} to go back.'), this.done]),
+        h('footer', 'mn-panel__foot', undefined, [padText('p', 'mn-help', 'Menus: arrow keys or D-pad to move, Enter or {A} to confirm, Esc or {B} to go back, Q / E or {LB} / {RB} to change tabs.'), this.done]),
       ]),
       hintBar([['Esc', 'B', 'Back']]),
     );

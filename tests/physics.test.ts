@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { CAR_SPECS, type CarKind } from '@/car/car-specs';
+import { DEFAULT_HANDLING, tunedSpec } from '@/config/handling';
 import { Vehicle } from '@/physics/vehicle';
 import type { VehicleInput } from '@/physics/types';
 import { AI_PROFILE, Autopilot } from '@/race/autopilot';
@@ -67,12 +68,32 @@ describe('vehicle physics', () => {
     expect(t).toBeLessThan(5);
   });
 
+  for (const mechanicalDamage of [true, false]) {
+    it(`hits a wall ${mechanicalDamage ? 'with' : 'without'} mechanical damage (damage setting)`, () => {
+      const v = new Vehicle(CAR_SPECS.camaro, track, kerbs);
+      v.assists = { ...v.assists, mechanicalDamage };
+      const s = 1000;
+      const i = Math.round(s / track.spacing);
+      v.reset(s, track.left.wall[i] - 2);
+      // 20 m/s forwards and 12 m/s sideways into the left wall.
+      v.vx = track.tx[i] * 20 + track.lx[i] * 12;
+      v.vz = track.tz[i] * 20 + track.lz[i] * 12;
+      let impacts = 0;
+      for (let t = 0; t < 1; t += DT) impacts += v.step(input(), DT).length;
+      expect(impacts).toBeGreaterThan(0);
+      const total = Object.values(v.damage).reduce((a, b) => a + b, 0);
+      if (mechanicalDamage) expect(total).toBeGreaterThan(0.1);
+      else expect(total).toBe(0);
+    });
+  }
+
   for (const kind of ['camaro', 'mustang'] as CarKind[]) {
     it(`autopilot laps Mount Panorama in the ${kind}`, () => {
       const spec = CAR_SPECS[kind];
-      const profile = computeSpeedProfile(track, line, spec);
+      const tuned = tunedSpec(spec, DEFAULT_HANDLING); // the vehicle runs the default handling
+      const profile = computeSpeedProfile(track, line, tuned);
       // The AI drives a careful profile (AI_PROFILE: 90 % of the grip) at full power on the straights.
-      const aiProfile = computeSpeedProfile(track, line, spec, AI_PROFILE);
+      const aiProfile = computeSpeedProfile(track, line, tuned, AI_PROFILE);
       const v = new Vehicle(spec, track, kerbs);
       const ap = new Autopilot(track, line, aiProfile);
       const s0 = track.wrapS(track.startLineS - 300);

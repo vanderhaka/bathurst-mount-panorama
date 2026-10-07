@@ -10,9 +10,13 @@ export interface Settings {
   tractionControl: boolean;
   abs: boolean;
   steeringAssist: boolean;
+  /** Full = crashes change the car's mechanics; visual = dents only; off = no damage. */
+  damage: 'full' | 'visual' | 'off';
   ghost: boolean;
   units: 'kmh' | 'mph';
   quality: QualityPreset;
+  /** Most frames per second; 0 = no limit (the display's refresh rate). */
+  frameRate: 0 | 30 | 60 | 120;
   camera: CameraMode;
   masterVolume: number; // 0..1
   showFps: boolean;
@@ -24,9 +28,11 @@ export const DEFAULT_SETTINGS: Settings = {
   tractionControl: true,
   abs: true,
   steeringAssist: true,
+  damage: 'full',
   ghost: true,
   units: 'kmh',
   quality: 'high',
+  frameRate: 0,
   camera: 'chase',
   masterVolume: 0.8,
   showFps: false,

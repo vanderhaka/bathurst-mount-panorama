@@ -8,6 +8,7 @@ import '@/hud/timing.css';
 import '@/hud/dash.css';
 import '@/hud/map.css';
 import '@/hud/broadcast.css';
+import '@/hud/phone.css';
 import type { Hud, HudState, HudTrackInfo } from '@/types/hud';
 import { Banner } from '@/hud/banner';
 import { Dash } from '@/hud/dash';
