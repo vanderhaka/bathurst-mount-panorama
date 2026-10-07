@@ -220,6 +220,7 @@ Basis codes: **[G3]** = Gen3-era source (2023+); **[C]** = Gen1/Gen2, undated vi
 | **Murray's Corner (T23)** | ~215-220 | ~75-85 | 2nd | **100 m board**; biggest brake-temperature spike, big lock-up risk | Gear/board [C] [S52]; speeds [E] (sim: 380 m from Chase exit) |
 | **Pit Straight** | ~205-215 at the line | - | 4th | - | [E] |
 
+- **The Chase geometry check (2026-10-07).** The game's left apex (T21) has a 29 m centreline radius, and the measured car's ideal apex speed is about 100 km/h, below the cited 110-120 km/h. A NSW Spatial Services aerial photo at 0.1 m per pixel (`NSW_Imagery` MapServer export) confirms the shape: a circle fit to the photo's asphalt centreline gives 27-29 m, the OSM way follows the asphalt within about 1.5 m, and the dark asphalt is about 10-11 m wide (the game uses 12.6 m). More kerb use or more solver work does not widen the racing line (48-49 m radius). So the geometry stays as it is. The 110-120 km/h figures are Gen1 and Wikipedia numbers, not Gen3 data. With the user's tuned handling, the game's ideal apex speed is 112 km/h. Diagnostics: `tests/debug/chase2.test.ts` and `tests/debug/corner-mins.test.ts`.
 - Lap-level budget (Crompton): 55 % of the lap at wide-open throttle, 35 % turning, ~30 gear changes per lap [S36].
 - Brake temperature is dominated by the bottom of The Chase and the final corner [S36].
 - Fastest/slowest conflict: Wikipedia calls Murray's the slowest corner [S35]; Crompton names the Elbow at 80 km/h [S36]. Both are about 80 km/h, so use 80 km/h for each.
