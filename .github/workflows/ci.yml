@@ -15,5 +15,6 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run typecheck
-      - run: npm test
+      # Bound concurrent geometry/stint work on the hosted runner.
+      - run: npm test -- --maxWorkers=2
       - run: npm run build
