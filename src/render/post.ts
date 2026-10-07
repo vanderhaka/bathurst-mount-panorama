@@ -1,21 +1,25 @@
 import * as THREE from 'three';
-import type { GraphicsConfig } from '@/config/graphics';
+import { getGraphics, type GraphicsConfig } from '@/config/graphics';
+import { createBloom, type Bloom } from '@/render/bloom';
+import { TONE_MAPPING } from '@/render/tone-mapping';
 
 /**
  * Minimal post chain: the scene renders into one MSAA half-float target, then a
- * single full-screen pass does tone mapping, sRGB output and the colour grade
- * (saturation, contrast, warmth, black lift, vignette). One extra pass only.
+ * final full-screen pass does tone mapping, sRGB output and the colour grade.
+ * High adds two quarter-resolution passes for bright HDR glints before output.
  */
 export interface PostChain {
   render(scene: THREE.Scene, camera: THREE.Camera): void;
   setSize(width: number, height: number): void;
-  setEnabled(enabled: boolean, msaa: number): void;
+  setEnabled(enabled: boolean, msaa: number, bloom?: boolean): void;
   apply(cfg: GraphicsConfig): void;
   dispose(): void;
 }
 
 const fragmentShader = /* glsl */ `
   uniform sampler2D tScene;
+  uniform sampler2D tBloom;
+  uniform float bloomStrength;
   uniform float saturation;
   uniform float contrast;
   uniform float warmth;
@@ -24,6 +28,7 @@ const fragmentShader = /* glsl */ `
   varying vec2 vUv;
   void main() {
     gl_FragColor = texture2D(tScene, vUv);
+    gl_FragColor.rgb += texture2D(tBloom, vUv).rgb * bloomStrength;
     #include <tonemapping_fragment>
     #include <colorspace_fragment>
     vec3 c = gl_FragColor.rgb;
@@ -49,6 +54,8 @@ export function createPostChain(renderer: THREE.WebGLRenderer, msaa = 4): PostCh
   const material = new THREE.ShaderMaterial({
     uniforms: {
       tScene: { value: target.texture },
+      tBloom: { value: target.texture },
+      bloomStrength: { value: 0 },
       saturation: { value: 1 },
       contrast: { value: 1 },
       warmth: { value: 0 },
@@ -66,6 +73,19 @@ export function createPostChain(renderer: THREE.WebGLRenderer, msaa = 4): PostCh
   postScene.add(quad);
   const postCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
   let enabled = true;
+  let tierBloom = true;
+  let bloom: Bloom | null = null;
+  let cfg = getGraphics();
+
+  const updateBloom = () => {
+    if (enabled && tierBloom && cfg.bloom && cfg.bloomStrength > 0) {
+      bloom ??= createBloom(target.width, target.height);
+    } else {
+      bloom?.dispose();
+      bloom = null;
+    }
+    material.uniforms.bloomStrength.value = bloom ? cfg.bloomStrength : 0;
+  };
 
   return {
     render(scene, camera) {
@@ -74,35 +94,52 @@ export function createPostChain(renderer: THREE.WebGLRenderer, msaa = 4): PostCh
         renderer.render(scene, camera);
         return;
       }
-      renderer.setRenderTarget(target);
-      renderer.render(scene, camera);
-      renderer.setRenderTarget(null);
-      renderer.render(postScene, postCamera);
+      // Evidence must count the whole frame, rather than just the final quad.
+      const autoReset = renderer.info.autoReset;
+      if (autoReset) renderer.info.reset();
+      renderer.info.autoReset = false;
+      try {
+        renderer.setRenderTarget(target);
+        renderer.render(scene, camera);
+        material.uniforms.tBloom.value = bloom ? bloom.render(renderer, target.texture, cfg) : target.texture;
+        renderer.setRenderTarget(null);
+        renderer.render(postScene, postCamera);
+      } finally {
+        renderer.info.autoReset = autoReset;
+      }
     },
     setSize(width, height) {
       const pr = renderer.getPixelRatio();
       target.setSize(Math.floor(width * pr), Math.floor(height * pr));
+      bloom?.setSize(target.width, target.height);
     },
-    setEnabled(on, samples) {
+    setEnabled(on, samples, highBloom = false) {
       enabled = on;
+      tierBloom = highBloom;
       if (target.samples !== samples) {
         const { width, height } = target;
         target.dispose();
         target = new THREE.WebGLRenderTarget(width, height, { type: THREE.HalfFloatType, samples, colorSpace: THREE.LinearSRGBColorSpace });
         material.uniforms.tScene.value = target.texture;
       }
+      updateBloom();
     },
-    apply(cfg) {
+    apply(next) {
+      cfg = next;
+      renderer.toneMapping = TONE_MAPPING[cfg.toneMapping];
       renderer.toneMappingExposure = cfg.exposure;
       material.uniforms.saturation.value = cfg.saturation;
       material.uniforms.contrast.value = cfg.contrast;
       material.uniforms.warmth.value = cfg.warmth;
       material.uniforms.blackLift.value = cfg.blackLift;
       material.uniforms.vignette.value = cfg.vignette;
+      updateBloom();
     },
     dispose() {
       target.dispose();
+      bloom?.dispose();
       material.dispose();
+      quad.geometry.dispose();
     },
   };
 }

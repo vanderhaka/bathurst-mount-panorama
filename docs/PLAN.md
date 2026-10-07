@@ -44,11 +44,12 @@ Status: done (commit 896f619e794d5268659ba8cb964b878d5a955b8b).
   5. Add CI: a GitHub Actions workflow that runs types, tests and the build on every push and pull request.
 - **Done when:** `docs/REALISM.md` has the baseline scores; the performance baseline is in `artifacts/review/realism-baseline/metrics.json`; CI is green on the preview branch (latest user delivery override); the real-iPhone baseline remains pending.
 ### 1.1 Art direction update — S
-Status: done (commit pending; exact SHA is recorded by the next item and in HANDOFF.md).
+Status: done (commit c4cfd33c090bd5da41ab3fa1361ec78ef9bae9fd).
 - **Depends on:** D1 (decided: about 75 % of the way to photoreal).
 - **Do:** Rewrite `docs/ART_DIRECTION.md` for "about 75 % of the way to photoreal": physically based light and materials; procedural normal, roughness and detail maps allowed; smooth shading allowed for terrain and car bodies; the medium-poly geometry may show on close inspection; generated assets only; new budgets for texture memory per tier. Add 3 reference-photo pairs that show "75 %" (what to match and what may stay stylised).
 - **Done when:** the document states the new rules and the old rules that stay (no logos, generated assets, real scale, triangle budgets).
 ### 1.2 Light, sky and atmosphere — M
+Status: done (commit pending; exact SHA is recorded by the next item and in HANDOFF.md).
 - **Depends on:** D2.
 - **Do:**
   1. Compute the sun position from Bathurst's latitude and longitude, the date and the time (solar position formula). Add a time-of-day value to the graphics config.

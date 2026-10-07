@@ -106,3 +106,22 @@ Before Phase 1, phone emulation first-load encoded bytes: **594,963**; transferr
 bytes: **602,163**. Estimated live GPU allocation: **114,520,660 bytes**.
 The allocation estimate includes observed texture/renderbuffer formats and samples;
 it excludes driver overhead and the default framebuffer. See `resources-phone.json`.
+
+## Item 1.2: tone mapping comparison
+
+Two fresh reviewers reused the fixed briefs and inspected all 12 environment pairs
+under each operator. Cars are excluded from this operator comparison; it is not a
+new full Realism Index. User score remains **pending**.
+
+| Operator | Player environment index | Photographer environment index | Mean |
+|---|---:|---:|---:|
+| ACES | 41.11 | 41.33 | 41.22 |
+| AgX | 43.10 | 42.74 | 42.92 |
+| Neutral | 41.33 | 40.63 | 40.98 |
+
+AgX is the default because both reviewers preferred its grey asphalt, restrained
+highlights and muted vegetation. Their larger remaining gaps concern tree forms,
+terrain variation and local material depth, addressed by the next plan items.
+Full aspect scores, visible reasons and pairing limitations are in
+`artifacts/review/item-1.2/tone-player.json` and `tone-photographer.json`.
+The date is 11 October 2026 at 15:00 AEDT (D2): solar elevation 49.50°, bearing 303.79°.

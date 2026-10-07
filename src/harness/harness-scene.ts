@@ -1,6 +1,8 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { GROUND, ROAD } from '@/art/palette';
+import { getGraphics, setGraphics, type ToneMapper } from '@/config/graphics';
+import { createPostChain } from '@/render/post';
 import { createRenderer } from '@/render/renderer';
 import { createLighting, createSkyEnvironment } from '@/world/lighting';
 import { createSky } from '@/world/sky';
@@ -43,6 +45,10 @@ const VIEWS: Record<string, [number, number, number]> = {
  * game, over a grass + asphalt ground. URL params: ?view=threequarter&dist=8
  */
 export function createHarnessScene(opts: { ground?: 'asphalt' | 'grass'; groundSize?: number } = {}): HarnessScene {
+  const params = new URLSearchParams(location.search);
+  const tone = params.get('tone');
+  if (tone && ['ACES', 'AgX', 'Neutral'].includes(tone)) setGraphics({ toneMapping: tone as ToneMapper });
+  if (params.has('time')) setGraphics({ timeOfDay: Number(params.get('time')) });
   const renderer = createRenderer({ quality: 'high', preserveDrawingBuffer: true });
   renderer.setSize(window.innerWidth, window.innerHeight);
   document.body.style.margin = '0';
@@ -53,8 +59,12 @@ export function createHarnessScene(opts: { ground?: 'asphalt' | 'grass'; groundS
   const camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 0.05, 20000);
   const sky = createSky(scene);
   const lighting = createLighting(scene, 'high');
-  scene.environment = createSkyEnvironment(renderer, sky.dome);
-  scene.environmentIntensity = 0.4;
+  scene.environment = createSkyEnvironment(renderer, sky.dome).texture;
+  scene.environmentIntensity = getGraphics().envIntensity;
+  lighting.apply(getGraphics());
+  const post = createPostChain(renderer, 4);
+  post.setEnabled(true, 4, true);
+  post.apply(getGraphics());
 
   const size = opts.groundSize ?? 400;
   const grass = new THREE.Mesh(
@@ -77,7 +87,6 @@ export function createHarnessScene(opts: { ground?: 'asphalt' | 'grass'; groundS
   controls.target.set(0, 0.6, 0);
   controls.enableDamping = true;
 
-  const params = new URLSearchParams(location.search);
   const frameFns: Array<(dt: number, t: number) => void> = [];
   let readyCountdown = -1;
   let readyInfo: unknown = null;
@@ -111,6 +120,7 @@ export function createHarnessScene(opts: { ground?: 'asphalt' | 'grass'; groundS
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
+    post.setSize(window.innerWidth, window.innerHeight);
   });
 
   const timer = new THREE.Timer();
@@ -122,7 +132,7 @@ export function createHarnessScene(opts: { ground?: 'asphalt' | 'grass'; groundS
     controls.update();
     lighting.follow(controls.target);
     sky.follow(camera);
-    renderer.render(scene, camera);
+    post.render(scene, camera);
     if (readyCountdown > 0 && --readyCountdown === 0) {
       window.__shotInfo = { ...(readyInfo as object), drawCalls: renderer.info.render.calls, triangles: renderer.info.render.triangles };
       window.__shotReady = true;

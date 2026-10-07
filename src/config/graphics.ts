@@ -2,14 +2,17 @@
 // want to adjust lives here. The live graphics tuner (T or F2) edits this object; `live`
 // values apply at once, `rebuild` values apply after "Rebuild world".
 import type { QualityPreset } from '@/render/renderer';
+import { AEDT_OFFSET_HOURS, BATHURST_LOCATION, raceDay, RACE_YEAR, solarPosition } from '@/world/solar-position';
+
+export type ToneMapper = 'ACES' | 'AgX' | 'Neutral';
 
 export interface GraphicsConfig {
   // --- live: lighting and atmosphere
   exposure: number;
+  toneMapping: ToneMapper;
+  /** Local AEDT hours on the second Sunday of October 2026. */
+  timeOfDay: number;
   sunIntensity: number;
-  sunElevationDeg: number;
-  /** Compass bearing of the sun (0 = north, 90 = east). */
-  sunAzimuthDeg: number;
   sunColour: string;
   hemiIntensity: number;
   hemiSky: string;
@@ -19,6 +22,20 @@ export interface GraphicsConfig {
   fogDensity: number;
   skyZenith: string;
   skyHorizon: string;
+  physicalSky: boolean;
+  skyTurbidity: number;
+  skyRayleigh: number;
+  skyMie: number;
+  cloudCoverage: number;
+  aerialPerspective: boolean;
+  /** Density scale height in reciprocal metres, measured above the 700 m datum. */
+  hazeHeightFalloff: number;
+  hazeSunWarmth: number;
+  bloom: boolean;
+  bloomStrength: number;
+  /** Linear HDR threshold; ordinary diffuse surfaces stay below it. */
+  bloomThreshold: number;
+  bloomRadius: number;
   // --- live: colour grade (display space)
   saturation: number;
   contrast: number;
@@ -44,23 +61,36 @@ export interface GraphicsConfig {
 
 export const DEFAULT_GRAPHICS: GraphicsConfig = {
   exposure: 1.0,
+  // Highest mean in the independent 12-view operator comparison (docs/REALISM.md).
+  toneMapping: 'AgX',
+  timeOfDay: 15,
   sunIntensity: 3.5,
-  sunElevationDeg: 29,
-  sunAzimuthDeg: 318,
-  sunColour: '#ffe4bd',
+  sunColour: '#fff0da',
   hemiIntensity: 1.2,
   hemiSky: '#e2e9ee',
   hemiGround: '#7a7866',
   envIntensity: 0.4,
   fogColour: '#c0d3e2',
-  fogDensity: 0.00012,
+  fogDensity: 0.00014,
   skyZenith: '#2f6cc6',
   skyHorizon: '#bcd3e6',
+  physicalSky: true,
+  skyTurbidity: 2.5,
+  skyRayleigh: 1.5,
+  skyMie: 0.004,
+  cloudCoverage: 0.26,
+  aerialPerspective: true,
+  hazeHeightFalloff: 0.004,
+  hazeSunWarmth: 0.3,
+  bloom: true,
+  bloomStrength: 0.1,
+  bloomThreshold: 2.2,
+  bloomRadius: 1.5,
   saturation: 1.0,
   contrast: 1.04,
-  warmth: 0.045,
-  blackLift: 0.012,
-  vignette: 0.22,
+  warmth: 0.012,
+  blackLift: 0.004,
+  vignette: 0.14,
   fov: 62,
   cameraShake: 1,
   treeDensity: 1,
@@ -72,10 +102,13 @@ export const DEFAULT_GRAPHICS: GraphicsConfig = {
 };
 
 /** Values that each quality preset forces (performance, not look). */
-export const QUALITY: Record<QualityPreset, { msaa: number; treeDensityScale: number; shadowMap: number; post: boolean }> = {
-  low: { msaa: 0, treeDensityScale: 0.45, shadowMap: 1024, post: false },
-  medium: { msaa: 4, treeDensityScale: 0.75, shadowMap: 2048, post: true },
-  high: { msaa: 4, treeDensityScale: 1, shadowMap: 4096, post: true },
+export const QUALITY: Record<QualityPreset, {
+  msaa: number; treeDensityScale: number; shadowMap: number; post: boolean;
+  physicalSky: boolean; aerialPerspective: boolean; bloom: boolean; environmentSize: number;
+}> = {
+  low: { msaa: 0, treeDensityScale: 0.45, shadowMap: 1024, post: false, physicalSky: false, aerialPerspective: false, bloom: false, environmentSize: 128 },
+  medium: { msaa: 4, treeDensityScale: 0.75, shadowMap: 2048, post: true, physicalSky: false, aerialPerspective: true, bloom: false, environmentSize: 128 },
+  high: { msaa: 4, treeDensityScale: 1, shadowMap: 4096, post: true, physicalSky: true, aerialPerspective: true, bloom: true, environmentSize: 256 },
 };
 
 const STORAGE_KEY = 'bathurst.graphics.v1';
@@ -87,7 +120,7 @@ const listeners = new Set<Listener>();
 function loadSaved(): Partial<GraphicsConfig> {
   try {
     const raw = typeof localStorage !== 'undefined' ? localStorage.getItem(STORAGE_KEY) : null;
-    return raw ? (JSON.parse(raw) as Partial<GraphicsConfig>) : {};
+    return raw ? cleanGraphics(JSON.parse(raw)) ?? {} : {};
   } catch {
     return {};
   }
@@ -98,9 +131,11 @@ export function getGraphics(): Readonly<GraphicsConfig> {
 }
 
 export function setGraphics(patch: Partial<GraphicsConfig>): void {
-  const changed = (Object.keys(patch) as (keyof GraphicsConfig)[]).filter((k) => patch[k] !== undefined && patch[k] !== current[k]);
+  const clean = cleanGraphics(patch);
+  if (!clean) return;
+  const changed = (Object.keys(clean) as (keyof GraphicsConfig)[]).filter((k) => clean[k] !== current[k]);
   if (!changed.length) return;
-  current = { ...current, ...patch };
+  current = { ...current, ...clean };
   for (const l of listeners) l(current, changed);
 }
 
@@ -137,11 +172,8 @@ export function exportGraphics(): string {
 
 export function importGraphics(json: string): boolean {
   try {
-    const parsed = JSON.parse(json) as Partial<GraphicsConfig>;
-    const clean: Partial<GraphicsConfig> = {};
-    for (const k of Object.keys(DEFAULT_GRAPHICS) as (keyof GraphicsConfig)[]) {
-      if (k in parsed && typeof parsed[k] === typeof DEFAULT_GRAPHICS[k]) (clean as Record<string, unknown>)[k] = parsed[k];
-    }
+    const clean = cleanGraphics(JSON.parse(json));
+    if (!clean) return false;
     setGraphics(clean);
     return true;
   } catch {
@@ -151,7 +183,24 @@ export function importGraphics(json: string): boolean {
 
 /** Unit vector towards the sun in world space (north = -Z, east = +X). */
 export function sunDirection(cfg: GraphicsConfig = current): [number, number, number] {
-  const el = (cfg.sunElevationDeg * Math.PI) / 180;
-  const az = (cfg.sunAzimuthDeg * Math.PI) / 180;
+  const sun = solarPosition(BATHURST_LOCATION, raceDay(RACE_YEAR), cfg.timeOfDay, AEDT_OFFSET_HOURS);
+  const el = (sun.elevationDeg * Math.PI) / 180;
+  const az = (sun.azimuthDeg * Math.PI) / 180;
   return [Math.sin(az) * Math.cos(el), Math.sin(el), -Math.cos(az) * Math.cos(el)];
+}
+
+function cleanGraphics(input: unknown): Partial<GraphicsConfig> | null {
+  if (!input || typeof input !== 'object' || Array.isArray(input)) return null;
+  const values = input as Record<string, unknown>;
+  const clean: Partial<GraphicsConfig> = {};
+  for (const key of Object.keys(DEFAULT_GRAPHICS) as (keyof GraphicsConfig)[]) {
+    const value = values[key];
+    if (value === undefined) continue;
+    if (typeof value !== typeof DEFAULT_GRAPHICS[key]) return null;
+    if (typeof value === 'number' && !Number.isFinite(value)) return null;
+    if (key === 'timeOfDay' && (Number(value) < 0 || Number(value) > 24)) return null;
+    if (key === 'toneMapping' && !['ACES', 'AgX', 'Neutral'].includes(String(value))) return null;
+    (clean as Record<string, unknown>)[key] = value;
+  }
+  return clean;
 }

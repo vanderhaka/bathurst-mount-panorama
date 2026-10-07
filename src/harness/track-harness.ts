@@ -1,6 +1,6 @@
 // Track viewer for screenshots: ?s=<metres>&d=<lateral>&h=<eye height>&ahead=<m>&view=drive|aerial|chase
 import * as THREE from 'three';
-import { getGraphics } from '@/config/graphics';
+import { getGraphics, onGraphicsChange, setGraphics, type ToneMapper } from '@/config/graphics';
 import { createPostChain } from '@/render/post';
 import { createRenderer } from '@/render/renderer';
 import { pointAt } from '@/track/track-query';
@@ -13,6 +13,9 @@ declare global {
 }
 
 const params = new URLSearchParams(location.search);
+const tone = params.get('tone');
+if (tone && ['ACES', 'AgX', 'Neutral'].includes(tone)) setGraphics({ toneMapping: tone as ToneMapper });
+if (params.has('time')) setGraphics({ timeOfDay: Number(params.get('time')) });
 const renderer = createRenderer({ quality: 'high' });
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
@@ -20,11 +23,22 @@ const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(getGraphics().fov, window.innerWidth / window.innerHeight, 0.1, 20000);
 const sky = createSky(scene);
 const lighting = createLighting(scene, 'high');
-scene.environment = createSkyEnvironment(renderer, sky.dome);
+let environment = createSkyEnvironment(renderer, sky.dome);
+scene.environment = environment.texture;
 scene.environmentIntensity = getGraphics().envIntensity;
 const post = createPostChain(renderer, 4);
 post.setSize(window.innerWidth, window.innerHeight);
+post.setEnabled(true, 4, true);
 post.apply(getGraphics());
+onGraphicsChange((cfg) => {
+  sky.apply(cfg);
+  lighting.apply(cfg);
+  post.apply(cfg);
+  const old = environment;
+  environment = createSkyEnvironment(renderer, sky.dome);
+  scene.environment = environment.texture;
+  old.dispose();
+});
 
 const t0 = performance.now();
 const world = await buildWorld(renderer);

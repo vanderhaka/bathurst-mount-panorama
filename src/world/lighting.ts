@@ -1,7 +1,8 @@
 import * as THREE from 'three';
-import { getGraphics, type GraphicsConfig } from '@/config/graphics';
+import { getGraphics, QUALITY, type GraphicsConfig } from '@/config/graphics';
 import type { QualityPreset } from '@/render/renderer';
 import { SUN_DIRECTION } from '@/world/sky';
+import { createAerialPerspective } from '@/world/aerial-perspective';
 
 export interface SceneLighting {
   sun: THREE.DirectionalLight;
@@ -23,6 +24,12 @@ export function createLighting(scene: THREE.Scene, quality: QualityPreset = 'hig
   const cfg0 = getGraphics();
   const fog = new THREE.FogExp2(cfg0.fogColour, cfg0.fogDensity);
   scene.fog = fog;
+  const aerial = createAerialPerspective(scene);
+  const previousRender = scene.onBeforeRender;
+  scene.onBeforeRender = (renderer, renderedScene, camera, ...rest) => {
+    previousRender.call(scene, renderer, renderedScene, camera, ...rest);
+    aerial.prepare(camera);
+  };
 
   const hemi = new THREE.HemisphereLight(cfg0.hemiSky, cfg0.hemiGround, cfg0.hemiIntensity);
   scene.add(hemi);
@@ -76,6 +83,7 @@ export function createLighting(scene: THREE.Scene, quality: QualityPreset = 'hig
     setQuality(q) {
       quality = q;
       apply(q);
+      aerial.setEnabled(getGraphics().aerialPerspective && QUALITY[q].aerialPerspective);
     },
     apply(cfg) {
       updateLightSpace();
@@ -86,18 +94,20 @@ export function createLighting(scene: THREE.Scene, quality: QualityPreset = 'hig
       hemi.groundColor.set(cfg.hemiGround);
       fog.color.set(cfg.fogColour);
       fog.density = cfg.fogDensity;
+      aerial.apply(cfg);
+      aerial.setEnabled(cfg.aerialPerspective && QUALITY[quality].aerialPerspective);
       scene.environmentIntensity = cfg.envIntensity;
     },
   };
 }
 
 /** Builds an environment map from the sky so that car paint and glass get sky reflections. */
-export function createSkyEnvironment(renderer: THREE.WebGLRenderer, skyDome: THREE.Mesh): THREE.Texture {
+export function createSkyEnvironment(renderer: THREE.WebGLRenderer, skyDome: THREE.Mesh, quality: QualityPreset = 'high'): THREE.WebGLRenderTarget {
   const pmrem = new THREE.PMREMGenerator(renderer);
   const envScene = new THREE.Scene();
   const dome = skyDome.clone();
   dome.position.set(0, 0, 0);
-  dome.scale.setScalar(0.01);
+  dome.scale.multiplyScalar(0.01);
   envScene.add(dome);
   // A darker lower hemisphere so reflections show "ground" below the horizon.
   const ground = new THREE.Mesh(
@@ -106,7 +116,16 @@ export function createSkyEnvironment(renderer: THREE.WebGLRenderer, skyDome: THR
   );
   ground.position.y = -2;
   envScene.add(ground);
-  const rt = pmrem.fromScene(envScene, 0, 0.1, 200);
-  pmrem.dispose();
-  return rt.texture;
+  const material = skyDome.material;
+  const sunDisc = material instanceof THREE.ShaderMaterial ? material.uniforms.showSunDisc : undefined;
+  const visibleSun = sunDisc?.value;
+  if (sunDisc) sunDisc.value = 0; // Avoid a second sharp sun in filtered reflections.
+  try {
+    return pmrem.fromScene(envScene, 0, 0.1, 200, { size: QUALITY[quality].environmentSize });
+  } finally {
+    if (sunDisc) sunDisc.value = visibleSun;
+    pmrem.dispose();
+    ground.geometry.dispose();
+    ground.material.dispose();
+  }
 }

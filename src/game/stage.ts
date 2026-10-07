@@ -3,7 +3,7 @@ import { getGraphics, onGraphicsChange, QUALITY } from '@/config/graphics';
 import { createPostChain, type PostChain } from '@/render/post';
 import { createRenderer, setRendererQuality, type QualityPreset } from '@/render/renderer';
 import { createLighting, createSkyEnvironment, type SceneLighting } from '@/world/lighting';
-import { createSky, type Sky } from '@/world/sky';
+import { createSky, SKY_GRAPHICS_KEYS, type Sky } from '@/world/sky';
 
 /** Renderer, scene, camera, sky, lights and post chain, all driven by the graphics config. */
 export class Stage {
@@ -14,6 +14,8 @@ export class Stage {
   readonly lighting: SceneLighting;
   readonly post: PostChain;
   private quality: QualityPreset;
+  private environment: THREE.WebGLRenderTarget;
+  private environmentTimer: number | null = null;
 
   constructor(private readonly container: HTMLElement, quality: QualityPreset) {
     this.quality = quality;
@@ -23,13 +25,17 @@ export class Stage {
     container.appendChild(this.renderer.domElement);
     const g = getGraphics();
     this.camera = new THREE.PerspectiveCamera(g.fov, 1, 0.1, 16000);
-    this.sky = createSky(this.scene);
+    this.sky = createSky(this.scene, 9000, quality);
     this.lighting = createLighting(this.scene, quality);
-    this.scene.environment = createSkyEnvironment(this.renderer, this.sky.dome);
+    this.environment = createSkyEnvironment(this.renderer, this.sky.dome, quality);
+    this.scene.environment = this.environment.texture;
     this.post = createPostChain(this.renderer, QUALITY[quality].msaa);
-    this.post.setEnabled(QUALITY[quality].post, QUALITY[quality].msaa);
+    this.post.setEnabled(QUALITY[quality].post, QUALITY[quality].msaa, QUALITY[quality].bloom);
     this.applyGraphics();
-    onGraphicsChange(() => this.applyGraphics());
+    onGraphicsChange((_cfg, changed) => {
+      this.applyGraphics();
+      if (changed.some((key) => SKY_GRAPHICS_KEYS.includes(key))) this.scheduleEnvironment();
+    });
     // The game area's own size, not the window's: on a phone, window.innerWidth/innerHeight
     // follow the zoomed visual viewport and lag behind a turn of the phone.
     new ResizeObserver(() => this.resize()).observe(container);
@@ -46,16 +52,28 @@ export class Stage {
 
   /** Rebuilds the environment map (after sky changes that should reach reflections). */
   refreshEnvironment(): void {
-    const old = this.scene.environment;
-    this.scene.environment = createSkyEnvironment(this.renderer, this.sky.dome);
-    old?.dispose();
+    if (this.environmentTimer !== null) window.clearTimeout(this.environmentTimer);
+    this.environmentTimer = null;
+    const old = this.environment;
+    this.environment = createSkyEnvironment(this.renderer, this.sky.dome, this.quality);
+    this.scene.environment = this.environment.texture;
+    old.dispose();
+  }
+
+  private scheduleEnvironment(): void {
+    // Limit PMREM work while dragging; sky, sun and shadows update immediately.
+    if (this.environmentTimer === null) {
+      this.environmentTimer = window.setTimeout(() => this.refreshEnvironment(), 120);
+    }
   }
 
   setQuality(q: QualityPreset): void {
     this.quality = q;
     setRendererQuality(this.renderer, q);
+    this.sky.setQuality(q);
     this.lighting.setQuality(q);
-    this.post.setEnabled(QUALITY[q].post, QUALITY[q].msaa);
+    this.post.setEnabled(QUALITY[q].post, QUALITY[q].msaa, QUALITY[q].bloom);
+    this.refreshEnvironment();
     this.resize();
   }
 

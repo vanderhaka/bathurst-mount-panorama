@@ -40,9 +40,11 @@ export class GraphicsTuner {
     };
     const light = gui.addFolder('Light & sky');
     live(light, 'exposure', 0.4, 2, 0.01);
+    light.add(this.model, 'toneMapping', ['ACES', 'AgX', 'Neutral']).name('Tone mapping')
+      .onChange((v: GraphicsConfig['toneMapping']) => setGraphics({ toneMapping: v }));
+    light.add(this.model, 'timeOfDay', 7, 19, 0.05).name('Time (AEDT)')
+      .onChange((v: number) => setGraphics({ timeOfDay: v }));
     live(light, 'sunIntensity', 0, 8, 0.05);
-    live(light, 'sunElevationDeg', 5, 85, 1);
-    live(light, 'sunAzimuthDeg', 0, 360, 1);
     live(light, 'sunColour');
     live(light, 'hemiIntensity', 0, 4, 0.05);
     live(light, 'hemiSky');
@@ -50,8 +52,21 @@ export class GraphicsTuner {
     live(light, 'envIntensity', 0, 2, 0.01);
     live(light, 'skyZenith');
     live(light, 'skyHorizon');
+    live(light, 'physicalSky');
+    live(light, 'skyTurbidity', 1, 10, 0.1);
+    live(light, 'skyRayleigh', 0.1, 4, 0.05);
+    live(light, 'skyMie', 0.001, 0.02, 0.0005);
+    live(light, 'cloudCoverage', 0, 0.6, 0.01);
     live(light, 'fogColour');
     live(light, 'fogDensity', 0, 0.0005, 0.000005);
+    live(light, 'aerialPerspective');
+    live(light, 'hazeHeightFalloff', 0, 0.02, 0.0005);
+    live(light, 'hazeSunWarmth', 0, 1, 0.01);
+    const bloom = gui.addFolder('Bloom (High)');
+    live(bloom, 'bloom');
+    live(bloom, 'bloomStrength', 0, 0.5, 0.01);
+    live(bloom, 'bloomThreshold', 0.5, 8, 0.1);
+    live(bloom, 'bloomRadius', 0.5, 3, 0.1);
     const grade = gui.addFolder('Colour grade');
     live(grade, 'saturation', 0, 2, 0.01);
     live(grade, 'contrast', 0.5, 1.6, 0.01);

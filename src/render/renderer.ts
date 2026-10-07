@@ -1,4 +1,6 @@
 import * as THREE from 'three';
+import { getGraphics } from '@/config/graphics';
+import { TONE_MAPPING } from '@/render/tone-mapping';
 
 export type QualityPreset = 'low' | 'medium' | 'high';
 
@@ -21,8 +23,8 @@ export function createRenderer(opts: RendererOptions = {}): THREE.WebGLRenderer 
   });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, PIXEL_RATIO_CAP[quality]));
   renderer.outputColorSpace = THREE.SRGBColorSpace;
-  renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.0;
+  renderer.toneMapping = TONE_MAPPING[getGraphics().toneMapping];
+  renderer.toneMappingExposure = getGraphics().exposure;
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFShadowMap;
   return renderer;
