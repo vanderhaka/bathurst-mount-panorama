@@ -79,6 +79,9 @@ export class GraphicsTuner {
     const cam = gui.addFolder('Camera');
     live(cam, 'fov', 40, 90, 1);
     live(cam, 'cameraShake', 0, 2, 0.05);
+    live(cam, 'smaa');
+    live(cam, 'cameraBlurStrength', 0, 1, 0.02);
+    live(cam, 'sunFlareStrength', 0, 0.3, 0.01);
     const trees = gui.addFolder('Gum trees');
     live(trees, 'treeWind', 0, 1, 0.02);
     const detail = gui.addFolder('Trackside (rebuild)');

@@ -125,3 +125,35 @@ terrain variation and local material depth, addressed by the next plan items.
 Full aspect scores, visible reasons and pairing limitations are in
 `artifacts/review/item-1.2/tone-player.json` and `tone-photographer.json`.
 The date is 11 October 2026 at 15:00 AEDT (D2): solar elevation 49.50°, bearing 303.79°.
+
+## Item 1.8: rejected car candidate
+
+Two fresh reviewers reused the fixed briefs and inspected all 15 pairs. The
+unshipped candidate scored **49.16 / 100** (player 50.58, photographer 47.74).
+User: **pending**. This is a rejected candidate round, not the current release score.
+
+| Viewpoint | Player (0–10) | Photographer (0–10) |
+|---|---:|---:|
+| 10-hell-corner | 5.18 | 4.72 |
+| 11-mountain-straight | 4.93 | 4.70 |
+| 12-griffins-bend | 4.88 | 4.63 |
+| 13-the-cutting | 4.65 | 4.55 |
+| 14-reid-park | 4.78 | 4.60 |
+| 15-mcphillamy-park | 4.98 | 4.60 |
+| 16-skyline | 4.95 | 4.72 |
+| 17-the-dipper | 4.73 | 4.60 |
+| 18-forrests-elbow | 4.75 | 4.57 |
+| 19-conrod-straight | 5.05 | 4.90 |
+| 20-the-chase | 5.22 | 4.67 |
+| 21-murrays-corner | 5.15 | 4.92 |
+| car-camaro | 5.43 | 5.03 |
+| car-mustang | 5.57 | 5.13 |
+| car-supra | 5.60 | 5.27 |
+
+Glazing, paint/metal response, then smoother arches/wheels were three focused
+fixes. The final car means remained 5.50/5.63/5.67 for the player and
+5.07/5.17/5.30 for the photographer, below the 7.205 target. Body sculpture,
+fascia detail and wheel material response remain the gaps. The candidate stayed
+within 40,000 triangles and 27 draws per car, but failed the required visual gate,
+so all item 1.8 source changes were discarded. Reports, nine fix captures and
+rejected source are in `artifacts/review/item-1.8/`.

@@ -93,7 +93,7 @@ Status: done (commit 1d70a513315dd7b68e0cf1b267ef8ec7c4084acd).
   5. Shrubs and fallen bark under the trees on the Mountain.
 - **Done when:** the bush at The Cutting, Skyline and The Dipper reads as Australian woodland next to the reference photos; triangle and draw-call budgets hold; no visible popping between LODs.
 ### 1.7 Trackside and distance — M
-Status: done (commit pending; exact SHA is recorded by the next item and in HANDOFF.md).
+Status: done (commit 7cc2a3bc4c46c960ad72bb10f2e89ce643e183a1).
 - **Do:**
   1. Concrete walls: weathering, tyre scuffs at impact points, sponsor panels with fictional brands.
   2. Catch fences: real wire mesh density with alpha, cable stays, post caps.
@@ -102,6 +102,7 @@ Status: done (commit pending; exact SHA is recorded by the next item and in HAND
   5. Distance: Bathurst town, the plains and the hills with haze from 1.2; the Mount Panorama silhouette from the plains.
 - **Done when:** the Pit Straight, Skyline and Murray's viewpoints show the landmarks of the reference photos at the right scale.
 ### 1.8 Cars — M
+Status: blocked — three focused fixes missed the fixed car score target; candidate discarded. Evidence: `artifacts/review/item-1.8/`.
 - **Do:**
   1. Paint: physical material with clearcoat; metallic flake as a livery option.
   2. Materials: carbon splitter and wing, rubber tyres with sidewall roughness, metal brake discs, tinted glass with environment reflections.
@@ -109,12 +110,14 @@ Status: done (commit pending; exact SHA is recorded by the next item and in HAND
   4. Dirt: rubber and dust build-up on the lower body and the rear over a stint; a clean car after Restart.
 - **Done when:** the three car close-ups score at least the Phase 1 target; no extra draw calls beyond the car budget.
 ### 1.9 Anti-aliasing and camera effects — S
+Status: done (commit recorded in the next plan update and HANDOFF.md).
 - **Do:**
   1. Add SMAA (or TAA on High) for edges that MSAA misses, and alpha to coverage for foliage and fences.
   2. Subtle camera motion blur at high speed (High; a setting to turn it off).
   3. A subtle sun lens flare, only when the sun is in view.
 - **Done when:** fences and leaves do not shimmer when the camera moves; the setting turns motion blur off.
 ### 1.10 Effects — S
+Status: blocked — three full-speed Conrod checks found no physical floor contact with stock handling; candidate remains isolated. Evidence: `artifacts/review/item-1.10/blocker.md`.
 - **Do:** exhaust flames on overrun and downshifts; better tyre smoke and off-track dust; floor sparks on the Conrod humps at full speed; rubber marbles off the racing line.
 - **Done when:** each effect shows in a capture at its real place and costs less than 0.5 ms on High.
 ### 1.11 Quality tiers and performance — M

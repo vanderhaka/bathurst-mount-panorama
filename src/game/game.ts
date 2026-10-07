@@ -239,7 +239,7 @@ export class Game {
     }
     this.world.scenery.update(this.stage.camera.position);
     this.particles.update(this.state === 'paused' ? 0 : dt);
-    this.stage.render(this.focus);
+    this.stage.render(this.focus, this.state === 'race' ? this.race?.player.vehicle.speed ?? 0 : 0, this.settings.motionBlur);
   }
 
   private raceFrame(dt: number): void {

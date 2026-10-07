@@ -1,6 +1,8 @@
 import * as THREE from 'three';
 import { getGraphics, type GraphicsConfig } from '@/config/graphics';
 import { createBloom, type Bloom } from '@/render/bloom';
+import { CameraAntialias } from '@/render/antialias';
+import { CAMERA_EFFECT_GLSL, motionBlurAmount, sunInView } from '@/render/camera-effects';
 import { TONE_MAPPING } from '@/render/tone-mapping';
 import { GTAOPass } from 'three/addons/postprocessing/GTAOPass.js';
 
@@ -12,7 +14,8 @@ import { GTAOPass } from 'three/addons/postprocessing/GTAOPass.js';
 export interface PostChain {
   render(scene: THREE.Scene, camera: THREE.Camera): void;
   setSize(width: number, height: number): void;
-  setEnabled(enabled: boolean, msaa: number, bloom?: boolean, ao?: boolean): void;
+  setEnabled(enabled: boolean, msaa: number, bloom?: boolean, ao?: boolean, cameraEffects?: boolean): void;
+  setCameraEffects(speedMs: number, blur: boolean, camera: THREE.Camera, sun: THREE.Vector3): void;
   apply(cfg: GraphicsConfig): void;
   dispose(): void;
 }
@@ -29,10 +32,11 @@ const fragmentShader = /* glsl */ `
   uniform float blackLift;
   uniform float vignette;
   varying vec2 vUv;
+  ${CAMERA_EFFECT_GLSL}
   void main() {
-    gl_FragColor = texture2D(tScene, vUv);
+    gl_FragColor = exposedScene(tScene, vUv);
     gl_FragColor.rgb *= mix(1.0, texture2D(tAo, vUv).r, aoStrength);
-    gl_FragColor.rgb += texture2D(tBloom, vUv).rgb * bloomStrength;
+    gl_FragColor.rgb += texture2D(tBloom, vUv).rgb * bloomStrength + sunFlare(vUv);
     #include <tonemapping_fragment>
     #include <colorspace_fragment>
     vec3 c = gl_FragColor.rgb;
@@ -64,6 +68,9 @@ export function createPostChain(renderer: THREE.WebGLRenderer, msaa = 4): PostCh
       tScene: { value: target.texture },
       tBloom: { value: target.texture },
       tAo: { value: target.texture },
+      motionBlur: { value: 0 },
+      sunUv: { value: new THREE.Vector2() },
+      flareStrength: { value: 0 },
       aoStrength: { value: 0 },
       bloomStrength: { value: 0 },
       saturation: { value: 1 },
@@ -85,6 +92,9 @@ export function createPostChain(renderer: THREE.WebGLRenderer, msaa = 4): PostCh
   let enabled = true;
   let tierBloom = true;
   let tierAo = false;
+  let tierCamera = false;
+  const aa = new CameraAntialias();
+  const updateAa = () => aa.configure(enabled && tierCamera && cfg.smaa, target.width, target.height);
   let ao: GTAOPass | null = null;
   let bloom: Bloom | null = null;
   let cfg = getGraphics();
@@ -129,6 +139,7 @@ export function createPostChain(renderer: THREE.WebGLRenderer, msaa = 4): PostCh
         }
         material.uniforms.aoStrength.value = ao && tierAo ? cfg.screenAo : 0;
         material.uniforms.tBloom.value = bloom ? bloom.render(renderer, target.texture, cfg) : target.texture;
+        material.uniforms.tScene.value = aa.render(renderer, target);
         renderer.setRenderTarget(null);
         renderer.render(postScene, postCamera);
       } finally {
@@ -139,12 +150,14 @@ export function createPostChain(renderer: THREE.WebGLRenderer, msaa = 4): PostCh
       const pr = renderer.getPixelRatio();
       target.setSize(Math.floor(width * pr), Math.floor(height * pr));
       bloom?.setSize(target.width, target.height);
+      updateAa();
       ao?.setSize(Math.floor(target.width / 2), Math.floor(target.height / 2));
     },
-    setEnabled(on, samples, highBloom = false, highAo = false) {
+    setEnabled(on, samples, highBloom = false, highAo = false, highCamera = false) {
       enabled = on;
       tierBloom = highBloom;
       tierAo = highAo && enabled;
+      tierCamera = highCamera && enabled;
       if (!tierAo) { ao?.dispose(); ao = null; material.uniforms.aoStrength.value = 0; }
       if (target.samples !== samples || Boolean(target.depthTexture) !== tierAo) {
         const { width, height } = target;
@@ -154,6 +167,13 @@ export function createPostChain(renderer: THREE.WebGLRenderer, msaa = 4): PostCh
         material.uniforms.tScene.value = target.texture;
       }
       updateBloom();
+      updateAa();
+    },
+    setCameraEffects(speed, blur, camera, direction) {
+      const sun = sunInView(camera, direction);
+      material.uniforms.motionBlur.value = motionBlurAmount(speed, cfg.cameraBlurStrength, blur, tierCamera);
+      material.uniforms.sunUv.value.copy(sun.uv);
+      material.uniforms.flareStrength.value = tierCamera && sun.visible ? cfg.sunFlareStrength : 0;
     },
     apply(next) {
       cfg = next;
@@ -165,9 +185,11 @@ export function createPostChain(renderer: THREE.WebGLRenderer, msaa = 4): PostCh
       material.uniforms.blackLift.value = cfg.blackLift;
       material.uniforms.vignette.value = cfg.vignette;
       updateBloom();
+      updateAa();
     },
     dispose() {
       target.dispose();
+      aa.dispose();
       bloom?.dispose();
       ao?.dispose();
       material.dispose();

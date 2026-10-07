@@ -3,7 +3,7 @@ import { getGraphics, onGraphicsChange, QUALITY } from '@/config/graphics';
 import { createPostChain, type PostChain } from '@/render/post';
 import { createRenderer, setRendererQuality, type QualityPreset } from '@/render/renderer';
 import { createLighting, createSkyEnvironment, type SceneLighting } from '@/world/lighting';
-import { createSky, SKY_GRAPHICS_KEYS, type Sky } from '@/world/sky';
+import { createSky, SKY_GRAPHICS_KEYS, SUN_DIRECTION, type Sky } from '@/world/sky';
 
 /** Renderer, scene, camera, sky, lights and post chain, all driven by the graphics config. */
 export class Stage {
@@ -30,7 +30,7 @@ export class Stage {
     this.environment = createSkyEnvironment(this.renderer, this.sky.dome, quality);
     this.scene.environment = this.environment.texture;
     this.post = createPostChain(this.renderer, QUALITY[quality].msaa);
-    this.post.setEnabled(QUALITY[quality].post, QUALITY[quality].msaa, QUALITY[quality].bloom, QUALITY[quality].screenAo);
+    this.post.setEnabled(QUALITY[quality].post, QUALITY[quality].msaa, QUALITY[quality].bloom, QUALITY[quality].screenAo, QUALITY[quality].cameraEffects);
     this.applyGraphics();
     onGraphicsChange((_cfg, changed) => {
       this.applyGraphics();
@@ -72,7 +72,7 @@ export class Stage {
     setRendererQuality(this.renderer, q);
     this.sky.setQuality(q);
     this.lighting.setQuality(q);
-    this.post.setEnabled(QUALITY[q].post, QUALITY[q].msaa, QUALITY[q].bloom, QUALITY[q].screenAo);
+    this.post.setEnabled(QUALITY[q].post, QUALITY[q].msaa, QUALITY[q].bloom, QUALITY[q].screenAo, QUALITY[q].cameraEffects);
     this.refreshEnvironment();
     this.resize();
   }
@@ -91,9 +91,10 @@ export class Stage {
     this.lighting.resize();
   }
 
-  render(focus: THREE.Vector3): void {
+  render(focus: THREE.Vector3, speed = 0, motionBlur = true): void {
     this.lighting.follow(focus);
     this.sky.follow(this.camera);
+    this.post.setCameraEffects(speed, motionBlur, this.camera, SUN_DIRECTION);
     this.post.render(this.scene, this.camera);
   }
 }

@@ -101,6 +101,7 @@ export const SETTING_GROUPS: ReadonlyArray<{ title: string; fields: SettingField
           { value: 'tv', label: 'TV' },
         ],
       },
+      { key: 'motionBlur', kind: 'choice', label: 'Motion blur', help: 'Subtle speed streaks on High graphics. The instruments stay sharp.', options: ON_OFF },
       { key: 'showFps', kind: 'choice', label: 'Frame rate counter', help: 'Shows frames per second under the timing panel.', options: ON_OFF },
     ],
   },

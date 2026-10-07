@@ -63,7 +63,7 @@ export function createHarnessScene(opts: { ground?: 'asphalt' | 'grass'; groundS
   scene.environmentIntensity = getGraphics().envIntensity;
   lighting.apply(getGraphics());
   const post = createPostChain(renderer, 4);
-  post.setEnabled(true, 4, true, true);
+  post.setEnabled(true, 4, true, true, true);
   post.apply(getGraphics());
 
   const size = opts.groundSize ?? 400;
