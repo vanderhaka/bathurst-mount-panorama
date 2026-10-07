@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Scripted play-through for verification. Drives the real game with keyboard
 // events and takes screenshots.
-// Usage: node scripts/play.mjs <scenario.json> [--url http://127.0.0.1:5180/] [--size 1600x900] [--mobile]
+// Usage: node scripts/play.mjs <scenario.json> [--url http://127.0.0.1:5180/] [--size 1600x900] [--mobile] [--android]
 // Scenario: [{ "key": "Enter" } | { "down": "ArrowUp" } | { "up": "ArrowUp" } | { "wait": 1500 }
 //            | { "shot": "artifacts/x.png" } | { "eval": "js expression" } | { "waitFor": "js expression" }
 //            | { "tap": [x, y] } | { "tapOn": "css selector" } | { "viewport": [w, h] }
@@ -21,10 +21,11 @@ const [w, h] = opt('size', '1600x900').split('x').map(Number);
 const steps = JSON.parse(readFileSync(scenarioPath, 'utf8'));
 
 const browser = await chromium.launch({ channel: 'chrome', headless: true, args: ['--enable-gpu', '--ignore-gpu-blocklist', '--use-angle=metal', '--autoplay-policy=no-user-gesture-required'] });
-const mobile = args.includes('--mobile');
+const mobile = args.includes('--mobile') || args.includes('--android');
+const ANDROID_UA = 'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36';
 const IPHONE_UA = 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1';
 const context = await browser.newContext(mobile
-  ? { viewport: { width: w, height: h }, isMobile: true, hasTouch: true, deviceScaleFactor: 3, userAgent: IPHONE_UA }
+  ? { viewport: { width: w, height: h }, isMobile: true, hasTouch: true, deviceScaleFactor: 3, userAgent: args.includes('--android') ? ANDROID_UA : IPHONE_UA }
   : { viewport: { width: w, height: h } });
 const page = await context.newPage();
 await authenticatePreview(page, url);

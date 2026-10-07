@@ -1,4 +1,5 @@
 import { Game } from '@/game/game';
+import { installAndroidPresentation } from '@/phone/android-presentation';
 import { installTouchGuards } from '@/input/touch-guards';
 
 declare global {
@@ -19,6 +20,7 @@ if (!root) {
   showError('This game needs WebGL 2. Please use a current version of Chrome, Edge, Firefox or Safari.');
 } else {
   installTouchGuards(root);
+  installAndroidPresentation(root);
   // iOS can drop the WebGL context when the phone runs short of memory: offer a reload.
   root.addEventListener('webglcontextlost', (e) => {
     e.preventDefault();

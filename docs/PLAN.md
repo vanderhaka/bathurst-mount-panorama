@@ -138,10 +138,11 @@ Status: awaiting the user's review — index 51.92 / 100 against 72.05; no new t
 ## Phase 2 — Phone strength
 **Goal.** The phone version is safe, fast and measurable.
 ### 2.1 Keep the screen awake — S
-Status: done — awaiting the user's iPhone check (commit recorded in the next item; evidence `artifacts/review/item-2.1/`).
+Status: done — awaiting the user's iPhone check (commit 332524bfb04fdddd54e7faaac0b236dbfd94dc2e; evidence `artifacts/review/item-2.1/`).
 - **Do:** request a Screen Wake Lock while a race runs; release it on pause, results and page hide; request it again after the page shows.
 - **Done when:** the iPhone screen does not dim during a 3-minute lap.
 ### 2.2 Android full screen and landscape lock — S
+Status: done — awaiting the user's phone check (commit recorded in the next item; evidence `artifacts/review/item-2.2/`).
 - **Do:** on the first tap on Android, request full screen and lock the orientation to landscape. Do nothing on iPhone (no support); keep the Home Screen tip there.
 - **Done when:** an Android phone plays in full screen landscape after one tap.
 ### 2.3 Smaller download and less memory — S
