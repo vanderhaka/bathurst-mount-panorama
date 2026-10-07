@@ -208,10 +208,11 @@ Status: blocked — three focused curve/profile fixes fail the unchanged warm-la
 - **Do:** grip per unit of load falls as the load rises, so weight transfer changes the balance; retune the grip so that the lap time targets still hold.
 - **Done when:** a smooth turn-in is faster than an abrupt one in a test; the lap time targets hold.
 ### 3.6 Brake temperature, fade and flat spots — M
-Status: done (commit recorded by the next item; exact SHA and preview proof in HANDOFF.md).
+Status: done (commit a3fafe064cc410f9114d24503d5ff624a3a48c8d).
 - **Do:** brake temperature from energy in and cooling; brake force falls above a temperature; a lock-up above a slip and speed makes a flat spot (vibration and less grip until the tyre changes).
 - **Done when:** repeated late braking at The Chase raises the brake temperature to the fade zone in a test; the HUD shows the brake temperature.
 ### 3.7 Track grip on and off the racing line — S
+Status: done (commit recorded by the next item; exact SHA and preview proof in HANDOFF.md).
 - **Do:** more grip on the rubbered line, less on the dirty outside; the line grip rises through a session.
 - **Done when:** a test shows lower grip 4 m off the line; the visual line from 1.4 matches the grip.
 ### 3.8 Kerb types — M

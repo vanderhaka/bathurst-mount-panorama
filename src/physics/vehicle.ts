@@ -3,8 +3,10 @@ import { DEFAULT_HANDLING, type HandlingConfig } from '@/config/handling';
 import { defaultSetup, type CarSetup } from '@/config/setup';
 import type { KerbLayout } from '@/track/kerbs';
 import type { Track } from '@/track/track-model';
-import { createTrackPoint, heightAt, projectToTrack, sampleArray, surfaceAt, VERGE_FALL, type SurfaceKind, type TrackPoint } from '@/track/track-query';
+import { createTrackPoint, projectToTrack, sampleArray, VERGE_FALL, type SurfaceKind, type TrackPoint } from '@/track/track-query';
 import { resolveWalls } from '@/physics/collision';
+import { contactPass, settleOnGround } from '@/physics/vehicle-contact';
+import { TrackGrip } from '@/track/rubber-line';
 import { applyImpactDamage, createDamage } from '@/physics/damage';
 import { createPowertrain, stepPowertrain, type PowertrainState } from '@/physics/powertrain';
 import { VehicleStint } from '@/physics/vehicle-stint';
@@ -37,6 +39,7 @@ export class Vehicle {
   readonly wheels: WheelTelemetry[];
   readonly telemetry: VehicleTelemetry;
   readonly stint = new VehicleStint();
+  readonly trackGrip: TrackGrip;
   readonly brakes = this.stint.brakes;
   readonly flatSpots = this.stint.flatSpots;
   /** Monotonic game seconds, advanced only by fixed physics steps. */
@@ -60,6 +63,7 @@ export class Vehicle {
     this.a = d.wheelbase - this.b; // CG to front axle
     this.corners = suspensionCorners(spec, this.a, this.b);
     this.setup = defaultSetup(spec.kind);
+    this.trackGrip = new TrackGrip(track, kerbs.line);
     this.pt = createPowertrain(spec);
     this.wheels = this.corners.map(() => ({ load: 0, slip: 0, surface: 'road' as const, spin: 0, compression: 0, steer: 0 }));
     this.telemetry = {
@@ -81,46 +85,14 @@ export class Vehicle {
     this.pitch = this.roll = 0;
     projectToTrack(t, this.x, this.z, -1, this.tp);
     this.stint.placeOnTrack(this.tp.s);
-    this.settleOnGround();
+    settleOnGround(this, this.corners, this.wtp, this.a, this.b);
     this.pt.gear = 1;
     this.pt.rpm = this.spec.engine.idleRpm;
     this.steerAngle = 0;
     // Start the dampers from the real compression (a twisted or steep road is not
     // exactly the settle plane); otherwise the first step sees a huge damper speed.
-    this.contactPass();
+    contactPass(this, this.corners, this.wtp, this.comps, this.surfs);
     for (let w = 0; w < 4; w++) this.prevComp[w] = this.comps[w];
-  }
-
-  /** Fills `comps` (suspension compression) and `surfs` (surface) for the four corners. */
-  private contactPass(): void {
-    const { track } = this;
-    const sin = Math.sin(this.heading), cos = Math.cos(this.heading);
-    for (let w = 0; w < 4; w++) {
-      const c = this.corners[w];
-      const wx = this.x + c.x * cos + c.z * sin;
-      const wz = this.z - c.x * sin + c.z * cos;
-      const tp = projectToTrack(track, wx, wz, this.tp.index, this.wtp[w]);
-      this.surfs[w] = surfaceAt(track, tp.index, tp.t, tp.d, this.kerbs.left, this.kerbs.right);
-      const S = SURFACE[this.surfs[w]];
-      let ground = heightAt(track, tp.index, tp.t, tp.d);
-      if (S.bump > 0) ground += S.bump * (0.5 + 0.5 * Math.sin(tp.s * 3.9 + w));
-      const yc = this.y + c.z * Math.sin(this.pitch) + c.x * Math.sin(this.roll);
-      this.comps[w] = ground + c.h0 - yc;
-    }
-  }
-
-  /** Sets heave, pitch and roll so that the body sits level with the ground plane under the wheels. */
-  private settleOnGround(): void {
-    const sin = Math.sin(this.heading), cos = Math.cos(this.heading);
-    const g = this.corners.map((c, w) => {
-      const tp = projectToTrack(this.track, this.x + c.x * cos + c.z * sin, this.z - c.x * sin + c.z * cos, this.tp.index, this.wtp[w]);
-      return heightAt(this.track, tp.index, tp.t, tp.d);
-    });
-    const d = this.spec.dimensions;
-    this.pitch = Math.atan(((g[0] + g[1]) / 2 - (g[2] + g[3]) / 2) / d.wheelbase);
-    this.roll = Math.atan(((g[0] + g[2]) / 2 - (g[1] + g[3]) / 2) / ((d.trackFront + d.trackRear) / 2));
-    const groundAtCg = ((g[0] + g[1]) / 2) * (this.b / d.wheelbase) + ((g[2] + g[3]) / 2) * (this.a / d.wheelbase);
-    this.y = groundAtCg + this.spec.cgHeight;
   }
 
   /** World x/z of a wheel's contact patch. */
@@ -175,7 +147,7 @@ export class Vehicle {
     const R = spec.dimensions.wheelRadius;
     rearSlip = 0;
     // Pass 1: contact points, ground and suspension compression of all four corners.
-    this.contactPass();
+    contactPass(this, this.corners, this.wtp, this.comps, this.surfs);
     const comps = this.comps, surfs = this.surfs;
     // Pass 2: tyre loads and forces.
     for (let w = 0; w < 4; w++) {
@@ -198,7 +170,7 @@ export class Vehicle {
       const wl = -uB * sn + wB * cs;
       const sideDamage = c.x > 0 ? this.damage.left : this.damage.right;
       const pressure = pressureGrip(front ? this.setup.frontPressureKpa : this.setup.rearPressureKpa);
-      const mu = spec.tyreMu * hc.grip * (front ? 1 : hc.rearGrip) * S.grip * pressure * this.stint.tyres[w].grip * this.flatSpots.tyres[w].gripMultiplier * (1 - 0.18 * sideDamage * this.damage.suspension);
+      const mu = spec.tyreMu * hc.grip * (front ? 1 : hc.rearGrip) * S.grip * pressure * this.stint.tyres[w].grip * this.flatSpots.tyres[w].gripMultiplier * this.trackGrip.at(tp.index, tp.t, tp.d, surf) * (1 - 0.18 * sideDamage * this.damage.suspension);
       const bias = front ? this.setup.brakeBiasFront : 1 - this.setup.brakeBiasFront;
       const brakeF = (brakePedal * spec.maxBrakeTorqueNm * (bias / spec.brakeBiasFront)) / R * this.brakes.discs[w].forceMultiplier;
       const driveF = front ? 0 : drive / 2;
@@ -284,6 +256,7 @@ export class Vehicle {
     t.airborne = !anyGround;
     t.load = input.throttle > 0.05 && this.stint.fuel.litres > 0 ? input.throttle : 0;
     this.stint.advance(t, dt, this.tp.s, track.startLineS, this.assists.autoGears && t.gear === -1 ? t.brake : t.throttle);
+    this.trackGrip.advance(dt, t.speed);
     this.simulationS += dt;
     return impacts;
   }

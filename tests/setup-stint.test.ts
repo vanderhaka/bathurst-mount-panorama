@@ -46,7 +46,7 @@ describe('setup alongside the fuel and tyre stint', () => {
 
     it(`${kind}: axle pressure multiplies each existing tyre's grip in actual force calls`, () => {
       const v = car(kind), grip = v.stint.tyres.map((w) => w.grip);
-      const spy = vi.spyOn(tyre, 'tyreForces');
+      const spy = vi.spyOn(tyre, 'tyreForces'), rubber = vi.spyOn(v.trackGrip, 'at');
       try {
         v.vx = Math.sin(v.heading) * 30;
         v.vz = Math.cos(v.heading) * 30;
@@ -55,10 +55,10 @@ describe('setup alongside the fuel and tyre stint', () => {
         spy.mock.calls.forEach((call, w) => {
           const front = w < 2, pressure = front ? v.setup.frontPressureKpa : v.setup.rearPressureKpa;
           const expected = v.spec.tyreMu * v.handling.grip * (front ? 1 : v.handling.rearGrip)
-            * tyre.SURFACE[v.wheels[w].surface].grip * pressureGrip(pressure) * grip[w];
+            * tyre.SURFACE[v.wheels[w].surface].grip * pressureGrip(pressure) * grip[w] * rubber.mock.results[w].value;
           expect(call[1]).toBeCloseTo(expected, 12);
         });
-      } finally { spy.mockRestore(); }
+      } finally { spy.mockRestore(); rubber.mockRestore(); }
       expect(v.telemetry.tyres).toBe(v.stint.tyres);
       expect(v.telemetry.fuel).toBe(v.stint.fuel);
     });

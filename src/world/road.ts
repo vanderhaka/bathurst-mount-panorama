@@ -4,6 +4,7 @@ import { GROUND, ROAD, TRACKSIDE } from '@/art/palette';
 import { linearColour } from '@/art/materials';
 import { getGraphics } from '@/config/graphics';
 import type { KerbLayout } from '@/track/kerbs';
+import { rubberAmount } from '@/track/rubber-line';
 import type { RacingLine } from '@/track/racing-line';
 import type { Track } from '@/track/track-model';
 import { fbm } from '@/world/dem';
@@ -33,7 +34,7 @@ export function buildRoad(track: Track, line: RacingLine, kerbs: KerbLayout, ren
       const x = track.px[i], z = track.pz[i];
       const patch = fbm(x / 45 + d / 30, z / 45, 3, 5);
       c.copy(asphalt).lerp(worn, Math.max(0, patch) * 0.8);
-      const g = Math.exp(-(((d - line.offset[i]) / 1.25) ** 2)) * settings.rubberGroove;
+      const g = rubberAmount(line.offset[i], d) * settings.rubberGroove;
       rubber.push(g);
       c.multiplyScalar((1 - 0.42 * g) / materials.meanLinear);
     },

@@ -2,6 +2,8 @@ import type { RacingLine } from '@/track/racing-line';
 import type { Track } from '@/track/track-model';
 
 export interface KerbLayout {
+  /** The exact line used to place the rendered rubber and these kerbs. */
+  line: RacingLine;
   /** Kerb width outside the road edge per sample (m, 0 = no kerb). */
   left: Float32Array;
   right: Float32Array;
@@ -54,5 +56,5 @@ export function placeKerbs(track: Track, line: RacingLine, width = 1.05): KerbLa
     l[i] = Math.min(l[i], Math.max(0, track.left.wall[i] - track.left.edge[i] - 0.3));
     r[i] = Math.min(r[i], Math.max(0, track.right.wall[i] - track.right.edge[i] - 0.3));
   }
-  return { left: l, right: r };
+  return { left: l, right: r, line };
 }

@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { CAR_SPECS, type CarKind } from '@/car/car-specs';
 import { defaultSetup, type CarSetup } from '@/config/setup';
 import { Vehicle } from '@/physics/vehicle';
@@ -25,13 +25,17 @@ function carAtSpeed(car: CarKind, setup: Partial<CarSetup>, speed = 100 / 3.6): 
 
 function stoppingDistance(car: CarKind, setup: Partial<CarSetup>): number {
   const v = carAtSpeed(car, setup);
-  const x = v.x, z = v.z;
-  for (let t = 0; t < 8 && v.speed > 0.3; t += DT) {
-    expect(v.step({ ...neutral, brake: 1 }, DT)).toHaveLength(0);
-  }
-  expect(Math.abs(v.speed)).toBeLessThan(0.4);
-  expect(v.wheels.every((w) => w.surface === 'road')).toBe(true);
-  return Math.hypot(v.x - x, v.z - z);
+  // Keep this intrinsic setup comparison on the pre-rubber surface; track-stint tests the native groove.
+  const rubber = vi.spyOn(v.trackGrip, 'at').mockReturnValue(1);
+  try {
+    const x = v.x, z = v.z;
+    for (let t = 0; t < 8 && v.speed > 0.3; t += DT) {
+      expect(v.step({ ...neutral, brake: 1 }, DT)).toHaveLength(0);
+    }
+    expect(Math.abs(v.speed)).toBeLessThan(0.4);
+    expect(v.wheels.every((w) => w.surface === 'road')).toBe(true);
+    return Math.hypot(v.x - x, v.z - z);
+  } finally { rubber.mockRestore(); }
 }
 
 function frontLoadTransferShare(car: CarKind, setup: Partial<CarSetup>): number {
