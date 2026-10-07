@@ -5,6 +5,7 @@ import type { QualityPreset } from '@/render/renderer';
 import type { SpeedProfile } from '@/track/speed-profile';
 import type { Track } from '@/track/track-model';
 import type { Terrain } from '@/world/terrain';
+import { createTracksideLayer } from '@/world/scenery/trackside-layer';
 import { placeBuildings } from '@/world/scenery/buildings';
 import { buildPitLane, buildStoneSign } from '@/world/scenery/decor';
 import { placeFacilities } from '@/world/scenery/facilities';
@@ -44,15 +45,17 @@ export function buildScenery(track: Track, terrain: Terrain, profile: SpeedProfi
   maskTvSightlines(track, terrain, mask);
 
   const gums = createGumLayer(quality), inst = new PropInstancer(gums.getPropAsset);
-  group.add(placeBuildings(track, terrain, inst, mask));
-  group.add(placeFacilities(track, terrain, profile, inst, mask));
+  const detail = createTracksideLayer(track, terrain, mask, quality);
+  group.add(placeBuildings(track, terrain, inst, mask, detail));
+  group.add(placeFacilities(track, terrain, profile, inst, mask, detail.mappedTowers));
   const paddock = buildPaddock(track, terrain, inst, mask);
   if (paddock) group.add(paddock);
   const vines = buildVineyards(terrain, mask);
   if (vines) group.add(vines);
+  group.add(detail.groundDetails());
   const trees = placeVegetation(terrain, inst, mask, QUALITY[quality].treeDensityScale, quality);
   placeCutRocks(track, terrain, inst);
-  group.add(buildTown(terrain));
+  group.add(detail.distanceDetails() ?? buildTown(terrain));
   const stone = buildStoneSign(terrain);
   if (stone) group.add(stone);
   const pit = buildPitLane(track, terrain);
@@ -66,11 +69,12 @@ export function buildScenery(track: Track, terrain: Terrain, profile: SpeedProfi
     stats: { trees, instances, batches },
     update(camera) {
       const g = getGraphics();
+      detail.update(performance.now() / 1000);
       gums.update(performance.now() / 1000);
       if (first) { inst.updateAll(camera, g.treeLodDistance, g.propDrawDistance); first = false; }
       else inst.update(camera, g.treeLodDistance, g.propDrawDistance);
     },
-    dispose() { inst.dispose(); gums.dispose(); },
+    dispose() { detail.dispose(); inst.dispose(); gums.dispose(); },
   };
 }
 

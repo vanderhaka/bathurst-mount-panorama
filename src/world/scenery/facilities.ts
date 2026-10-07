@@ -18,7 +18,7 @@ const SHIRTS = [0x9c2a2e, 0x2d4a7a, 0xd9d6cc, 0x1f2124, 0x4b5d73, 0x7a6e58, 0x5d
 const CAR_PAINT = [0xe9e9e6, 0x2a2d31, 0x8a9096, 0x8c1c13, 0x1d3f7a, 0x6f7a5a, 0xc9b79c];
 
 /** Grid gantry, footbridges, big screens, marshal posts, campers, billboards, braking boards and crowds. */
-export function placeFacilities(track: Track, terrain: Terrain, profile: SpeedProfile, inst: PropInstancer, mask: SpatialMask): THREE.Group {
+export function placeFacilities(track: Track, terrain: Terrain, profile: SpeedProfile, inst: PropInstancer, mask: SpatialMask, mappedTowers = false): THREE.Group {
   const group = new THREE.Group();
   group.name = 'facilities';
   const r = rng(4242);
@@ -68,7 +68,7 @@ export function placeFacilities(track: Track, terrain: Terrain, profile: SpeedPr
   }
 
   // Comms / TV lattice towers.
-  for (const [x, z] of F.towers) inst.add('tvCameraTower', 0, x, terrain.heightAt(x, z), z, r() * 6.28, 1.6);
+  for (const [x, z] of mappedTowers ? [] : F.towers) inst.add('tvCameraTower', 0, x, terrain.heightAt(x, z), z, r() * 6.28, 1.6);
 
   // Camp pitches: a tent, gazebo or caravan per pitch, often with a car.
   for (const [x, z] of F.campPitches) {

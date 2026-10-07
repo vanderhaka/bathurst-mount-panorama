@@ -53,8 +53,8 @@ export async function buildWorld(
   }));
   root.add(buildVerges(track, kerbs));
   await progress(0.4, 'Building concrete walls and catch fences');
-  root.add(buildBarriers(track, renderer));
-  root.add(buildWallSigns(track));
+  root.add(buildBarriers(track, renderer, quality));
+  root.add(buildWallSigns(track, quality));
   await progress(0.55, 'Shaping the mountain');
   const terrain = buildTerrain(track, undefined, quality);
   root.add(terrain.group);

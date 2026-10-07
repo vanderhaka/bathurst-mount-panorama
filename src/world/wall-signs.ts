@@ -1,4 +1,8 @@
 import * as THREE from 'three';
+import { getGraphics, onGraphicsChange, QUALITY } from '@/config/graphics';
+import type { QualityPreset } from '@/render/renderer';
+import { weatherTracksideMaterial } from '@/world/trackside-materials';
+import { wallImpactScuffs } from '@/world/trackside-layout';
 import type { SideArrays } from '@/track/apply-layout';
 import type { Track } from '@/track/track-model';
 import { pointAt, sampleArray } from '@/track/track-query';
@@ -15,7 +19,7 @@ const MAX_SETBACK = 10;
 /** Offset of the sloped upper wall face at height h (matches WALL_PROFILE in barriers.ts). */
 const faceOffset = (h: number) => 0.07 + ((h - 0.3) / 0.75) * 0.06;
 
-export function buildWallSigns(track: Track): THREE.Mesh {
+export function buildWallSigns(track: Track, quality: QualityPreset = 'high'): THREE.Mesh {
   const pos: number[] = [], uv: number[] = [];
   const a: [number, number, number] = [0, 0, 0], b: [number, number, number] = [0, 0, 0];
   for (const sign of [1, -1] as const) {
@@ -45,11 +49,16 @@ export function buildWallSigns(track: Track): THREE.Mesh {
   geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
   geo.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
   geo.computeVertexNormals();
-  const mat = new THREE.MeshStandardMaterial({
+  const base = new THREE.MeshStandardMaterial({
     map: sponsorAtlas(), roughness: 0.85, side: THREE.DoubleSide,
     polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2,
   });
-  const mesh = new THREE.Mesh(geo, mat);
+  const ratio = QUALITY[quality].wallWeather / 0.45;
+  const weather = weatherTracksideMaterial(base, { amount: getGraphics().wallWeather * ratio, panels: true, scuffs: wallImpactScuffs(track) });
+  const unsubscribe = onGraphicsChange(g => weather.setAmount(g.wallWeather * ratio));
+  let disposed = false;
+  geo.addEventListener('dispose', () => { if (disposed) return; disposed = true; unsubscribe(); weather.dispose(); base.dispose(); });
+  const mesh = new THREE.Mesh(geo, weather.material);
   mesh.receiveShadow = true;
   mesh.name = 'wall-signs';
   return mesh;

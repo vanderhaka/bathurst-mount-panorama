@@ -8,6 +8,7 @@ import type { Track } from '@/track/track-model';
 import type { Terrain } from '@/world/terrain';
 import { centroid, orientedBox, polygonArea, rng, type SpatialMask, type XZ } from '@/world/scenery/geo';
 import type { PropInstancer } from '@/world/scenery/instancer';
+import type { TracksideLayer } from '@/world/scenery/trackside-layer';
 
 interface OsmBuilding { kind: string; name: string | null; levels: number | null; poly: XZ[] }
 const F = featuresJson as unknown as { buildings: OsmBuilding[] };
@@ -37,7 +38,7 @@ function isPitComplex(b: OsmBuilding, track: Track): boolean {
  * to the footprint, grandstands and the pit complex become structures, and all
  * other buildings are extruded from their outline (merged into one mesh).
  */
-export function placeBuildings(track: Track, terrain: Terrain, inst: PropInstancer, mask: SpatialMask): THREE.Group {
+export function placeBuildings(track: Track, terrain: Terrain, inst: PropInstancer, mask: SpatialMask, detail?: TracksideLayer): THREE.Group {
   const group = new THREE.Group();
   group.name = 'buildings';
   const r = rng(77);
@@ -53,7 +54,9 @@ export function placeBuildings(track: Track, terrain: Terrain, inst: PropInstanc
       continue;
     }
     if (b.kind === 'grandstand') {
-      const stand = structures.grandstand({ length: Math.max(12, Math.round(box.length)), rows: Math.max(6, Math.round(box.width / 0.8)), roof: !/no cover/i.test(b.name ?? ''), crowd: 0.65 });
+      const options = { length: Math.max(12, Math.round(box.length)), rows: Math.max(6, Math.round(box.width / 0.8)), roof: !/no cover/i.test(b.name ?? '') };
+      const stand = structures.grandstand({ ...options, crowd: detail?.crowdEnabled ? 0 : 0.65 });
+      detail?.addCrowd(stand, { ...options, seed: Math.round(cx * 17 + cz * 31) });
       group.add(placeStructure(stand, cx, ground, cz, faceTrack(track, box)));
       continue;
     }

@@ -81,6 +81,13 @@ export class GraphicsTuner {
     live(cam, 'cameraShake', 0, 2, 0.05);
     const trees = gui.addFolder('Gum trees');
     live(trees, 'treeWind', 0, 1, 0.02);
+    const detail = gui.addFolder('Trackside (rebuild)');
+    live(detail, 'wallWeather', 0, 1, 0.05);
+    live(detail, 'fenceDetail'); live(detail, 'fenceHardware');
+    live(detail, 'crowdDetail'); live(detail, 'crowdDensity', 0, 1, 0.05);
+    live(detail, 'crowdMotion', 0, 0.07, 0.002);
+    live(detail, 'tracksideDetail'); live(detail, 'flagMotion', 0, 0.07, 0.002);
+    live(detail, 'distantLandmarks'); live(detail, 'hillDetail', 0, 0.2, 0.01);
     const world = gui.addFolder('World (rebuild)');
     live(world, 'bakedAo', 0, 1, 0.05);
     live(world, 'treeDensity', 0, 2, 0.05);

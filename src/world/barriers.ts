@@ -1,4 +1,9 @@
 import * as THREE from 'three';
+import { getGraphics, onGraphicsChange, QUALITY } from '@/config/graphics';
+import type { QualityPreset } from '@/render/renderer';
+import { createCatchFenceMaterial, CATCH_FENCE_PRESETS, weatherTracksideMaterial } from '@/world/trackside-materials';
+import { buildFenceHardware, FENCE_HARDWARE_PRESETS } from '@/world/fence-hardware';
+import { wallImpactScuffs } from '@/world/trackside-layout';
 import { GROUND, TRACKSIDE } from '@/art/palette';
 import { linearColour, vertexColourMaterial } from '@/art/materials';
 import { TYRE_WALL_DEPTH } from '@/track/apply-layout';
@@ -51,22 +56,27 @@ export function buildVerges(track: Track, kerbs: KerbLayout): THREE.Group {
   return g;
 }
 
-export function buildBarriers(track: Track, renderer: THREE.WebGLRenderer): THREE.Group {
+export function buildBarriers(track: Track, renderer: THREE.WebGLRenderer, quality: QualityPreset = 'high'): THREE.Group {
   const g = new THREE.Group();
   g.name = 'barriers';
-  const concreteMat = new THREE.MeshStandardMaterial({ color: TRACKSIDE.concrete, map: concreteTexture(renderer), roughness: 0.92 });
+  const cfg = getGraphics(), tier = QUALITY[quality];
+  const concreteBase = new THREE.MeshStandardMaterial({ color: TRACKSIDE.concrete, map: concreteTexture(renderer), roughness: 0.92 });
+  const weather = weatherTracksideMaterial(concreteBase, { amount: cfg.wallWeather * tier.wallWeather / 0.45, panels: false, scuffs: wallImpactScuffs(track) });
+  const concreteMat = weather.material;
+  const unsubscribe = onGraphicsChange(g => weather.setAmount(g.wallWeather * tier.wallWeather / 0.45));
   const tyreMat = vertexColourMaterial({ roughness: 0.85, flat: true });
   const fenceTex = chainLinkTexture(renderer);
-  const fenceMat = new THREE.MeshStandardMaterial({
+  const wire = cfg.fenceDetail && tier.fenceDetail ? createCatchFenceMaterial({ ...CATCH_FENCE_PRESETS[quality], msaa: tier.msaa > 0 }) : null;
+  const fenceMat = wire?.material ?? new THREE.MeshStandardMaterial({
     color: TRACKSIDE.fenceMesh, map: fenceTex, alphaMap: fenceTex, alphaTest: 0.35, transparent: false,
     side: THREE.DoubleSide, roughness: 0.6, metalness: 0.4,
   });
-  fenceMat.alphaToCoverage = true;
+  fenceMat.alphaToCoverage = tier.msaa > 0;
   // Far away the mipmapped wire alpha averages to ~0.12 and the alpha test would cut the
   // whole fence (only the posts stay). Fade from crisp wires to a light haze instead.
   fenceMat.onBeforeCompile = (shader) => {
     shader.fragmentShader = shader.fragmentShader.replace('#include <alphatest_fragment>', `
-      vec2 fenceTexel = vMapUv * 128.0;
+      vec2 fenceTexel = ${wire ? 'vAlphaMapUv' : 'vMapUv'} * ${wire ? CATCH_FENCE_PRESETS[quality].size : 128}.0;
       float fenceLod = log2(max(length(dFdx(fenceTexel)), length(dFdy(fenceTexel))) + 1e-6);
       float fenceCrisp = smoothstep(alphaTest, alphaTest + fwidth(diffuseColor.a), diffuseColor.a);
       float fenceHaze = clamp(diffuseColor.a * 1.8, 0.0, 0.55);
@@ -74,6 +84,9 @@ export function buildBarriers(track: Track, renderer: THREE.WebGLRenderer): THRE
       if (diffuseColor.a < 0.01) discard;
     `);
   };
+  fenceMat.customProgramCacheKey = () => `fence-coverage:${quality}:${Boolean(wire)}`;
+  const hardware = cfg.fenceHardware && tier.fenceHardware ? buildFenceHardware(track, FENCE_HARDWARE_PRESETS[quality]) : null;
+  if (hardware) g.add(hardware.group);
   const postGeo = new THREE.CylinderGeometry(0.035, 0.04, FENCE_HEIGHT + 0.3, 6).translate(0, (FENCE_HEIGHT + 0.3) / 2, 0);
   const postMat = new THREE.MeshStandardMaterial({ color: TRACKSIDE.fencePost, roughness: 0.45, metalness: 0.6, flatShading: true });
   const postMatrices: THREE.Matrix4[] = [];
@@ -108,6 +121,12 @@ export function buildBarriers(track: Track, renderer: THREE.WebGLRenderer): THRE
   posts.name = 'fence-posts';
   posts.computeBoundingSphere();
   g.add(posts);
+  let disposed = false;
+  postGeo.addEventListener('dispose', () => {
+    if (disposed) return; disposed = true;
+    unsubscribe(); weather.dispose(); concreteBase.dispose(); postMat.dispose(); posts.dispose();
+    hardware?.dispose(); if (wire) wire.dispose(); else fenceMat.dispose();
+  });
   return g;
 }
 

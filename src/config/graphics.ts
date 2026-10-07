@@ -51,6 +51,16 @@ export interface GraphicsConfig {
   fov: number;
   cameraShake: number;
   // --- rebuild: world content
+  wallWeather: number;
+  fenceDetail: boolean;
+  fenceHardware: boolean;
+  crowdDetail: boolean;
+  crowdDensity: number;
+  crowdMotion: number;
+  tracksideDetail: boolean;
+  flagMotion: number;
+  distantLandmarks: boolean;
+  hillDetail: number;
   treeDensity: number;
   treeBarkDetail: boolean;
   /** Live sway amplitude, 0..1 (approximately metres at the crown). */
@@ -115,6 +125,16 @@ export const DEFAULT_GRAPHICS: GraphicsConfig = {
   vignette: 0.14,
   fov: 62,
   cameraShake: 1,
+  wallWeather: 0.45,
+  fenceDetail: true,
+  fenceHardware: true,
+  crowdDetail: true,
+  crowdDensity: 1,
+  crowdMotion: 0.018,
+  tracksideDetail: true,
+  flagMotion: 0.02,
+  distantLandmarks: true,
+  hillDetail: 0.08,
   treeDensity: 1,
   treeBarkDetail: true,
   treeWind: 0.25,
@@ -145,10 +165,11 @@ export const QUALITY: Record<QualityPreset, {
   detailMapSize: number; surfaceDetail: boolean; skids: boolean;
   terrainDetail: boolean; terrainMapSize: number; nearGrass: boolean; grassCapacity: number; grassRadius: number;
   treeBarkDetail: boolean; treeWind: boolean; woodlandUndergrowth: boolean; woodlandCapacity: number;
+  wallWeather: number; fenceDetail: boolean; fenceHardware: boolean; crowdDetail: boolean; crowdMotion: boolean; tracksideDetail: boolean; distantLandmarks: boolean;
 }> = {
-  low: { msaa: 0, treeDensityScale: 0.45, shadowMap: 1024, post: false, physicalSky: false, aerialPerspective: false, bloom: false, environmentSize: 128, cascades: 1, screenAo: false, bakedAo: true, detailMapSize: 256, surfaceDetail: false, skids: false, terrainDetail: false, terrainMapSize: 128, nearGrass: false, grassCapacity: 0, grassRadius: 24, treeBarkDetail: false, treeWind: false, woodlandUndergrowth: false, woodlandCapacity: 0 },
-  medium: { msaa: 4, treeDensityScale: 0.75, shadowMap: 1024, post: true, physicalSky: false, aerialPerspective: true, bloom: false, environmentSize: 128, cascades: 2, screenAo: false, bakedAo: true, detailMapSize: 512, surfaceDetail: false, skids: true, terrainDetail: false, terrainMapSize: 256, nearGrass: false, grassCapacity: 0, grassRadius: 30, treeBarkDetail: false, treeWind: false, woodlandUndergrowth: false, woodlandCapacity: 0 },
-  high: { msaa: 4, treeDensityScale: 1, shadowMap: 2048, post: true, physicalSky: true, aerialPerspective: true, bloom: true, environmentSize: 256, cascades: 3, screenAo: true, bakedAo: true, detailMapSize: 1024, surfaceDetail: true, skids: true, terrainDetail: true, terrainMapSize: 512, nearGrass: true, grassCapacity: 2048, grassRadius: 42, treeBarkDetail: true, treeWind: true, woodlandUndergrowth: true, woodlandCapacity: 768 },
+  low: { msaa: 0, treeDensityScale: 0.45, shadowMap: 1024, post: false, physicalSky: false, aerialPerspective: false, bloom: false, environmentSize: 128, cascades: 1, screenAo: false, bakedAo: true, detailMapSize: 256, surfaceDetail: false, skids: false, terrainDetail: false, terrainMapSize: 128, nearGrass: false, grassCapacity: 0, grassRadius: 24, treeBarkDetail: false, treeWind: false, woodlandUndergrowth: false, woodlandCapacity: 0, wallWeather: 0, fenceDetail: false, fenceHardware: false, crowdDetail: false, crowdMotion: false, tracksideDetail: false, distantLandmarks: false },
+  medium: { msaa: 4, treeDensityScale: 0.75, shadowMap: 1024, post: true, physicalSky: false, aerialPerspective: true, bloom: false, environmentSize: 128, cascades: 2, screenAo: false, bakedAo: true, detailMapSize: 512, surfaceDetail: false, skids: true, terrainDetail: false, terrainMapSize: 256, nearGrass: false, grassCapacity: 0, grassRadius: 30, treeBarkDetail: false, treeWind: false, woodlandUndergrowth: false, woodlandCapacity: 0, wallWeather: 0.24, fenceDetail: true, fenceHardware: true, crowdDetail: true, crowdMotion: false, tracksideDetail: true, distantLandmarks: true },
+  high: { msaa: 4, treeDensityScale: 1, shadowMap: 2048, post: true, physicalSky: true, aerialPerspective: true, bloom: true, environmentSize: 256, cascades: 3, screenAo: true, bakedAo: true, detailMapSize: 1024, surfaceDetail: true, skids: true, terrainDetail: true, terrainMapSize: 512, nearGrass: true, grassCapacity: 2048, grassRadius: 42, treeBarkDetail: true, treeWind: true, woodlandUndergrowth: true, woodlandCapacity: 768, wallWeather: 0.45, fenceDetail: true, fenceHardware: true, crowdDetail: true, crowdMotion: true, tracksideDetail: true, distantLandmarks: true },
 };
 
 const STORAGE_KEY = 'bathurst.graphics.v1';

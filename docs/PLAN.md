@@ -84,7 +84,7 @@ Status: done (commit d29d20ac5ae27e26b481d55b9db827f5cb584926).
   4. Instanced grass blades near the camera with wind movement in the vertex shader; density per tier.
 - **Done when:** the grass on Mountain Straight and the verges at Conrod match the reference colours and texture at game distance; no tiling pattern is visible from the TV cameras.
 ### 1.6 Gum trees and bush — L
-Status: done (commit pending; exact SHA is recorded by the next item and in HANDOFF.md).
+Status: done (commit 1d70a513315dd7b68e0cf1b267ef8ec7c4084acd).
 - **Do:**
   1. Eucalyptus crowns from clusters of alpha-tested leaf cards (procedurally drawn leaves), with alpha to coverage under MSAA.
   2. Bark: pale smooth gums and rough grey box trees with procedural bark textures; the existing trunk shapes stay.
@@ -93,6 +93,7 @@ Status: done (commit pending; exact SHA is recorded by the next item and in HAND
   5. Shrubs and fallen bark under the trees on the Mountain.
 - **Done when:** the bush at The Cutting, Skyline and The Dipper reads as Australian woodland next to the reference photos; triangle and draw-call budgets hold; no visible popping between LODs.
 ### 1.7 Trackside and distance — M
+Status: done (commit pending; exact SHA is recorded by the next item and in HANDOFF.md).
 - **Do:**
   1. Concrete walls: weathering, tyre scuffs at impact points, sponsor panels with fictional brands.
   2. Catch fences: real wire mesh density with alpha, cable stays, post caps.
