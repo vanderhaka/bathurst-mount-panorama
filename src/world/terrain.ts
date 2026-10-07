@@ -81,7 +81,7 @@ export function buildTerrain(track: Track, material?: THREE.Material, quality: Q
   for (let cz = 0; cz < nz; cz += CHUNK_CELLS) {
     for (let cx = 0; cx < nx; cx += CHUNK_CELLS) {
       const w = Math.min(CHUNK_CELLS, nx - cx), h = Math.min(CHUNK_CELLS, nz - cz);
-      const geo = gridGeometry(box.x0 + cx * FINE_CELL, box.z0 + cz * FINE_CELL, w, h, FINE_CELL, heightFn, (x, z) => corridor(x, z), fineEdgeFade);
+      const geo = gridGeometry(box.x0 + cx * FINE_CELL, box.z0 + cz * FINE_CELL, w, h, FINE_CELL, heightFn, (x, z) => corridor(x, z), fineEdgeFade, tier.bakedAo ? cfg.bakedAo : 0);
       const mesh = new THREE.Mesh(geo, mat);
       mesh.receiveShadow = true;
       mesh.name = `terrain-fine-${cx}-${cz}`;
@@ -100,7 +100,7 @@ export function buildTerrain(track: Track, material?: THREE.Material, quality: Q
     const skirt = edge > 0.97 ? (edge - 0.97) * 4000 : 0;
     return demHeight(x, z) - (inside ? 60 : 0) - skirt; // well under the detailed terrain, which covers the box
   };
-  const coarse = new THREE.Mesh(gridGeometry(ox, oz, cn, cn, COARSE_CELL, coarseH, null), mat);
+  const coarse = new THREE.Mesh(gridGeometry(ox, oz, cn, cn, COARSE_CELL, coarseH, null, undefined, tier.bakedAo ? cfg.bakedAo : 0), mat);
   coarse.receiveShadow = true;
   coarse.name = 'terrain-coarse';
   group.add(coarse);
@@ -194,6 +194,7 @@ function gridGeometry(
   corridor: ((x: number, z: number) => { dist: number; wall: number; edge: number; cut: number }) | null,
   /** 0 at the edge of the detailed terrain, 1 inside: blends in the far landscape colours (no seam). */
   edgeFade?: (x: number, z: number) => number,
+  aoStrength = getGraphics().bakedAo,
 ): THREE.BufferGeometry {
   const vx = w + 1, vz = h + 1;
   const pos = new Float32Array(vx * vz * 3);
@@ -252,7 +253,7 @@ function gridGeometry(
     col[v * 3] = tmp.r; col[v * 3 + 1] = tmp.g; col[v * 3 + 2] = tmp.b;
   }
   geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
-  bakeHeightFieldAo(geo, w, h, cell, getGraphics().bakedAo);
+  bakeHeightFieldAo(geo, w, h, cell, aoStrength);
   geo.computeBoundingSphere();
   return geo;
 }

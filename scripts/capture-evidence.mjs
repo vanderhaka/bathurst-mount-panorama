@@ -2,16 +2,18 @@
 // Captures a frozen evidence set for independent review: menus, every famous corner
 // in race view with the HUD, camera modes, damage, ghost, racing line, a timed AI lap,
 // performance metrics and console errors.
-// Usage: node scripts/capture-evidence.mjs <out-dir> [--url http://127.0.0.1:5180/] [--car camaro|mustang|supra]
-import { mkdirSync, writeFileSync } from 'node:fs';
+// Usage: node scripts/capture-evidence.mjs <out-dir> [--url http://127.0.0.1:5181/] [--car camaro|mustang|supra]
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { chromium } from 'playwright';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
 import { authenticatePreview } from './browser-auth.mjs';
 
 const args = process.argv.slice(2);
 const out = resolve(args.find((a) => !a.startsWith('--')) ?? 'artifacts/review/latest');
 const opt = (n, d) => { const i = args.indexOf(`--${n}`); return i >= 0 ? args[i + 1] : d; };
-const url = opt('url', 'http://127.0.0.1:5180/');
+const url = opt('url', 'http://127.0.0.1:5181/');
 const car = opt('car', 'camaro');
 mkdirSync(out, { recursive: true });
 
@@ -69,21 +71,6 @@ await wait(1500);
 await shot('31-racing-line-full');
 await g(() => { window.__game.settings.racingLine = 'braking'; });
 
-// Performance at three places (frames counted for 3 s).
-const perf = async (s) => {
-  await g((s) => window.__game.debugTeleport(s), s);
-  await wait(800);
-  return g(() => new Promise((res) => {
-    const game = window.__game; const r = game.stage.renderer;
-    let n = 0, calls = 0, tris = 0; const t0 = performance.now();
-    const orig = r.render.bind(r);
-    r.render = (sc, c) => { orig(sc, c); if (sc === game.stage.scene) { calls = Math.max(calls, r.info.render.calls); tris = Math.max(tris, r.info.render.triangles); } };
-    const f = () => { n++; if (performance.now() - t0 < 3000) requestAnimationFrame(f); else { r.render = orig; res({ fps: Math.round(n / ((performance.now() - t0) / 1000)), calls, tris }); } };
-    requestAnimationFrame(f);
-  }));
-};
-metrics.perf = { pitStraight: await perf(200), mountain: await perf(1200), skyline: await perf(3330), conrod: await perf(4600) };
-
 // Damage: drive into the Conrod wall without the autopilot.
 await g(() => { window.__game.setDebugAutopilot(false); window.__game.debugTeleport(4700); });
 await page.keyboard.down('ArrowUp'); await page.keyboard.down('ArrowRight');
@@ -102,8 +89,22 @@ await shot('41-ghost-lap');
 metrics.laps = await g(() => window.__game.race.session.laps.slice(-3));
 await key('Escape'); await wait(900);
 await shot('50-pause');
+await browser.close();
+// Each benchmark owns its browser; evidence and GPU timers never overlap.
+const run = promisify(execFile);
+const measure = async (name, mobile) => {
+  const path = `${out}/performance-${name}.json`;
+  await run(process.execPath, [resolve(import.meta.dirname, 'measure-performance.mjs'), path,
+    '--url', url, ...(mobile ? ['--mobile'] : [])], { env: process.env, maxBuffer: 10 * 1024 * 1024 });
+  const result = JSON.parse(readFileSync(path, 'utf8'));
+  errors.push(...result.errors.map(e => `[error] ${e}`));
+  return result;
+};
+const desktop = await measure('desktop', false);
+const phone = await measure('phone', true);
+metrics.performance = { desktop: desktop.tiers, phoneEmulation: phone.tiers };
+metrics.measurement = 'Rendered frames and disjoint GPU timers, all passes; static evidence points on a frozen preview. Phone emulation uses this Mac GPU, not an iPhone.';
 metrics.errors = errors.slice(0, 40);
 writeFileSync(`${out}/metrics.json`, JSON.stringify(metrics, null, 2));
 console.log(JSON.stringify(metrics, null, 1));
-await browser.close();
 if (errors.some(e => e.startsWith('[error]') || e.startsWith('[pageerror]'))) process.exitCode = 1;

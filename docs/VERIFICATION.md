@@ -5,7 +5,7 @@ evidence set from `scripts/capture-evidence.mjs`, this rubric and the references
 `docs/references/` and `docs/research/`. They do not get the builders' notes.
 
 ## Evidence
-- `node scripts/capture-evidence.mjs artifacts/review/iter-N [--car mustang]` (game served at http://127.0.0.1:5180/).
+- `node scripts/capture-evidence.mjs artifacts/review/iter-N [--car mustang]` (game served at http://127.0.0.1:5181/).
 - Screenshots: title, car select (both cars), grid, 12 famous corners in race view with the HUD,
   4 camera modes, racing line (full mode), damage, ghost lap, pause menu.
 - `metrics.json`: load time, fps / draw calls / triangles at four places, damage values, AI lap times, console errors.
@@ -34,3 +34,33 @@ Score each criterion 0–weight with direct evidence (file name or measured valu
 - Overall ≥ 85 and every criterion ≥ 60 % of its weight, and all hard gates pass.
 - Report for each criterion: score, PASS/FAIL against 60 %, evidence, and the largest remaining gap.
 - Finish with the top 5 defects ranked by impact on the user's request ("extremely high quality", realistic track, medium-poly, realistic HUD).
+
+GPU evidence uses a frozen build (`npm run build`, then `npm run preview`).
+`capture-evidence.mjs` runs its captures and then the tier benchmarks sequentially:
+`metrics.json` includes actual rendered fps, GPU ms, all-pass draws and triangles
+for four points on desktop High/Medium/Low and phone emulation Medium/Low.
+A missing timer is reported as unavailable; emulation does not establish the
+real-iPhone budget. D3 stays at 50 fps on Medium for three real laps.
+
+## Phase 1 tier audit
+
+`QUALITY` is the source of truth for CSM cascade count and map size, baked AO,
+post processing, asset detail and camera effects. The tuner adjusts a feature's
+value; its tier switch still decides whether it runs.
+
+| Feature | Low | Medium | High |
+|---|---|---|---|
+| Sky / haze | simple dome / fog | dome / aerial perspective | physical sky / aerial perspective |
+| Shadows | 1 × 1024 | 2 × 1024 | 3 × 2048 |
+| Vertex / contact AO | baked | baked | baked |
+| Screen AO / bloom / SMAA / camera effects | off | off | on |
+| Asphalt aggregate, repairs and wear | base | base | detailed |
+| Terrain detail / moving grass | off | off | on |
+| Bark / leaf wind / underbrush | base / off / off | base / off / off | detailed / on / on |
+| Wall wear / fence mesh / crowd | base | light / static | detailed / moving |
+| Distant buildings / terrain detail | base | reduced | full |
+
+Item 1.8's rejected car materials and item 1.10's isolated effects are excluded.
+Phone atlas sizes, MSAA memory and automatic rebuilding follow in 2.3–2.4.
+D3 adopts **50 fps on Medium for three laps on James's iPhone**. Mac Chrome phone
+emulation proves code paths and console cleanliness; the physical check is pending.

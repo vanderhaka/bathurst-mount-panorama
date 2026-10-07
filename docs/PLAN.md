@@ -110,7 +110,7 @@ Status: blocked — three focused fixes missed the fixed car score target; candi
   4. Dirt: rubber and dust build-up on the lower body and the rear over a stint; a clean car after Restart.
 - **Done when:** the three car close-ups score at least the Phase 1 target; no extra draw calls beyond the car budget.
 ### 1.9 Anti-aliasing and camera effects — S
-Status: done (commit recorded in the next plan update and HANDOFF.md).
+Status: done (commit 1cdabfc66e6c2bd4f0f7a20c52a1cf5ae89d296f).
 - **Do:**
   1. Add SMAA (or TAA on High) for edges that MSAA misses, and alpha to coverage for foliage and fences.
   2. Subtle camera motion blur at high speed (High; a setting to turn it off).
@@ -121,6 +121,7 @@ Status: blocked — three full-speed Conrod checks found no physical floor conta
 - **Do:** exhaust flames on overrun and downshifts; better tyre smoke and off-track dust; floor sparks on the Conrod humps at full speed; rubber marbles off the racing line.
 - **Done when:** each effect shows in a capture at its real place and costs less than 0.5 ms on High.
 ### 1.11 Quality tiers and performance — M
+Status: done — awaiting the user's iPhone check (commit recorded in the next item; evidence `artifacts/review/item-1.11/`).
 - **Depends on:** D3.
 - **Do:**
   1. Put every Phase 1 feature in the tier table (`QUALITY` in `src/config/graphics.ts`).

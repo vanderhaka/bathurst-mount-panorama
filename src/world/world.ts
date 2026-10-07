@@ -60,7 +60,7 @@ export async function buildWorld(
   root.add(terrain.group);
   await progress(0.7, 'Planting gum trees and pitching tents');
   const scenery = buildScenery(track, terrain, profile, quality);
-  scenery.contactAo.bake(terrain.group, getGraphics().bakedAo);
+  scenery.contactAo.bake(terrain.group, tier.bakedAo ? cfg.bakedAo : 0);
   // Grass has instance-local geometry; keep it outside the terrain's AO bake.
   terrain.group.add(terrain.grass.group);
   const updateScenery = scenery.update;

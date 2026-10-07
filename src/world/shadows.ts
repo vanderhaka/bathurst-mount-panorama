@@ -1,12 +1,7 @@
 import * as THREE from 'three';
 import { CSM } from 'three/addons/csm/CSM.js';
 import type { QualityPreset } from '@/render/renderer';
-
-export const SHADOW_TIERS = {
-  high: { cascades: 3, size: 2048 },
-  medium: { cascades: 2, size: 1024 },
-  low: { cascades: 1, size: 1024 },
-} as const;
+import { QUALITY } from '@/config/graphics';
 
 /** Keeps material shader hooks intact when the add-on installs CSM uniforms. */
 export function createShadowRig(scene: THREE.Scene, camera: THREE.PerspectiveCamera, quality: QualityPreset) {
@@ -14,9 +9,9 @@ export function createShadowRig(scene: THREE.Scene, camera: THREE.PerspectiveCam
   let direction = new THREE.Vector3(0.4, -0.6, -0.4).normalize();
   let intensity = 3, colour = '#fff1dc', distance = 400;
   const make = () => {
-    const tier = SHADOW_TIERS[quality];
+    const tier = QUALITY[quality];
     const result = new CSM({ camera, parent: scene, cascades: tier.cascades, maxFar: distance,
-      mode: 'practical', shadowMapSize: tier.size, shadowBias: -0.000002,
+      mode: 'practical', shadowMapSize: tier.shadowMap, shadowBias: -0.000002,
       lightDirection: direction, lightIntensity: intensity, lightNear: 1, lightFar: 1600, lightMargin: 100 });
     result.fade = true;
     for (const light of result.lights) { light.color.set(colour); light.shadow.normalBias = 0.035; }
@@ -41,7 +36,7 @@ export function createShadowRig(scene: THREE.Scene, camera: THREE.PerspectiveCam
       csm.setupMaterial(material);
       const install = material.onBeforeCompile;
       material.onBeforeCompile = (shader, renderer) => { install.call(material, shader, renderer); original.call(material, shader, renderer); };
-      material.customProgramCacheKey = () => `${originalKey.call(material)}|csm-${SHADOW_TIERS[quality].cascades}`;
+      material.customProgramCacheKey = () => `${originalKey.call(material)}|csm-${QUALITY[quality].cascades}`;
       material.needsUpdate = true;
     }
   });
