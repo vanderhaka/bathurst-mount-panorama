@@ -1,4 +1,5 @@
 import type * as THREE from 'three';
+import type { QualityPreset } from '@/render/renderer';
 import type { CarKind } from '@/car/car-specs';
 
 /** A generated (not real-team) livery. */
@@ -91,6 +92,8 @@ export interface CarModelOptions {
   livery: Livery;
   /** 'high' = player car and menu preview; 'low' = ghost car and far views. */
   detail?: 'high' | 'low';
+  /** Texture cap follows the graphics tier independently of the geometry detail. */
+  quality?: QualityPreset;
 }
 
 export type CreateCarModel = (kind: CarKind, options: CarModelOptions) => CarModel;

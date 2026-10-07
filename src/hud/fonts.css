@@ -1,0 +1,30 @@
+/* Generated subsets include ASCII and the characters used by the shipped UI.
+   Regenerate with scripts/subset-hud-fonts.py when the UI text changes. */
+@font-face {
+  font-family: 'Barlow Condensed';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 700;
+  src: url('./fonts/barlow-condensed-700.woff') format('woff');
+}
+@font-face {
+  font-family: 'Barlow Condensed';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 800;
+  src: url('./fonts/barlow-condensed-800.woff') format('woff');
+}
+@font-face {
+  font-family: 'Barlow';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 400;
+  src: url('./fonts/barlow-400.woff') format('woff');
+}
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 500;
+  src: url('./fonts/jetbrains-mono-500.woff') format('woff');
+}

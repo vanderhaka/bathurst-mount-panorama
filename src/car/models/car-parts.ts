@@ -2,6 +2,7 @@
 // root -> body (sprung: shell, glass, aero, lights, interior, anchors)
 //      -> wheels (instanced, unsprung).
 import * as THREE from 'three';
+import { QUALITY } from '@/config/graphics';
 import { CAR_SPECS, type CarKind } from '@/car/car-specs';
 import type { CarModelOptions } from '@/types/car-model';
 import { CAMARO_PROFILE } from '@/car/models/camaro-profile';
@@ -84,7 +85,8 @@ export function buildCarParts(kind: CarKind, options: CarModelOptions): CarParts
   let zRear = Infinity;
   for (let i = 2; i < grid.rest.length; i += 3) { zFront = Math.max(zFront, grid.rest[i]); zRear = Math.min(zRear, grid.rest[i]); }
   const l = options.livery;
-  const tex = createLiveryTextures(l, { kind, profile, zFront, zRear, axleZ: dims.wheelbase / 2, wheelR: dims.wheelRadius }, seg.atlasWidth, seg.atlasHeight);
+  const scale = Math.min(1, QUALITY[options.quality ?? 'high'].liveryAtlasSize / Math.max(seg.atlasWidth, seg.atlasHeight));
+  const tex = createLiveryTextures(l, { kind, profile, zFront, zRear, axleZ: dims.wheelbase / 2, wheelR: dims.wheelRadius }, Math.floor(seg.atlasWidth * scale), Math.floor(seg.atlasHeight * scale));
   const mats = createCarMaterials({ look, paintMap: tex?.paint ?? null, bannerMap: tex?.banner ?? null, displayMap: tex?.display ?? null, primary: l.primary, high });
 
   const root = new THREE.Group();

@@ -1,4 +1,4 @@
-import GUI from 'three/addons/libs/lil-gui.module.min.js';
+import type GUI from 'three/addons/libs/lil-gui.module.min.js';
 import { DEFAULT_GRAPHICS, exportGraphics, getGraphics, importGraphics, resetGraphics, saveGraphics, setGraphics, type GraphicsConfig } from '@/config/graphics';
 
 interface LooseController { onChange(fn: (v: unknown) => void): LooseController }
@@ -16,16 +16,20 @@ interface LooseFolder {
  */
 export class GraphicsTuner {
   private gui: GUI | null = null;
+  private opening = false;
   private readonly model: GraphicsConfig = { ...getGraphics() };
 
   constructor(private readonly onRebuild: () => void, private readonly hud?: { setScale(n: number): void; setOpacity(n: number): void }) {}
 
-  toggle(): void {
+  async toggle(): Promise<void> {
     if (this.gui) {
       this.gui.destroy();
       this.gui = null;
       return;
     }
+    if (this.opening) return;
+    this.opening = true;
+    const { default: GUI } = await import('three/addons/libs/lil-gui.module.min.js').finally(() => { this.opening = false; });
     Object.assign(this.model, getGraphics());
     const gui = new GUI({ title: 'Graphics tuner (T)', width: 320 });
     gui.domElement.style.zIndex = '60';

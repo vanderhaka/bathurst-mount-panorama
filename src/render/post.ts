@@ -4,7 +4,7 @@ import { createBloom, type Bloom } from '@/render/bloom';
 import { CameraAntialias } from '@/render/antialias';
 import { CAMERA_EFFECT_GLSL, motionBlurAmount, sunInView } from '@/render/camera-effects';
 import { TONE_MAPPING } from '@/render/tone-mapping';
-import { GTAOPass } from 'three/addons/postprocessing/GTAOPass.js';
+import type { GTAOPass } from 'three/addons/postprocessing/GTAOPass.js';
 
 /**
  * Minimal post chain: the scene renders into one MSAA half-float target, then a
@@ -62,12 +62,13 @@ export function createPostChain(renderer: THREE.WebGLRenderer, msaa = 4): PostCh
     type: THREE.HalfFloatType, samples, colorSpace: THREE.LinearSRGBColorSpace,
     depthTexture: depth ? new THREE.DepthTexture(width, height, THREE.UnsignedIntType) : null,
   });
-  let target = sceneTarget(size.x, size.y, msaa, false);
+  let width = size.x, height = size.y, samples = msaa;
+  let target: THREE.WebGLRenderTarget | null = null;
   const material = new THREE.ShaderMaterial({
     uniforms: {
-      tScene: { value: target.texture },
-      tBloom: { value: target.texture },
-      tAo: { value: target.texture },
+      tScene: { value: null },
+      tBloom: { value: null },
+      tAo: { value: null },
       motionBlur: { value: 0 },
       sunUv: { value: new THREE.Vector2() },
       flareStrength: { value: 0 },
@@ -94,13 +95,15 @@ export function createPostChain(renderer: THREE.WebGLRenderer, msaa = 4): PostCh
   let tierAo = false;
   let tierCamera = false;
   const aa = new CameraAntialias();
-  const updateAa = () => aa.configure(enabled && tierCamera && cfg.smaa, target.width, target.height);
+  const updateAa = () => aa.configure(enabled && tierCamera && cfg.smaa, width, height);
   let ao: GTAOPass | null = null;
+  let Gtao: typeof GTAOPass | null = null;
+  let aoLoading = false;
   let bloom: Bloom | null = null;
   let cfg = getGraphics();
 
   const updateBloom = () => {
-    if (enabled && tierBloom && cfg.bloom && cfg.bloomStrength > 0) {
+    if (target && enabled && tierBloom && cfg.bloom && cfg.bloomStrength > 0) {
       bloom ??= createBloom(target.width, target.height);
     } else {
       bloom?.dispose();
@@ -116,6 +119,12 @@ export function createPostChain(renderer: THREE.WebGLRenderer, msaa = 4): PostCh
         renderer.render(scene, camera);
         return;
       }
+      if (!target) {
+        target = sceneTarget(width, height, samples, tierAo);
+        material.uniforms.tScene.value = target.texture;
+        material.uniforms.tAo.value = target.texture;
+        updateBloom();
+      }
       // Evidence must count the whole frame, rather than just the final quad.
       const autoReset = renderer.info.autoReset;
       if (autoReset) renderer.info.reset();
@@ -124,18 +133,24 @@ export function createPostChain(renderer: THREE.WebGLRenderer, msaa = 4): PostCh
         renderer.setRenderTarget(target);
         renderer.render(scene, camera);
         if (tierAo && cfg.screenAo > 0) {
-          if (!ao) {
-            ao = new GTAOPass(scene, camera, Math.floor(target.width / 2), Math.floor(target.height / 2));
+          if (!Gtao && !aoLoading) {
+            aoLoading = true;
+            void import('three/addons/postprocessing/GTAOPass.js').then(module => { Gtao = module.GTAOPass; }).catch(() => {});
+          }
+          if (!ao && Gtao) {
+            ao = new Gtao(scene, camera, Math.floor(target.width / 2), Math.floor(target.height / 2));
             // The visible pass includes alpha-tested foliage and its shader wind.
             // Reconstruct normals from its depth instead of drawing solid cards again.
             ao.setGBuffer(target.depthTexture!);
-            ao.output = GTAOPass.OUTPUT.Off;
+            ao.output = Gtao.OUTPUT.Off;
             ao.updateGtaoMaterial({ radius: 2, samples: 8, thickness: 1, screenSpaceRadius: false });
             ao.updatePdMaterial({ samples: 8, radius: 2 });
             ao.setSize(Math.floor(target.width / 2), Math.floor(target.height / 2));
           }
-          ao.render(renderer, target, target, 0, false);
-          material.uniforms.tAo.value = ao.gtaoMap;
+          if (ao) {
+            ao.render(renderer, target, target, 0, false);
+            material.uniforms.tAo.value = ao.gtaoMap;
+          }
         }
         material.uniforms.aoStrength.value = ao && tierAo ? cfg.screenAo : 0;
         material.uniforms.tBloom.value = bloom ? bloom.render(renderer, target.texture, cfg) : target.texture;
@@ -146,26 +161,26 @@ export function createPostChain(renderer: THREE.WebGLRenderer, msaa = 4): PostCh
         renderer.info.autoReset = autoReset;
       }
     },
-    setSize(width, height) {
+    setSize(w, h) {
       const pr = renderer.getPixelRatio();
-      target.setSize(Math.floor(width * pr), Math.floor(height * pr));
-      bloom?.setSize(target.width, target.height);
+      width = Math.max(1, Math.floor(w * pr)); height = Math.max(1, Math.floor(h * pr));
+      target?.setSize(width, height);
+      bloom?.setSize(width, height);
+      ao?.setSize(Math.floor(width / 2), Math.floor(height / 2));
       updateAa();
-      ao?.setSize(Math.floor(target.width / 2), Math.floor(target.height / 2));
     },
-    setEnabled(on, samples, highBloom = false, highAo = false, highCamera = false) {
+    setEnabled(on, nextSamples, highBloom = false, highAo = false, highCamera = false) {
       enabled = on;
       tierBloom = highBloom;
       tierAo = highAo && enabled;
       tierCamera = highCamera && enabled;
+      samples = nextSamples;
       if (!tierAo) { ao?.dispose(); ao = null; material.uniforms.aoStrength.value = 0; }
-      if (target.samples !== samples || Boolean(target.depthTexture) !== tierAo) {
-        const { width, height } = target;
-        target.dispose();
+      if (!enabled || (target && (target.samples !== samples || Boolean(target.depthTexture) !== tierAo))) {
+        target?.dispose(); target = null;
         ao?.dispose(); ao = null;
-        target = sceneTarget(width, height, samples, tierAo);
-        material.uniforms.tScene.value = target.texture;
-      }
+        material.uniforms.tScene.value = material.uniforms.tBloom.value = material.uniforms.tAo.value = null;
+      } else if (!ao) material.uniforms.tAo.value = target?.texture ?? null;
       updateBloom();
       updateAa();
     },
@@ -188,7 +203,7 @@ export function createPostChain(renderer: THREE.WebGLRenderer, msaa = 4): PostCh
       updateAa();
     },
     dispose() {
-      target.dispose();
+      target?.dispose();
       aa.dispose();
       bloom?.dispose();
       ao?.dispose();

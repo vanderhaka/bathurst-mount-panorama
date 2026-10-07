@@ -11,7 +11,7 @@
 //   brake=1                   brake lights on and hot discs
 //   target=x,y,z              camera target (default 0,0.55,0)
 //   az=<deg>&el=<deg>         custom camera azimuth (0 = front, 90 = left side) and elevation
-import '@fontsource/barlow-condensed/700.css';
+import '@/hud/fonts';
 import * as THREE from 'three';
 import { createHarnessScene } from '@/harness/harness-scene';
 import { createCarModel } from '@/car/models';

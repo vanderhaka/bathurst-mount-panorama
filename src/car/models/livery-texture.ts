@@ -217,7 +217,8 @@ function rng(seed: number): () => number {
 export function createLiveryTextures(l: Livery, shape: LiveryShape, width: number, height: number): LiveryTextures | null {
   const ctx = canvas2d(width, height);
   // The sun strip is a thin band (about 13:1), so the canvas keeps that aspect.
-  const bctx = canvas2d(1024, 80);
+  const bannerWidth = Math.min(1024, width);
+  const bctx = canvas2d(bannerWidth, Math.round(bannerWidth * 80 / 1024));
   const dctx = canvas2d(256, 128);
   if (!ctx || !bctx || !dctx) return null;
   paintLivery(ctx, l, shape);

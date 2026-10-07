@@ -51,7 +51,7 @@ value; its tier switch still decides whether it runs.
 | Feature | Low | Medium | High |
 |---|---|---|---|
 | Sky / haze | simple dome / fog | dome / aerial perspective | physical sky / aerial perspective |
-| Shadows | 1 × 1024 | 2 × 1024 | 3 × 2048 |
+| Shadows | 1 × 512 | 2 × 768 | 3 × 2048 |
 | Vertex / contact AO | baked | baked | baked |
 | Screen AO / bloom / SMAA / camera effects | off | off | on |
 | Asphalt aggregate, repairs and wear | base | base | detailed |
@@ -61,6 +61,7 @@ value; its tier switch still decides whether it runs.
 | Distant buildings / terrain detail | base | reduced | full |
 
 Item 1.8's rejected car materials and item 1.10's isolated effects are excluded.
-Phone atlas sizes, MSAA memory and automatic rebuilding follow in 2.3–2.4.
+Phone paint atlases use Low 512 × 320, Medium 1024 × 640, High 2048 × 1280.
+Medium uses 2× MSAA. Low releases unused HDR targets. Automatic rebuilding follows in 2.4.
 D3 adopts **50 fps on Medium for three laps on James's iPhone**. Mac Chrome phone
 emulation proves code paths and console cleanliness; the physical check is pending.

@@ -101,7 +101,7 @@ export class Game {
 
   private makeEntity(car: CarKind, liveryIndex: number): CarEntity {
     const livery = LIVERY_PRESETS[car][liveryIndex % LIVERY_PRESETS[car].length].livery;
-    const e = new CarEntity(CAR_SPECS[car], this.world.track, this.world.kerbs, createCarModel, livery);
+    const e = new CarEntity(CAR_SPECS[car], this.world.track, this.world.kerbs, (kind, options) => createCarModel(kind, { ...options, quality: this.settings.quality }), livery);
     e.vehicle.handling = getHandling(); // a race car takes the live values every frame
     this.stage.scene.add(e.model.root);
     return e;
@@ -135,7 +135,7 @@ export class Game {
     const player = this.makeEntity(cfg.car, cfg.liveryIndex);
     const session = new RaceSession(cfg.car, this.world.track, this.world.line, player);
     session.placeOnGrid();
-    this.ghostModel = createCarModel(cfg.car, { livery: LIVERY_PRESETS[cfg.car][0].livery, detail: 'low' });
+    this.ghostModel = createCarModel(cfg.car, { livery: LIVERY_PRESETS[cfg.car][0].livery, detail: 'low', quality: this.settings.quality });
     this.ghostModel.setGhost(true);
     this.ghostModel.root.visible = false;
     this.stage.scene.add(this.ghostModel.root);

@@ -1,7 +1,9 @@
 import * as THREE from 'three';
 import { describe, expect, it, vi } from 'vitest';
-const aoState = vi.hoisted(() => ({ instances: [] as { render: ReturnType<typeof vi.fn>; dispose: ReturnType<typeof vi.fn>; setSize: ReturnType<typeof vi.fn>; setGBuffer: ReturnType<typeof vi.fn> }[] }));
-vi.mock('three/addons/postprocessing/GTAOPass.js', () => ({
+const aoState = vi.hoisted(() => ({ imports: 0, instances: [] as { render: ReturnType<typeof vi.fn>; dispose: ReturnType<typeof vi.fn>; setSize: ReturnType<typeof vi.fn>; setGBuffer: ReturnType<typeof vi.fn> }[] }));
+vi.mock('three/addons/postprocessing/GTAOPass.js', () => {
+  aoState.imports++;
+  return ({
   GTAOPass: class {
     static OUTPUT = { Off: -1 };
     gtaoMap = new THREE.Texture();
@@ -9,7 +11,8 @@ vi.mock('three/addons/postprocessing/GTAOPass.js', () => ({
     updateGtaoMaterial = vi.fn(); updatePdMaterial = vi.fn(); setGBuffer = vi.fn();
     constructor() { aoState.instances.push(this); }
   },
-}));
+});
+});
 import { DEFAULT_GRAPHICS } from '@/config/graphics';
 import { createPostChain } from '@/render/post';
 
@@ -32,11 +35,57 @@ function mockRenderer() {
 }
 
 describe('HDR post pipeline', () => {
-  it('reuses the visible scene depth so wind and cutout leaves contribute their real silhouette', () => {
+  it('never imports or allocates AO for a phone tier', async () => {
+    const { renderer } = mockRenderer();
+    const post = createPostChain(renderer);
+    post.setEnabled(true, 2, false, false);
+    const count = aoState.instances.length;
+    post.render(new THREE.Scene(), new THREE.PerspectiveCamera());
+    await vi.dynamicImportSettled();
+    expect(aoState.instances.length).toBe(count);
+    expect(aoState.imports).toBe(0);
+    post.dispose();
+  });
+
+  it('releases the scene target on Low and restores the latest drawing-buffer size on re-enable', () => {
+    const { renderer, rendered } = mockRenderer();
+    const post = createPostChain(renderer);
+    post.setEnabled(true, 2);
+    post.render(new THREE.Scene(), new THREE.PerspectiveCamera());
+    const old = rendered[0]!;
+    const disposed = vi.fn(); old.addEventListener('dispose', disposed);
+    post.setEnabled(false, 2);
+    expect(disposed).toHaveBeenCalledOnce();
+    post.setSize(960, 540);
+    post.render(new THREE.Scene(), new THREE.PerspectiveCamera());
+    expect(rendered.at(-1)).toBeNull();
+    post.setEnabled(true, 2);
+    post.render(new THREE.Scene(), new THREE.PerspectiveCamera());
+    const restored = rendered.at(-2)!;
+    expect(restored).not.toBe(old);
+    expect([restored.width, restored.height, restored.samples]).toEqual([960, 540, 2]);
+    post.dispose();
+  });
+
+  it('does not revive a pending AO allocation after stepping down to Medium', async () => {
+    const { renderer } = mockRenderer();
+    const post = createPostChain(renderer);
+    post.setEnabled(true, 4, false, true);
+    const count = aoState.instances.length;
+    post.render(new THREE.Scene(), new THREE.PerspectiveCamera());
+    post.setEnabled(true, 2, false, false);
+    await vi.dynamicImportSettled();
+    post.render(new THREE.Scene(), new THREE.PerspectiveCamera());
+    expect(aoState.instances.length).toBe(count);
+    post.dispose();
+  });
+  it('reuses the visible scene depth so wind and cutout leaves contribute their real silhouette', async () => {
     const { renderer, rendered } = mockRenderer();
     const post = createPostChain(renderer);
     post.setEnabled(true, 4, false, true);
     post.apply({ ...DEFAULT_GRAPHICS, screenAo: 0.5 });
+    post.render(new THREE.Scene(), new THREE.PerspectiveCamera());
+    await vi.dynamicImportSettled();
     post.render(new THREE.Scene(), new THREE.PerspectiveCamera());
     const depth = rendered[0]?.depthTexture;
     expect(depth).toBeInstanceOf(THREE.DepthTexture);
@@ -44,16 +93,18 @@ describe('HDR post pipeline', () => {
     expect(rendered[0]?.resolveDepthBuffer).toBe(true);
     post.dispose();
   });
-  it('allocates half-size High AO lazily and releases it on a tier step-down', () => {
+  it('allocates half-size High AO lazily and releases it on a tier step-down', async () => {
     const { renderer } = mockRenderer();
     const post = createPostChain(renderer);
     post.setEnabled(true, 4, true, true);
     post.apply({ ...DEFAULT_GRAPHICS, screenAo: 0.5 });
     const scene = new THREE.Scene(), camera = new THREE.PerspectiveCamera();
     post.render(scene, camera);
+    await vi.dynamicImportSettled();
+    post.render(scene, camera);
     const ao = aoState.instances.at(-1)!;
     expect(ao.setSize).toHaveBeenCalledWith(960, 540);
-    expect(ao.render).toHaveBeenCalledOnce();
+    expect(ao.render).toHaveBeenCalled();
     post.setEnabled(true, 4, false, false);
     expect(ao.dispose).toHaveBeenCalledOnce();
     post.dispose();
