@@ -4,6 +4,10 @@ A browser racing game on a real-scale Mount Panorama Circuit, Bathurst NSW, with
 generated (code-only) medium-poly Gen3 Supercars: the Chevrolet Camaro ZL1, the
 Ford Mustang GT and the Toyota GR Supra (new in 2026). Built with three.js, TypeScript and Vite.
 
+## Plan
+
+The next work, in order, is in [`docs/PLAN.md`](docs/PLAN.md): graphics realism (toward about 75 % of the way to photoreal), phone strength, racing realism, then game modes and competition.
+
 ## Run
 
 ```bash
