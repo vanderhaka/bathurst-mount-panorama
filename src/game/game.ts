@@ -11,6 +11,8 @@ import { Particles } from '@/fx/particles';
 import { AttractMode } from '@/game/attract-mode';
 import { CarEntity } from '@/game/car-entity';
 import { FrameLimiter } from '@/game/frame-limiter';
+import { GameGraphics } from '@/game/game-graphics';
+import { loadQualityChoice } from '@/game/quality-store';
 import { hudTrackInfo } from '@/game/hud-bridge';
 import { ProfileCache } from '@/game/profile-cache';
 import { RaceController } from '@/game/race-controller';
@@ -28,7 +30,7 @@ import type { SessionConfig, Settings } from '@/types/session';
 import { createMenus } from '@/ui';
 import { teleport } from '@/game/debug-tools';
 import { RacingLineMesh } from '@/world/racing-line-mesh';
-import { buildWorld, disposeWorld, type World } from '@/world/world';
+import { buildWorld, type World } from '@/world/world';
 
 type GameState = 'title' | 'carSelect' | 'race' | 'paused';
 
@@ -49,6 +51,7 @@ export class Game {
   private fps = 60;
   private readonly focus = new THREE.Vector3();
   private readonly particles: Particles;
+  private readonly graphics: GameGraphics;
 
   private constructor(private readonly stage: Stage, private world: World, private readonly hud: Hud, private readonly menus: Menus) {
     this.rig = new CameraRig(stage.camera, world.track);
@@ -56,13 +59,19 @@ export class Game {
     stage.scene.add(this.lineMesh.mesh);
     this.particles = new Particles(stage.scene);
     this.attract = new AttractMode(stage.scene, stage.camera);
-    this.tuner = new GraphicsTuner(() => this.rebuildWorld(), { setScale: setHudScale, setOpacity: setHudOpacity });
+    this.graphics = new GameGraphics(stage, this.settings, {
+      world: () => this.world, replaceWorld: (next) => { this.world = next; },
+      models: () => [this.race?.player.model ?? null, this.ghostModel, this.attract.model],
+      changed: (s) => { this.settings = s; saveSettings(s); this.menus.syncSettings(s); },
+      notify: (text) => this.race?.session.say(text, 'info', 4),
+    });
+    this.tuner = new GraphicsTuner(() => { void this.graphics.rebuildWorld(); }, { setScale: setHudScale, setOpacity: setHudOpacity });
     this.timer.connect(document);
   }
 
   static async create(root: HTMLElement): Promise<Game> {
     const settings = loadSettings();
-    const stage = new Stage(root, settings.quality);
+    const stage = new Stage(root, settings.quality, loadQualityChoice(settings.quality).pixelRatio);
     const menus = createMenus();
     let game: Game | null = null;
     menus.mount(root, {
@@ -149,6 +158,7 @@ export class Game {
     this.rig.snap();
     this.hud.setVisible(true);
     this.state = 'race';
+    this.graphics.startRace();
   }
 
   private endRace(): void {
@@ -185,6 +195,7 @@ export class Game {
     this.rig.snap();
     this.state = 'race';
     this.audio?.resume();
+    this.graphics.startRace();
   }
 
   /** Pause menu: back on the racing line here, repaired (the lap becomes invalid). */
@@ -200,34 +211,19 @@ export class Game {
   }
 
   private applySettings(s: Settings): void {
-    const qualityChanged = s.quality !== this.settings.quality;
     this.settings = { ...s };
+    void this.graphics.applySettings(this.settings);
     saveSettings(this.settings);
     this.audio?.setMasterVolume(s.masterVolume);
-    if (qualityChanged) this.stage.setQuality(s.quality);
-  }
-
-  /** Rebuilds terrain, road and scenery with the current graphics config (track model kept). */
-  private rebuilding = false;
-  private rebuildWorld(): void {
-    if (this.rebuilding) return;
-    this.rebuilding = true;
-    this.stage.refreshEnvironment();
-    const old = this.world;
-    void buildWorld(this.stage.renderer, () => {}, this.settings.quality, old).then((next) => {
-      this.stage.scene.remove(old.root);
-      disposeWorld(old);
-      this.stage.scene.add(next.root);
-      this.world = next;
-      this.rebuilding = false;
-    });
   }
 
   private frame(time: number): void {
     this.wakeLock.setRunning(this.state === 'race' && !this.menus.isOpen() && Boolean(this.race?.session.racing));
     this.timer.update(time);
-    const dt = Math.min(this.timer.getDelta(), 1 / 20);
-    this.fps += (1 / Math.max(dt, 1e-3) - this.fps) * 0.05;
+    const rawDt = this.timer.getDelta();
+    const dt = Math.min(rawDt, 1 / 20);
+    if (this.state === 'race') this.graphics.sample(rawDt, this.settings.frameRate);
+    this.fps += (1 / Math.max(rawDt, 1e-3) - this.fps) * 0.05;
     this.input.menusOpen = this.menus.isOpen();
     this.menus.setPadStyle(this.input.padStyle);
     let nav = this.input.takeMenuNav();

@@ -32,14 +32,13 @@ await page.waitForFunction(() => window.__game?.race?.session.lights < 0, null, 
 
 const result = { url, device: mobile ? 'Chrome phone emulation (not an iPhone)' : 'desktop Chrome', tiers: {}, errors };
 for (const tier of mobile ? ['medium', 'low'] : ['high', 'medium', 'low']) {
-  await page.evaluate(tier => {
+  await page.evaluate(async tier => {
     const g = window.__game;
     g.settings.quality = tier;
     g.settings.frameRate = 0;
-    g.stage.setQuality(tier);
-    g.rebuildWorld();
+    g.settings.autoQuality = false;
+    await g.graphics.applySettings(g.settings);
   }, tier);
-  await page.waitForFunction(() => !window.__game.rebuilding, null, { timeout: 120000 });
   const points = {};
   for (const [name, s] of [['pitStraight', 200], ['mountain', 1200], ['skyline', 3330], ['conrod', 4600]]) {
     await page.evaluate(s => {

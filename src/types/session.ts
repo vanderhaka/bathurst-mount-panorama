@@ -19,6 +19,8 @@ export interface Settings {
   ghost: boolean;
   units: 'kmh' | 'mph';
   quality: QualityPreset;
+  /** Learn graphics quality during a race; selecting a tier explicitly turns this off. */
+  autoQuality: boolean;
   /** Most frames per second; 0 = no limit (the display's refresh rate). */
   frameRate: 0 | 30 | 60 | 120;
   camera: CameraMode;
@@ -40,6 +42,7 @@ export const DEFAULT_SETTINGS: Settings = {
   ghost: true,
   units: 'kmh',
   quality: 'high',
+  autoQuality: true,
   frameRate: 0,
   camera: 'chase',
   masterVolume: 0.8,

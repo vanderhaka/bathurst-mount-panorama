@@ -1,4 +1,5 @@
 import { DEFAULT_SETTINGS, type Settings } from '@/types/session';
+import { loadQualityChoice } from '@/game/quality-store';
 
 const KEY = 'bathurst.settings.v1';
 
@@ -9,12 +10,13 @@ function deviceDefaults(): Settings {
 }
 
 export function loadSettings(): Settings {
+  let settings = deviceDefaults();
   try {
     const raw = localStorage.getItem(KEY);
-    return raw ? { ...deviceDefaults(), ...(JSON.parse(raw) as Partial<Settings>) } : deviceDefaults();
-  } catch {
-    return deviceDefaults();
-  }
+    if (raw) settings = { ...settings, ...(JSON.parse(raw) as Partial<Settings>) };
+  } catch { /* storage unavailable */ }
+  const graphics = loadQualityChoice(settings.quality);
+  return { ...settings, quality: graphics.quality, autoQuality: graphics.automatic };
 }
 
 export function saveSettings(s: Settings): void {

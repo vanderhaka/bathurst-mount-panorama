@@ -12,6 +12,8 @@ export class AttractMode {
 
   constructor(private readonly scene: THREE.Scene, private readonly camera: THREE.PerspectiveCamera) {}
 
+  get model() { return this.demo?.entity.model ?? null; }
+
   /** Replaces the demo car (the entity's model must already be in the scene). */
   set(entity: CarEntity, pilot: Autopilot): void {
     this.drop();

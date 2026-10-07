@@ -17,9 +17,9 @@ export class Stage {
   private environment: THREE.WebGLRenderTarget;
   private environmentTimer: number | null = null;
 
-  constructor(private readonly container: HTMLElement, quality: QualityPreset) {
+  constructor(private readonly container: HTMLElement, quality: QualityPreset, pixelRatio?: number) {
     this.quality = quality;
-    this.renderer = createRenderer({ quality });
+    this.renderer = createRenderer({ quality, pixelRatio });
     // The canvas always fills the game area (CSS); resize() only sets its pixel size.
     Object.assign(this.renderer.domElement.style, { display: 'block', width: '100%', height: '100%' });
     container.appendChild(this.renderer.domElement);
@@ -67,9 +67,14 @@ export class Stage {
     }
   }
 
-  setQuality(q: QualityPreset): void {
+  setQuality(q: QualityPreset, pixelRatio?: number): void {
+    if (q === this.quality) {
+      setRendererQuality(this.renderer, q, pixelRatio);
+      this.resize();
+      return;
+    }
     this.quality = q;
-    setRendererQuality(this.renderer, q);
+    setRendererQuality(this.renderer, q, pixelRatio);
     this.sky.setQuality(q);
     this.lighting.setQuality(q);
     this.post.setEnabled(QUALITY[q].post, QUALITY[q].msaa, QUALITY[q].bloom, QUALITY[q].screenAo, QUALITY[q].cameraEffects);

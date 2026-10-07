@@ -40,6 +40,8 @@ export interface CarModel {
   kind: CarKind;
   root: THREE.Group;
   body: THREE.Group;
+  /** Rebuilds live livery maps for the tier, preserving geometry, pose and damage. */
+  setQuality(quality: QualityPreset): void;
   /**
    * Visual body attitude in radians/metres. Implement exactly as:
    * body.rotation.set(-pitch, 0, roll) and body.position.y = heave.

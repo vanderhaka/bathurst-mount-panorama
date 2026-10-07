@@ -8,6 +8,7 @@ import { registerCarLook, setTailGlow, writeMaterials } from '@/car/models/look'
 import { createDamage } from '@/car/models/damage';
 import { makeCurve } from '@/car/models/curves';
 import { paintDisplayLive } from '@/car/models/livery-texture';
+import { liveryAtlasSize } from '@/car/models/texture-quality';
 import type { Ctx } from '@/car/models/livery-canvas';
 
 const COCKPIT_PITCH = 0.087;
@@ -96,6 +97,10 @@ export function buildCarModel(kind: CarKind, options: CarModelOptions): CarModel
     kind,
     root,
     body,
+    setQuality(quality) {
+      const atlas = look.segments[options.detail ?? 'high'];
+      parts.tex?.resize(...liveryAtlasSize(atlas.atlasWidth, atlas.atlasHeight, quality));
+    },
     setBodyAttitude(pitch, roll, heave) {
       body.rotation.set(-pitch, 0, roll);
       body.position.y = heave;

@@ -108,11 +108,12 @@ export const SETTING_GROUPS: ReadonlyArray<{ title: string; fields: SettingField
   {
     title: 'Graphics and audio',
     fields: [
+      { key: 'autoQuality', kind: 'choice', label: 'Automatic quality', help: 'Adjusts graphics during the first ten seconds of a race for smoother driving.', options: ON_OFF },
       {
         key: 'quality',
         kind: 'choice',
         label: 'Graphics quality',
-        help: 'Low is fastest. High adds shadows, detail and resolution.',
+        help: 'Low is fastest. High adds detail and resolution. Choosing a tier turns automatic quality off.',
         options: [
           { value: 'low', label: 'Low' },
           { value: 'medium', label: 'Medium' },
@@ -151,7 +152,7 @@ export function adjustSetting(settings: Settings, field: SettingField, dir: -1 |
   }
   const n = field.options.length;
   const next = field.options[(optionIndex(field, settings) + dir + n) % n];
-  return { ...settings, [field.key]: next.value };
+  return { ...settings, [field.key]: next.value, ...(field.key === 'quality' ? { autoQuality: false } : {}) };
 }
 
 /** Position (0..1) of a range value between its min and max, for the meter. */

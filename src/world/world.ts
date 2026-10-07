@@ -12,6 +12,7 @@ import { buildTerrain, type Terrain } from '@/world/terrain';
 import { buildScenery, type Scenery } from '@/world/scenery';
 import type { QualityPreset } from '@/render/renderer';
 import { getGraphics, QUALITY } from '@/config/graphics';
+import { disposeUnusedTextures } from '@/world/dispose-textures';
 
 export interface World {
   track: Track;
@@ -81,8 +82,9 @@ export async function buildWorld(
   return { track, line, profile, kerbs, terrain, scenery, root, setStartLights };
 }
 
-/** Frees GPU resources of a world's meshes (geometries only; materials are shared/cached). */
-export function disposeWorld(world: World): void {
+/** Frees geometries and unused texture storage; shared/cached materials are kept. */
+export function disposeWorld(world: World, retained?: World): void {
+  disposeUnusedTextures(world.root, retained?.root);
   world.scenery.dispose();
   world.terrain.dispose();
   world.root.traverse((o) => {

@@ -62,6 +62,8 @@ value; its tier switch still decides whether it runs.
 
 Item 1.8's rejected car materials and item 1.10's isolated effects are excluded.
 Phone paint atlases use Low 512 × 320, Medium 1024 × 640, High 2048 × 1280.
-Medium uses 2× MSAA. Low releases unused HDR targets. Automatic rebuilding follows in 2.4.
+Medium uses 2× MSAA. Low releases unused HDR targets. Automatic quality rebuilds world maps and live car atlases; unused old maps are disposed.
+It uses raw render intervals for ten active race seconds, respects an intentional frame cap,
+and saves the tier and pixel density per device. Selecting a tier disables adaptation.
 D3 adopts **50 fps on Medium for three laps on James's iPhone**. Mac Chrome phone
 emulation proves code paths and console cleanliness; the physical check is pending.

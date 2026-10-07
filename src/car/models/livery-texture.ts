@@ -6,11 +6,14 @@ import type { DashState, Livery } from '@/types/car-model';
 import { paintLivery, type LiveryShape } from '@/car/models/livery-paint';
 import { contrastOn, FONT_STACK, hex, inRegion, type Ctx } from '@/car/models/livery-canvas';
 import type { AtlasRegion } from '@/car/models/livery-layout';
+import { resizeCanvasTexture } from '@/car/models/texture-quality';
 
 export interface LiveryTextures {
   paint: THREE.CanvasTexture;
   banner: THREE.CanvasTexture;
   display: THREE.CanvasTexture;
+  /** Resizes the live maps, retaining painted wear and all material references. */
+  resize(width: number, height: number): void;
   /** Repaints the clean livery (damage reset). */
   repaint(): void;
   /** Scratches and scuffs the paint around world point (a, b) of a region. */
@@ -227,15 +230,26 @@ export function createLiveryTextures(l: Livery, shape: LiveryShape, width: numbe
   const paint = texture(ctx, 8);
   const banner = texture(bctx, 4);
   const display = texture(dctx, 1);
+  const scars: Array<{ region: AtlasRegion; a: number; b: number; severity: number; seed: number }> = [];
   return {
     paint,
     banner,
     display,
+    resize(width, height) {
+      resizeCanvasTexture(paint, width, height, () => {
+        paintLivery(ctx, l, shape);
+        for (const scar of scars) inRegion(ctx, scar.region, () => paintScrape(ctx, scar.region, scar.a, scar.b, scar.severity, rng(scar.seed)));
+      });
+      const bannerWidth = Math.min(1024, width);
+      resizeCanvasTexture(banner, bannerWidth, Math.round(bannerWidth * 80 / 1024), () => paintBanner(bctx, l));
+    },
     repaint() {
+      scars.length = 0;
       paintLivery(ctx, l, shape);
       paint.needsUpdate = true;
     },
     scratch(region, a, b, severity, seed) {
+      scars.push({ region, a, b, severity, seed });
       inRegion(ctx, region, () => paintScrape(ctx, region, a, b, severity, rng(seed)));
       paint.needsUpdate = true;
     },
