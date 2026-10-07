@@ -41,6 +41,7 @@ export class RaceSession {
 
   /** Puts the car on pole position behind the standing-start line and arms the lights. */
   placeOnGrid(): void {
+    this.entity.vehicle.stint.reset();
     const s = this.track.gridLineS - 7;
     const i = Math.round(s / this.track.spacing);
     this.entity.reset(s, Math.max(-this.track.right.edge[i] + 2, Math.min(this.track.left.edge[i] - 2, -2.2)));

@@ -178,12 +178,13 @@ Status: done — awaiting the user's iPhone check (commit 174212056fa35810378d76
 - **Do:** a Display setting with HUD size "Full" or "Minimal" (speed, gear, lap time, position on the map).
 - **Done when:** the minimal HUD covers less than 10 % of a phone screen.
 ### 2.9 Android vibration — S
-Status: done — awaiting the user's iPhone check and physical Android vibration check (commit recorded by next item; evidence `artifacts/review/item-2.9/`).
+Status: done — awaiting the user's iPhone check and physical Android vibration check (commit 3daa49a787995ab490ccac73180249186bf63852; evidence `artifacts/review/item-2.9/`).
 - **Do:** short vibration pulses on kerbs and impacts where `navigator.vibrate` exists (Android); a setting to turn it off.
 - **Done when:** an Android phone pulses on the Chase kerbs; nothing happens on iPhone.
 ## Phase 3 — Racing realism
 **Goal.** The car behaves like a real Gen3 car over a stint. Every physics change keeps the existing tests green (autopilot laps, line-follower test) and re-checks the lap times: the user-tuned car near 2:04 for the test AI.
 ### 3.1 Fuel weight — S
+Status: done (commit recorded by next item; evidence `artifacts/review/item-3.1/`).
 - **Do:** the fuel load adds mass (about 0.75 kg per litre); the fuel burns per lap; a full car is slower than a light one.
 - **Done when:** a test shows a lap time difference between full and light fuel in the expected size (a few tenths of a second).
 ### 3.2 Tyre temperature and wear change the grip — M

@@ -2,6 +2,7 @@
 // tread-life strip, fuel litres with a gauge and laps remaining.
 // Values come from HudState.tyres / .fuel when the game supplies them,
 // otherwise from the DISPLAY-ONLY TyreFuelEstimator.
+import { FUEL_CAPACITY_L } from '@/physics/fuel';
 import type { HudState } from '@/types/hud';
 import { AttrSlot, h, TextSlot, VarSlot } from '@/hud/dom';
 import { FUEL_START_L, TyreFuelEstimator, tyreBand } from '@/hud/tyre-fuel-model';
@@ -43,11 +44,11 @@ export class TyreFuelPanel {
       h('span', 'hud-fuel__laps', undefined, [this.laps.el, h('span', 'hud-micro', undefined, ['LAPS'])]),
     ]);
     this.low = new AttrSlot(fuel, 'data-low');
-    // Marked EST: the simulation has no tyre or fuel model (see tyre-fuel-model.ts).
-    this.el = h('section', 'hud-panel hud-tyrefuel', { 'aria-label': 'Tyres and fuel, estimated' }, [
+    // Tyres remain estimated until their physics model is enabled.
+    this.el = h('section', 'hud-panel hud-tyrefuel', { 'aria-label': 'Tyre estimates and fuel' }, [
       h('header', 'hud-panel__head', undefined, [
         h('span', 'hud-micro hud-micro--strong', undefined, ['TYRES · FUEL']),
-        h('span', 'hud-chip hud-chip--est', { title: 'Estimated values' }, ['EST']),
+        h('span', 'hud-chip hud-chip--est', { title: 'Estimated tyre values' }, ['TYRES EST']),
       ]),
       h('div', 'hud-tyrefuel__body', undefined, [
         h('div', 'hud-tyres', undefined, [h('span', 'hud-micro', undefined, ['TYRES °C']), grid]),
@@ -71,7 +72,7 @@ export class TyreFuelPanel {
     this.litres.set(fuel.litres.toFixed(1));
     const laps = fuel.lapsLeft;
     this.laps.set(laps === null ? '--' : laps >= 99.5 ? '99+' : laps.toFixed(1));
-    this.gauge.set(Math.max(0, Math.min(1, fuel.litres / FUEL_START_L)));
+    this.gauge.set(Math.max(0, Math.min(1, fuel.litres / (st.fuel ? FUEL_CAPACITY_L : FUEL_START_L))));
     this.low.set(laps !== null && laps < 2 ? 'true' : 'false');
   }
 }

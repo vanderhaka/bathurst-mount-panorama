@@ -77,7 +77,7 @@ The colours and the HUD "next corner" speed use a profile that a real driver can
 - Broadcast-style timing tower (lap, your live entry against your best lap, sectors).
 - A delta bar at the top centre (green when faster, red when slower) and a start-light strip during the countdown. The grid gantry lights up at the same time.
 - Speed, gear, rpm and shift lights, the next-corner speed, the track map with corner name and altitude, damage, and pedal and steering inputs.
-- Tyre temperatures and wear, and fuel. **These are display-only estimates.** The physics has no tyre or fuel model, so they come from slip, load and throttle (`src/hud/tyre-fuel-model.ts`).
+- Fuel comes from the simulation: a 132 L tank, 0.75 kg per litre and throttle-dependent burn. Sessions start at the calibrated 80 L reference load; recovery preserves fuel and Restart refills it. Laps left appears after a complete lap. Tyre temperatures and wear remain display-only estimates from slip and load (`src/hud/tyre-fuel-model.ts`).
 
 ## Cockpit
 
@@ -127,7 +127,7 @@ The car feels a change at once, and the game saves it. The taller tick under eac
 | Downforce | Grip at high speed. |
 | Steering speed | How fast the front wheels turn to the steering input. |
 
-The racing-line colours and corner-speed hints use the new values from the next race start. Tyre temperature on the HUD is for display only: it does not change the grip.
+The racing-line colours and corner-speed hints follow handling and fuel load once per simulation second. Tyre temperature on the HUD is for display only: it does not change the grip.
 
 ## Menus
 

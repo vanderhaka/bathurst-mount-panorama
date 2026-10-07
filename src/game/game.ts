@@ -14,7 +14,6 @@ import { FrameLimiter } from '@/game/frame-limiter';
 import { GameGraphics } from '@/game/game-graphics';
 import { loadQualityChoice } from '@/game/quality-store';
 import { hudTrackInfo } from '@/game/hud-bridge';
-import { ProfileCache } from '@/game/profile-cache';
 import { RaceController } from '@/game/race-controller';
 import { RaceSession } from '@/game/race-session';
 import { loadSettings, saveSettings } from '@/game/settings-store';
@@ -45,7 +44,6 @@ export class Game {
   private readonly rig: CameraRig;
   private readonly lineMesh: RacingLineMesh;
   private readonly tuner: GraphicsTuner;
-  private readonly profiles = new ProfileCache(() => this.world);
   private readonly attract: AttractMode;
   private race: RaceController | null = null;
   private ghostModel: CarModel | null = null;
@@ -127,7 +125,7 @@ export class Game {
     const entity = this.makeEntity('camaro', 0);
     const s = 900;
     entity.reset(s, this.world.line.offset[Math.round(s / this.world.track.spacing)]);
-    this.attract.set(entity, new Autopilot(this.world.track, this.world.line, this.profiles.get('camaro').ai));
+    this.attract.set(entity, this.world.line);
     this.rig.mode = 'tv';
     this.menus.showTitle();
   }
@@ -137,7 +135,7 @@ export class Game {
     this.attract.drop();
     const entity = this.makeEntity(car, liveryIndex);
     entity.reset(this.world.track.gridLineS - 7, -2.2);
-    this.attract.set(entity, new Autopilot(this.world.track, this.world.line, this.profiles.get(car).ai));
+    this.attract.set(entity, this.world.line);
   }
 
   private startRace(cfg: SessionConfig): void {
@@ -154,7 +152,7 @@ export class Game {
     this.audio = createCarAudio(cfg.car);
     void this.audio.start().then(() => this.audio?.setMasterVolume(this.settings.masterVolume)).catch(() => {});
     this.race = new RaceController(session, player, {
-      input: this.input, rig: this.rig, hud: this.hud, lineMesh: this.lineMesh, profile: this.profiles.get(cfg.car).player,
+      input: this.input, rig: this.rig, hud: this.hud, lineMesh: this.lineMesh,
       audio: this.audio, ghostModel: this.ghostModel, settings: () => this.settings, particles: this.particles, startLights: (n) => this.world.setStartLights(n), stage: this.stage,
     });
     this.rig.mode = this.settings.camera;
@@ -195,6 +193,7 @@ export class Game {
   private restart(): void {
     if (!this.race) return;
     this.race.session.placeOnGrid();
+    this.race.profiles.reset();
     this.rig.snap();
     this.state = 'race';
     this.audio?.resume();
@@ -268,12 +267,12 @@ export class Game {
   /** Verification hooks (used by scripts/capture-evidence.mjs). */
   timeScale = 1;
   setDebugAutopilot(on: boolean): void {
-    if (this.race) this.race.autopilot = on ? new Autopilot(this.world.track, this.world.line, this.profiles.get(this.race.session.car).ai) : null;
+    if (this.race) this.race.autopilot = on ? new Autopilot(this.world.track, this.world.line, this.race.profiles.ai) : null;
   }
   /** Places the player at distance s on the racing line, at the AI target speed, and skips the start lights. */
   debugTeleport(s: number): void {
     if (!this.race) return;
-    teleport(this.race, this.world, this.profiles.get(this.race.session.car).ai, s);
+    teleport(this.race, this.world, this.race.profiles.ai, s);
     this.rig.snap();
   }
 

@@ -58,10 +58,11 @@ function chevronTexture(): THREE.CanvasTexture {
 export class RacingLineMesh {
   readonly mesh: THREE.Mesh;
   mode: 'off' | 'braking' | 'full' = 'braking';
+  setProfile(profile: SpeedProfile): void { this.profile = profile; }
   private readonly colours: THREE.BufferAttribute;
   private readonly n: number;
 
-  constructor(private readonly track: Track, line: RacingLine, private readonly profile: SpeedProfile) {
+  constructor(private readonly track: Track, line: RacingLine, private profile: SpeedProfile) {
     const n = track.n;
     this.n = n;
     const pos = new Float32Array((n + 1) * 2 * 3);

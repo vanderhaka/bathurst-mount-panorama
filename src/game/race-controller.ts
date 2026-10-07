@@ -12,7 +12,7 @@ import { impactSeverity } from '@/physics/damage';
 import type { VehicleInput } from '@/physics/types';
 import { applyAssists } from '@/race/assists';
 import type { Autopilot } from '@/race/autopilot';
-import type { SpeedProfile } from '@/track/speed-profile';
+import { SessionProfiles } from '@/game/session-profiles';
 import type { CarAudio, Surface } from '@/types/audio';
 import type { CarModel } from '@/types/car-model';
 import type { Hud, HudState } from '@/types/hud';
@@ -55,7 +55,6 @@ export interface RaceDeps {
   rig: CameraRig;
   hud: Hud;
   lineMesh: RacingLineMesh;
-  profile: SpeedProfile;
   audio: CarAudio | null;
   ghostModel: CarModel | null;
   particles: Particles;
@@ -69,6 +68,7 @@ export interface RaceDeps {
 
 /** One frame of driving: controls -> assists -> physics -> race logic -> feedback (HUD, audio, rumble, camera). */
 export class RaceController {
+  readonly profiles: SessionProfiles;
   private readonly vin: VehicleInput = { throttle: 0, brake: 0, steer: 0, shiftUp: false, shiftDown: false };
   private hudState: HudState | null = null;
   private readonly phoneVibration = new PhoneVibration();
@@ -78,7 +78,10 @@ export class RaceController {
   private stuckT = 0;
   private damageMode: Settings['damage'] | null = null;
 
-  constructor(readonly session: RaceSession, readonly player: CarEntity, private readonly d: RaceDeps) {}
+  constructor(readonly session: RaceSession, readonly player: CarEntity, private readonly d: RaceDeps) {
+    this.profiles = new SessionProfiles(player.vehicle, session.line);
+    d.lineMesh.setProfile(this.profiles.player);
+  }
 
   frame(dt: number, fps: number | null): void {
     const { input } = this.d;
@@ -117,7 +120,8 @@ export class RaceController {
         this.vin.steer = 0;
       }
       const pilot = this.autopilot;
-      const impacts = this.player.simulate(this.vin, h, pilot && this.session.racing ? (vin) => { pilot.drive(v, vin); } : undefined);
+      const impacts = this.player.simulate(this.vin, h, pilot && this.session.racing ? (vin) => { this.profiles.update(); pilot.drive(v, vin); } : undefined);
+      this.profiles.update();
       for (const imp of impacts) {
         this.phoneVibration.impact(imp.speed);
         const sev = impactSeverity(imp.speed);
@@ -142,7 +146,7 @@ export class RaceController {
     this.feedback(dt);
     this.d.lineMesh.mode = settings.racingLine;
     this.d.lineMesh.update(v.tp.s, Math.abs(v.speed));
-    this.hudState = buildHudState(this.session, this.d.profile, settings, fps, this.hudState);
+    this.hudState = buildHudState(this.session, this.profiles.player, settings, fps, this.hudState);
     this.hudState.view = this.d.rig.mode === 'cockpit' && !this.d.rig.lookBack ? 'cockpit' : 'outside';
     this.d.hud.update(this.hudState);
     if (this.d.rig.mode === 'cockpit' || this.d.rig.mode === 'bonnet') {

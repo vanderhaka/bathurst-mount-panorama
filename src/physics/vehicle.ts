@@ -6,6 +6,7 @@ import { createTrackPoint, heightAt, projectToTrack, sampleArray, surfaceAt, VER
 import { resolveWalls } from '@/physics/collision';
 import { applyImpactDamage, createDamage } from '@/physics/damage';
 import { createPowertrain, stepPowertrain, type PowertrainState } from '@/physics/powertrain';
+import { VehicleStint } from '@/physics/vehicle-stint';
 import { SURFACE, tyreCurve, tyreForces, type TyreResult } from '@/physics/tyre';
 import type { DamageState, ImpactReport, VehicleInput, VehicleTelemetry, WheelTelemetry } from '@/physics/types';
 
@@ -36,6 +37,9 @@ export class Vehicle {
   readonly tp: TrackPoint = createTrackPoint();
   readonly wheels: WheelTelemetry[];
   readonly telemetry: VehicleTelemetry;
+  readonly stint = new VehicleStint();
+  /** Monotonic game seconds, advanced only by fixed physics steps. */
+  simulationS = 0;
   assists: VehicleAssists = { abs: true, tc: true, autoGears: true, mechanicalDamage: true };
   handling: Readonly<HandlingConfig> = DEFAULT_HANDLING; // multipliers from Settings > Handling
   steerAngle = 0;
@@ -65,6 +69,7 @@ export class Vehicle {
     this.wheels = this.corners.map(() => ({ load: 0, slip: 0, surface: 'road' as const, spin: 0, compression: 0, steer: 0 }));
     this.telemetry = {
       speed: 0, rpm: spec.engine.idleRpm, gear: 1, throttle: 0, brake: 0, steer: 0, onLimiter: false,
+      fuel: this.stint.fuel,
       tcActive: false, absActive: false, shifted: false, gLong: 0, gLat: 0, wheels: this.wheels, airborne: false, load: 0,
     };
   }
@@ -80,6 +85,7 @@ export class Vehicle {
     this.vy = this.pitchRate = this.rollRate = 0;
     this.pitch = this.roll = 0;
     projectToTrack(t, this.x, this.z, -1, this.tp);
+    this.stint.placeOnTrack(this.tp.s);
     this.settleOnGround();
     this.pt.gear = 1;
     this.pt.rpm = this.spec.engine.idleRpm;
@@ -138,29 +144,26 @@ export class Vehicle {
   get speed(): number {
     return this.vx * Math.sin(this.heading) + this.vz * Math.cos(this.heading);
   }
-
+  get massKg(): number { return this.stint.fuel.massKg(this.spec.massKg); }
   /** Advances the simulation by dt seconds (use about 1/360 s). Returns wall impacts. */
   step(input: VehicleInput, dt: number): ImpactReport[] {
     const { spec, track } = this;
     const hc = this.handling, curve = tyreCurve((hc.peakSlipDeg * Math.PI) / 180, hc.slideGrip);
-    const m = spec.massKg;
+    const m = this.massKg;
     const sin = Math.sin(this.heading), cos = Math.cos(this.heading);
     // Body axes: forward f = (sin, cos), left l = (cos, -sin).
     const vLong = this.vx * sin + this.vz * cos;
     const vLat = this.vx * cos - this.vz * sin;
     projectToTrack(track, this.x, this.z, this.tp.index, this.tp);
-
     // Steering: rate-limited road-wheel angle, plus a pull from suspension damage.
     const targetSteer = input.steer * spec.maxSteerRad;
     const rate = ((hc.steerSpeedDeg * Math.PI) / 180) * dt;
     this.steerAngle += Math.max(-rate, Math.min(rate, targetSteer - this.steerAngle));
     const pull = (this.damage.left - this.damage.right) * this.damage.suspension * 0.03;
-
     // Aero.
     const v2 = vLong * vLong + vLat * vLat;
     const downforce = 0.5 * RHO * spec.clA * hc.downforce * (1 - 0.35 * this.damage.aero) * v2;
     const drag = 0.5 * RHO * spec.cdA * (1 + 0.25 * this.damage.aero) * Math.sqrt(v2);
-
     // Powertrain (rear-wheel drive, locked-ish differential: equal split).
     let rearSlip = Math.max(this.wheels[2].slip, this.wheels[3].slip);
     // Automatic reverse: the brake pedal drives backwards (powertrain), the throttle pedal brakes.
@@ -171,8 +174,7 @@ export class Vehicle {
     const drive = stepPowertrain(spec, this.pt, {
       throttle: input.throttle, brake: input.brake, shiftUp: input.shiftUp, shiftDown: input.shiftDown,
       autoGears: this.assists.autoGears, wheelSpeed: vLong, spinRpm, engineDamage: this.damage.engine, noAutoReverse: input.hold,
-    }, dt);
-
+    }, dt) * (this.stint.fuel.litres > 0 ? 1 : 0);
     let fLong = 0, fLat = 0, yawM = 0, heave = 0, pitchM = 0, rollM = 0, gx = 0, gz = 0;
     let anyGround = false, absActive = false, tcActive = false;
     const R = spec.dimensions.wheelRadius;
@@ -243,7 +245,6 @@ export class Vehicle {
       if (!front) rearSlip = Math.max(rearSlip, r.use);
     }
     for (let w = 0; w < 4; w++) this.prevComp[w] = comps[w];
-
     // Planar integration (body forces to world).
     fLong -= drag * vLong;
     fLat -= drag * vLat;
@@ -252,7 +253,7 @@ export class Vehicle {
     const ax = fx / m, az = fz2 / m;
     this.vx += ax * dt;
     this.vz += az * dt;
-    this.yawRate += (yawM / spec.yawInertia) * dt;
+    this.yawRate += (yawM / (spec.yawInertia * m / spec.massKg)) * dt;
     if (!anyGround) this.yawRate *= 1 - 0.5 * dt;
     this.heading += this.yawRate * dt;
     this.x += this.vx * dt;
@@ -262,7 +263,6 @@ export class Vehicle {
       this.vx = this.vz = 0;
       this.yawRate *= 0.5;
     }
-
     // Vertical, pitch and roll.
     const h = spec.cgHeight;
     this.vy += ((heave - m * G - downforce) / m) * dt;
@@ -276,10 +276,8 @@ export class Vehicle {
     this.roll += this.rollRate * dt;
     this.pitch = Math.max(-0.4, Math.min(0.4, this.pitch));
     this.roll = Math.max(-0.3, Math.min(0.3, this.roll));
-
     const impacts = resolveWalls(this, track);
     if (this.assists.mechanicalDamage) for (const imp of impacts) applyImpactDamage(this, imp);
-
     const t = this.telemetry;
     t.speed = this.speed;
     t.rpm = this.pt.rpm;
@@ -294,7 +292,9 @@ export class Vehicle {
     t.gLong = (ax * sin + az * cos) / G;
     t.gLat = (ax * cos - az * sin) / G;
     t.airborne = !anyGround;
-    t.load = input.throttle > 0.05 ? input.throttle : 0;
+    t.load = input.throttle > 0.05 && this.stint.fuel.litres > 0 ? input.throttle : 0;
+    this.stint.advance(t, dt, this.tp.s, track.startLineS, this.assists.autoGears && t.gear === -1 ? t.brake : t.throttle);
+    this.simulationS += dt;
     return impacts;
   }
 }

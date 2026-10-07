@@ -1,3 +1,4 @@
+import type { FuelReading } from '@/physics/fuel';
 import type { SurfaceKind } from '@/track/track-query';
 
 /** Driver inputs after smoothing/assists. */
@@ -35,6 +36,7 @@ export interface WheelTelemetry {
 }
 
 export interface VehicleTelemetry {
+  fuel: FuelReading;
   speed: number; // m/s, signed along heading
   rpm: number;
   gear: number; // -1 R, 0 N, 1..6
