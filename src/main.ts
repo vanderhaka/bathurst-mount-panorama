@@ -1,5 +1,4 @@
-import type { Game } from '@/game/game';
-import { prepareOfflineGame } from '@/offline/register';
+import { Game } from '@/game/game';
 import { installAndroidPresentation } from '@/phone/android-presentation';
 import { installTouchGuards } from '@/input/touch-guards';
 
@@ -28,10 +27,8 @@ if (!root) {
     showError('The graphics stopped because the device ran short of memory. Tap to reload. If this happens again, set Settings > Graphics quality to Low.');
     document.getElementById('boot-error')?.addEventListener('click', () => location.reload(), { once: true });
   }, true);
-  prepareOfflineGame()
-    .then(async (ready) => ready ? (await import('@/game/game')).Game.create(root) : null)
+  Game.create(root)
     .then((game) => {
-      if (!game) return;
       window.__game = game;
       window.__shotReady = true;
     })

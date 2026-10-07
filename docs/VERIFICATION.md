@@ -79,17 +79,3 @@ Both engines check release, cancelled zoom gestures and portrait pause. WebKit's
 coarse pointer also enables controls when its emulation reports zero maxTouchPoints.
 These runs do not reproduce iOS Safari toolbar movement, physical pinch zoom,
 rotation hardware or real device performance. Check those on James's iPhone.
-
-## Offline startup and updates
-
-`node scripts/verify-offline.mjs artifacts/review/item-2.6` creates two frozen builds
-that differ only in a verification meta tag. It drives offline with loaded fonts,
-worklet audio and lazy High graphics, installs an update during a race, defers it
-while another game window is open, and activates it on the next start. Only the
-old Bathurst cache is removed. An unsupported/failed worker never blocks startup.
-The cache includes the emitted game graph, fonts, audio and icons; harness pages
-and development files are excluded. Item 2.6's cache is about 1.62 MB uncompressed.
-For a protected immutable preview, run `scripts/verify-offline-live.mjs` with its
-URL and the existing short-lived credentials loaded privately from an ignored
-environment file. It verifies an actual installed worker and offline driving.
-The Home Screen installation and network-off restart still need James's iPhone.
