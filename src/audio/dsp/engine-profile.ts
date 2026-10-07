@@ -3,6 +3,7 @@ import {
   CHEVY_LAYOUT,
   FLAT_PLANE_LAYOUT,
   FORD_LAYOUT,
+  TOYOTA_LAYOUT,
   type FiringLayout,
 } from '@/audio/dsp/firing';
 
@@ -196,7 +197,71 @@ function mustangProfile(): CarSoundProfile {
   };
 }
 
+/**
+ * Toyota 5.2 L quad-cam V8 (2UR-GSE based): DOHC like the Ford, but less displacement
+ * and its own firing order. Shorter primaries, higher formants and a smoother pulse put
+ * it between the Chevrolet's deep note and the Ford's bright one (tests/audio.test.ts),
+ * with more intake howl and cam whirr than either.
+ */
+function supraProfile(): CarSoundProfile {
+  const e = CAR_SPECS.supra.engine;
+  return {
+    kind: 'supra',
+    idleRpm: e.idleRpm,
+    limiterRpm: e.limiterRpm,
+    layout: flatPlaneAware('supra', TOYOTA_LAYOUT),
+    cylinderGain: [1.0, 0.96, 1.03, 0.98, 1.02, 0.95, 1.04, 0.97],
+    gapGain: [0, 1.4, 1.0, 0.74],
+    pulseAttackSlots: 0.06,
+    pulseDecaySlots: 0.3,
+    timingJitter: 0.04,
+    ampJitter: 0.06,
+    bankGain: [1.0, 0.95],
+    primaryMs: [2.3, 2.42],
+    primaryFeedback: -0.48,
+    primaryDampHz: 3900,
+    bankDrive: 1.05,
+    collectorMs: 6.6,
+    collectorFeedback: 0.26,
+    collectorDampHz: 2900,
+    formants: [
+      { hz: 125, q: 3.5, gain: 0.75 },
+      { hz: 230, q: 4.0, gain: 0.7 },
+      { hz: 450, q: 3.5, gain: 0.58 },
+      { hz: 900, q: 3.0, gain: 0.45 },
+      { hz: 1800, q: 2.5, gain: 0.32 },
+    ],
+    formantDry: 0.5,
+    brightHz: { overrun: 2200, full: 6800 },
+    drive: { overrun: 0.55, full: 1.6 },
+    rasp: { gain: 0.42, hz: 2900, q: 0.8, decaySlots: 0.18 },
+    exhaustLevel: 0.48,
+    intake: {
+      noiseHzLow: 500,
+      noiseHzHigh: 2900,
+      noiseQ: 1.2,
+      noiseGain: 0.55,
+      modDepth: 0.42,
+      honkHz: 270,
+      honkQ: 5,
+      honkGain: 0.6,
+      level: 1.35,
+    },
+    mechanical: {
+      inputTeeth: 19,
+      pinionTeeth: 11,
+      whineGain: 0.05,
+      valvetrainHz: 6800,
+      valvetrainOrder: 8,
+      valvetrainGain: 0.026,
+    },
+    popPitch: [1.0, 1.4],
+    seed: 0x70a2e1,
+  };
+}
+
 export const CAR_SOUND_PROFILES: Record<CarKind, CarSoundProfile> = {
   camaro: camaroProfile(),
   mustang: mustangProfile(),
+  supra: supraProfile(),
 };

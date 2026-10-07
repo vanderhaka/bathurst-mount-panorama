@@ -3,7 +3,7 @@ import { CAR_SPECS, type CarKind } from '@/car/car-specs';
 import { LIVERY_PRESETS } from '@/car/liveries';
 import { peakPowerKw } from '@/hud/indicators';
 
-export const CAR_ORDER: CarKind[] = ['camaro', 'mustang'];
+export const CAR_ORDER: CarKind[] = ['camaro', 'mustang', 'supra'];
 
 export interface CarSheet {
   kind: CarKind;
@@ -15,13 +15,14 @@ export interface CarSheet {
 }
 
 /**
- * Published Gen3 ratings (parity: same for both cars), docs/research/car-specs.md
+ * Published Gen3 ratings (parity: same for every car), docs/research/car-specs.md
  * [S1][S3][S5]. CAR_SPECS holds the Bathurst altitude-derated curve the physics uses,
  * so the menu shows these figures and notes the in-game output separately.
  */
 const RATED: Record<CarKind, { kw: number; hp: number; nm: number }> = {
   camaro: { kw: 447, hp: 600, nm: 660 },
   mustang: { kw: 447, hp: 600, nm: 660 },
+  supra: { kw: 447, hp: 600, nm: 660 },
 };
 
 const nf = new Intl.NumberFormat('en-AU');

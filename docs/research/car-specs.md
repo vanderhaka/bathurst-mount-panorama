@@ -1,4 +1,4 @@
-# Gen3 Supercars (Camaro ZL1 / Mustang GT) - vehicle research for a Bathurst driving game
+# Gen3 Supercars (Camaro ZL1 / Mustang GT / GR Supra) - vehicle research for a Bathurst driving game
 
 Compiled 2026-10-07. Scope: 2023+ Repco Supercars Championship Gen3 cars at Mount Panorama.
 Sources are cited as `[S#]`; full URLs are in the **Source key** at the end. Every URL there was opened or returned content during this research.
@@ -309,6 +309,22 @@ Best next sources: iRacing or Garage 61 telemetry on the Gen3 cars at Bathurst; 
 
 ---
 
+## 11. Toyota GR Supra (2026 entry)
+
+Toyota joined the championship in 2026 with the GR Supra. Walkinshaw TWG Racing (the homologation team) runs cars #1 and #2. Brad Jones Racing runs cars #8, #14 and #96 [S66]. The game's Supra liveries are fictional, like the other two cars.
+
+| Item | Value | Status | Source |
+|---|---|---|---|
+| Chassis, wheelbase, wheels, tyres | Gen3 control parts, the same as the Camaro and the Mustang | Confirmed by the rules | [S47], [S64] |
+| Engine | 5.2 L quad-cam V8, Lexus 2UR-GSE based, 94 x 94 mm bore and stroke, hydraulic variable valve timing, own inlet manifold | Confirmed | [S62], [S63] |
+| Displacement history | First built as 5.0 L, then taken to 5.2 L for parity (the rules allow 5.0 to 5.7 L) | Confirmed | [S62] |
+| Power and torque | Matched to the other two engines across the rev range by the parity rules; limit 7,500 rpm | Confirmed (rule) | [S62], [S64] |
+| Firing order | 1-8-7-3-6-5-4-2, odd cylinders on one bank (2UR family) | Secondary source | [S67] |
+| Overall height | About 1.23 m in the game: the road A90 is 1,292-1,295 mm, the lowest of the three road cars; the game takes off about the same as for the other two | Estimate | — |
+| Upshift torque cut | 0.045 s in the game, the same as the other DOHC car (Mustang) | Assumption | — |
+
+In the game, `CAR_SPECS.supra` uses the shared Gen3 mass, balance, driveline and aero values. With the same power, the test AI laps in the same time as the Mustang.
+
 ## Source key
 
 URLs were opened or returned content during this research unless noted. Direct fetch failed for whichcar.com.au (403); [S2] was read through a Wayback Machine copy of the same page.
@@ -381,3 +397,9 @@ URLs were opened or returned content during this research unless noted. Direct f
 - **[S61]** https://www.justcars.com.au/news-and-reviews/gen3-supercars-revealed/922349 - doors, roof, bonnet, windows share road-car dimensions; "lower, wider and 100 kg lighter" than Gen2
 - **[S58]** https://www.supercars.com/news/simulation-work-proving-gen3-a-greater-racing-product - CFD/drag target statement, no figures (read by sub-agent)
 - **[S57]** https://help.hhtiming.com/series-specific-info/supercars/ - Natsoft timing configuration; micro-sector links only, no loop locations (read by sub-agent)
+- **[S62]** https://www.drive.com.au/news/toyotas-v8-supercars-engine-inside-the-5-2-litre-with-lexus-roots/ - Toyota Supercar engine: 5.2 L 2UR-GSE based, 94 x 94 mm, first 5.0 L, parity, 7,500 rpm
+- **[S63]** https://speedcafe.com/supercars-news-2025-toyota-supra-reveal-v8-engine-specifications-details-gen3-comments-reaction/ - Toyota reveals the V8 details of the GR Supra Supercar
+- **[S64]** https://www.supercars.com/news/supercars-news-v8-engine-for-new-toyota-gr-supra - Supercars.com: V8 engine for the new Toyota GR Supra
+- **[S65]** https://www.motorsport.com/v8supercars/news/toyota-unveils-v8-powered-supra-for-2026-supercars-season/10755466/ - Motorsport.com: Toyota unveils the V8 Supra for 2026
+- **[S66]** https://en.wikipedia.org/wiki/2026_Supercars_Championship - 2026 entry list (Toyota teams and car numbers)
+- **[S67]** https://rerev.com/firing-orders/lexus/5-0l/ - Lexus 5.0 L (2UR) firing order 1-8-7-3-6-5-4-2

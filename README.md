@@ -1,8 +1,8 @@
 # Mount Panorama — Bathurst
 
 A browser racing game on a real-scale Mount Panorama Circuit, Bathurst NSW, with
-generated (code-only) medium-poly Gen3 Supercars: the Chevrolet Camaro ZL1 and the
-Ford Mustang GT. Built with three.js, TypeScript and Vite.
+generated (code-only) medium-poly Gen3 Supercars: the Chevrolet Camaro ZL1, the
+Ford Mustang GT and the Toyota GR Supra (new in 2026). Built with three.js, TypeScript and Vite.
 
 ## Run
 
@@ -44,7 +44,7 @@ The gamepad column uses the Xbox names. A PlayStation controller (DualShock 4 or
 - **Altitude:** the HUD shows height above sea level from the elevation data: about 872 m at the top. The often published 862 m is about 10 m below what the NSW contours, SRTM and Copernicus show (`docs/research/circuit-facts.md`).
 - **Walls, sand traps and fences:** these come from the OSM barrier and sand polygons. Tyre walls are placed where the research found them.
 - **Trackside features:** buildings (extruded from their real footprints), grandstands, the pit complex, 1,304 camp pitches, marshal posts, big screens, footbridges, car parks, mapped trees and the white-stone "MOUNT PANORAMA" sign come from OSM.
-- **Cars:** dimensions, mass, power (447 kW rated, ×0.92 altitude derate), gearing, aero (ClA 0.89) and shift times come from `docs/research/car-specs.md`.
+- **Cars:** dimensions, mass, power (447 kW rated, ×0.92 altitude derate), gearing, aero (ClA 0.89) and shift times come from `docs/research/car-specs.md`. The Supra uses Toyota's 5.2 L quad-cam V8 (Lexus 2UR-GSE based) with its own firing order and engine sound. Parity rules give the three cars the same power, so they lap in about the same time. All liveries are fictional.
 - **Validation:** with the measured car (`MEASURED_HANDLING`), the ideal lap of the racing-line profile is 2:05.7. The real Gen3 pole is 2:04.0, and the race lap record is 2:06.7.
 - **Game feel:** the game uses the handling that the user tuned (`DEFAULT_HANDLING` in `src/config/handling.ts`): 20 % more tyre grip, 10 % more rear grip and downforce, and a softer, more forgiving limit. With it, the ideal lap is 1:57.5, and the test AI (90 % of the grip) laps both cars cleanly in about 2:04.
 
@@ -145,7 +145,7 @@ All visual values live in a small set of config files:
 | `src/track/` | Track model, layout, racing line, speed profile, kerbs |
 | `src/physics/` | Tyres, suspension, powertrain, collisions, damage |
 | `src/world/` | Terrain, road, barriers, sky and lighting, scenery placement |
-| `src/car/models/` | Generated Camaro and Mustang models |
+| `src/car/models/` | Generated Camaro, Mustang and Supra models |
 | `src/props/` | Generated trees, people, tents, buildings and structures |
 | `src/hud/`, `src/ui/` | Broadcast-style HUD and menus |
 | `src/audio/` | Procedural V8 engine, tyre and impact sound |

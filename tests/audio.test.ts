@@ -10,6 +10,7 @@ import {
   FLAT_PLANE_LAYOUT,
   firingFrequencyHz,
   FORD_LAYOUT,
+  TOYOTA_LAYOUT,
 } from '@/audio/dsp/firing';
 import {
   cabinLowpassHz,
@@ -41,7 +42,7 @@ import {
 } from '@/audio/dsp/spectrum';
 
 const SR = 48000;
-const KINDS: readonly CarKind[] = ['camaro', 'mustang'];
+const KINDS: readonly CarKind[] = ['camaro', 'mustang', 'supra'];
 
 function renderEngine(kind: CarKind, rpm: number, load: number, seconds = 1.5, limiter = 0): Float32Array {
   const synth = new EngineSynth(CAR_SOUND_PROFILES[kind], SR);
@@ -69,7 +70,7 @@ describe('firing geometry', () => {
   });
 
   it('gives each cross-plane bank the uneven 3-2-1-2 pulse gaps (burble source)', () => {
-    for (const layout of [CHEVY_LAYOUT, FORD_LAYOUT]) {
+    for (const layout of [CHEVY_LAYOUT, FORD_LAYOUT, TOYOTA_LAYOUT]) {
       const slots = buildFiringSlots(layout);
       expect(slots).toHaveLength(8);
       for (const bank of [0, 1] as const) {
@@ -86,7 +87,7 @@ describe('firing geometry', () => {
   });
 
   it('fires every cylinder exactly once per cycle', () => {
-    for (const layout of [CHEVY_LAYOUT, FORD_LAYOUT]) {
+    for (const layout of [CHEVY_LAYOUT, FORD_LAYOUT, TOYOTA_LAYOUT]) {
       expect([...layout.firingOrder].sort()).toEqual([1, 2, 3, 4, 5, 6, 7, 8]);
     }
   });
@@ -188,7 +189,7 @@ describe('EngineSynth (rendered in node)', () => {
     }
   });
 
-  it('is brighter on throttle than on overrun, for both cars', () => {
+  it('is brighter on throttle than on overrun, for every car', () => {
     for (const kind of KINDS) {
       const on = spectralCentroid(magnitudeSpectrum(renderEngine(kind, 4500, 1), SR, SR / 2, 32768));
       const off = spectralCentroid(magnitudeSpectrum(renderEngine(kind, 4500, 0.05), SR, SR / 2, 32768));
@@ -205,6 +206,19 @@ describe('EngineSynth (rendered in node)', () => {
     const b = thirdOctaveDb(sm);
     const rmsDiff = Math.sqrt(a.reduce((s, v, i) => s + (v - b[i]) ** 2, 0) / a.length);
     expect(rmsDiff).toBeGreaterThan(3);
+  });
+
+  it('gives the Supra its own sound: brighter than the Camaro, a band balance unlike both', () => {
+    const spec = (k: CarKind) => magnitudeSpectrum(renderEngine(k, 4500, 1), SR, SR / 2, 32768);
+    const sc = spec('camaro'), sm = spec('mustang'), ss = spec('supra');
+    expect(spectralCentroid(ss)).toBeGreaterThan(spectralCentroid(sc) * 1.2);
+    const bandDiff = (x: ReturnType<typeof spec>, y: ReturnType<typeof spec>): number => {
+      const a = thirdOctaveDb(x), b = thirdOctaveDb(y);
+      return Math.sqrt(a.reduce((s, v, i) => s + (v - b[i]) ** 2, 0) / a.length);
+    };
+    console.log(`supra band diff: vs camaro ${bandDiff(ss, sc).toFixed(2)} dB, vs mustang ${bandDiff(ss, sm).toFixed(2)} dB; centroids c/m/s ${[sc, sm, ss].map((x) => spectralCentroid(x).toFixed(0)).join('/')}`);
+    expect(bandDiff(ss, sc)).toBeGreaterThan(3);
+    expect(bandDiff(ss, sm)).toBeGreaterThan(1.5);
   });
 
   it('is deterministic for a given seed and differs between seeds', () => {

@@ -1,8 +1,8 @@
-// Physical specification of the two Gen3 Supercars. Single source of truth for
+// Physical specification of the three Gen3 Supercars. Single source of truth for
 // both the 3D models (dimensions) and the vehicle physics (mass, power, aero).
 // Sources: docs/research/car-specs.md.
 
-export type CarKind = 'camaro' | 'mustang';
+export type CarKind = 'camaro' | 'mustang' | 'supra';
 
 export interface CarDimensions {
   /** Metres. */
@@ -155,6 +155,46 @@ export const CAR_SPECS: Record<CarKind, CarSpec> = {
     reverseRatio: 2.9,
     finalDrive: 3.36,
     shiftTimeS: 0.045, // Mustang upshift torque cut
+    drivetrainEfficiency: 0.92,
+    cdA: 1.0,
+    clA: 0.89,
+    aeroBalanceFront: 0.47,
+    tyreMu: 1.62,
+    maxBrakeTorqueNm: 4200,
+    brakeBiasFront: 0.6,
+    maxSteerRad: 0.36,
+  },
+  // 2026 entry (docs/research/car-specs.md section 6): same control chassis, driveline
+  // and aero targets as the other two; Toyota body and a 5.2 L quad-cam V8.
+  supra: {
+    kind: 'supra',
+    displayName: 'Toyota GR Supra (Gen3 Supercar)',
+    shortName: 'GR Supra',
+    // No published overall height (estimate): the road A90 is 1,292-1,295 mm, the lowest of
+    // the three road cars, less the ~65 mm used for the other two (docs/research/car-specs.md).
+    dimensions: { ...GEN3_DIMENSIONS, height: 1.23 },
+    massKg: 1400,
+    frontWeight: 0.53,
+    cgHeight: 0.44,
+    yawInertia: 2400,
+    engine: {
+      label: '5.2 L quad-cam V8',
+      displacementL: 5.2,
+      // Lexus 2UR-GSE based, 94 x 94 mm bore and stroke. Parity rules match its power and
+      // torque to the other two across the rev range; the DOHC heads give a Mustang-like top end.
+      torqueCurve: derate([[1000, 390], [2500, 515], [4000, 610], [5000, 655], [6000, 660], [7000, 610], [7600, 555]]),
+      idleRpm: 1200,
+      redlineRpm: 7400,
+      limiterRpm: 7500,
+      inertia: 0.15,
+      engineBrakeNm: 95,
+      crank: 'crossplane',
+      valvetrain: 'dohc',
+    },
+    gearRatios: [2.86, 2.11, 1.64, 1.34, 1.1, 0.94],
+    reverseRatio: 2.9,
+    finalDrive: 3.36,
+    shiftTimeS: 0.045, // no published figure: the short torque cut of the other DOHC car (Mustang)
     drivetrainEfficiency: 0.92,
     cdA: 1.0,
     clA: 0.89,

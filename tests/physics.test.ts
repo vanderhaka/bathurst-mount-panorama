@@ -87,7 +87,7 @@ describe('vehicle physics', () => {
     });
   }
 
-  for (const kind of ['camaro', 'mustang'] as CarKind[]) {
+  for (const kind of ['camaro', 'mustang', 'supra'] as CarKind[]) {
     it(`autopilot laps Mount Panorama in the ${kind}`, () => {
       const spec = CAR_SPECS[kind];
       const tuned = tunedSpec(spec, DEFAULT_HANDLING); // the vehicle runs the default handling

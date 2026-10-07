@@ -21,4 +21,10 @@ export const LIVERY_PRESETS: Record<CarKind, LiveryPreset[]> = {
     { name: 'Silver Arrow', livery: { primary: C.silver, secondary: C.teal, accent: C.carbonBlack, number: 55, banner: 'THE CUTTING', pattern: 'chevron' } },
     { name: 'Snow', livery: { primary: C.racingWhite, secondary: C.fordBlue, accent: C.heritageRed, number: 26, banner: 'MURRAYS', pattern: 'split' } },
   ],
+  supra: [
+    { name: 'Crimson Wave', livery: { primary: C.racingWhite, secondary: C.heritageRed, accent: C.carbonBlack, number: 31, banner: 'PANORAMA', pattern: 'arrow' } },
+    { name: 'Stealth', livery: { primary: C.carbonBlack, secondary: C.heritageRed, accent: C.racingWhite, number: 71, banner: 'FORRESTS', pattern: 'chevron' } },
+    { name: 'Ocean', livery: { primary: C.teal, secondary: C.racingWhite, accent: C.yellow, number: 44, banner: 'REID PARK', pattern: 'stripes' } },
+    { name: 'Solar', livery: { primary: C.yellow, secondary: C.carbonBlack, accent: C.heritageRed, number: 11, banner: 'MCPHILLAMY', pattern: 'split' } },
+  ],
 };

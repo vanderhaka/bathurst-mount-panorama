@@ -1,5 +1,5 @@
 // Cars harness. URL params:
-//   car=camaro|mustang|both   (both = side by side)
+//   car=camaro|mustang|supra|both|all   (both = Camaro and Mustang side by side; all = the three)
 //   livery=0..3               preset index from LIVERY_PRESETS
 //   view=front|rear|side|threequarter|rearthreequarter|top|low|cockpit|bonnet
 //   dist=<m>                  camera distance (harness)
@@ -26,7 +26,8 @@ icon.href = 'data:,';
 document.head.appendChild(icon);
 
 const carParam = params.get('car') ?? 'camaro';
-const kinds: CarKind[] = carParam === 'both' ? ['camaro', 'mustang'] : [carParam === 'mustang' ? 'mustang' : 'camaro'];
+const SINGLE: CarKind[] = ['camaro', 'mustang', 'supra'];
+const kinds: CarKind[] = carParam === 'all' ? SINGLE : carParam === 'both' ? ['camaro', 'mustang'] : [SINGLE.find((k) => k === carParam) ?? 'camaro'];
 const liveryIndex = Number(params.get('livery') ?? 0);
 const detail = params.get('detail') === 'low' ? 'low' : 'high';
 const view = params.get('view') ?? 'threequarter';
@@ -57,7 +58,7 @@ async function main(): Promise<void> {
   });
   const buildMs = Math.round((performance.now() - t0) / models.length);
   models.forEach((m, i) => {
-    m.root.position.x = models.length > 1 ? (i === 0 ? 1.4 : -1.4) : 0;
+    m.root.position.x = (((models.length - 1) / 2) - i) * 2.8;
     h.scene.add(m.root);
     for (const w of [0, 1] as WheelIndex[]) m.setWheel(w, 0, steer, 0);
     m.setSteeringWheel(steer * 6);

@@ -35,6 +35,12 @@ export const FORD_LAYOUT: FiringLayout = {
   bankOfCylinder: [0, 0, 0, 0, 1, 1, 1, 1],
 };
 
+/** Toyota / Lexus UR (2UR-GSE) 1-8-7-3-6-5-4-2, odd cylinders on one bank. */
+export const TOYOTA_LAYOUT: FiringLayout = {
+  firingOrder: [1, 8, 7, 3, 6, 5, 4, 2],
+  bankOfCylinder: [0, 1, 0, 1, 0, 1, 0, 1],
+};
+
 /** Flat-plane V8 alternates banks, every bank gap is exactly two slots. */
 export const FLAT_PLANE_LAYOUT: FiringLayout = {
   firingOrder: [1, 5, 3, 7, 4, 8, 2, 6],

@@ -16,7 +16,7 @@ const kerbs = placeKerbs(track, line);
 // A beginner who only obeys the racing-line colours (full brake on red, lift on
 // yellow, full throttle on green) must lap without hitting a wall or leaving the road.
 describe('racing-line colours are achievable', () => {
-  for (const kind of ['camaro', 'mustang'] as CarKind[]) {
+  for (const kind of ['camaro', 'mustang', 'supra'] as CarKind[]) {
     it(`a colour-following driver laps cleanly in the ${kind}`, () => {
       const spec = CAR_SPECS[kind];
       // The game's racing line: the line profile for the default handling (world.ts, profile-cache.ts).
