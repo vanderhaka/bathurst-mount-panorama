@@ -4,12 +4,14 @@ import { GhostPlayer, GhostRecorder, type GhostPose } from '@/race/ghost';
 import { formatLapTime } from '@/hud/format';
 import { LapTimer, type LapResult } from '@/race/lap-timer';
 import { loadRecords, saveRecords, type CarRecords } from '@/race/records';
+import { TelemetryRecorder } from '@/race/telemetry-recorder';
 import { SECTOR_STARTS_S } from '@/track/layout';
 import type { RacingLine } from '@/track/racing-line';
 import type { Track } from '@/track/track-model';
 import type { HudState } from '@/types/hud';
 import type { LapRecord } from '@/types/session';
 import type { TyreCompound } from '@/physics/tyre-state';
+import { restoreTelemetry, type LapTelemetry, type SessionTelemetry, type TelemetrySample } from '@/types/telemetry';
 
 
 type Message = NonNullable<HudState['message']>;
@@ -17,10 +19,13 @@ type Message = NonNullable<HudState['message']>;
 /** One time-trial session: start lights, timing, track limits, ghost and records for one car. */
 export class RaceSession {
   readonly timer: LapTimer;
-  readonly records: CarRecords | null;
+  records: CarRecords | null;
   ghost: GhostPlayer | null = null;
   private readonly recorder = new GhostRecorder();
   readonly laps: LapRecord[] = [];
+  private readonly telemetryRecorder: TelemetryRecorder;
+  private readonly telemetryLaps: LapTelemetry[] = [];
+  private bestTelemetry: LapTelemetry | null = null;
   /** Start lights: number lit (0..5), -1 = lights out (racing). */
   lights = 0;
   private lightsT = 0;
@@ -33,6 +38,8 @@ export class RaceSession {
 
   constructor(readonly car: CarKind, readonly track: Track, readonly line: RacingLine, readonly entity: CarEntity, readonly tyres: TyreCompound = 'soft') {
     this.records = loadRecords(car);
+    this.telemetryRecorder = new TelemetryRecorder(track.length);
+    this.bestTelemetry = restoreTelemetry(this.records?.telemetry, this.records?.bestS ?? Infinity, track.length);
     const sectorStarts = SECTOR_STARTS_S.map((s) => track.wrapS(s - track.startLineS));
     const saved = this.records && Number.isFinite(this.records.bestS) ? this.records : null;
     this.timer = new LapTimer(track.length, sectorStarts, saved ? { bestS: saved.bestS, bestSectors: saved.bestSectors, trace: saved.trace } : null);
@@ -52,6 +59,7 @@ export class RaceSession {
     this.holdT = 1.2 + Math.random() * 1.8;
     this.timer.startOutLap(this.lapDist());
     this.recorder.reset();
+    this.telemetryRecorder.reset();
   }
 
   lapDist(): number {
@@ -106,6 +114,7 @@ export class RaceSession {
     const res = this.timer.update(dt, this.lapDist());
     this.recorder.record(dt, { x: v.x, y: v.y, z: v.z, heading: v.heading, pitch: v.pitch, roll: v.roll, steer: v.steerAngle, speed: v.speed });
     if (this.timer.crossings !== crossingsBefore) this.onLapStart(res);
+    else this.telemetryRecorder.record(this.telemetrySample());
     if (this.ghost && this.ghostVisible) {
       this.ghostVisible = this.ghost.poseAt(this.timer.lapTime, this.ghostPose);
     }
@@ -115,6 +124,11 @@ export class RaceSession {
   /** Called at every forward crossing; `res` is null when the crossing only restarted the lap. */
   private onLapStart(res: LapResult | null): void {
     const frames = this.recorder.take();
+    const lapTelemetry = this.telemetryRecorder.cross(res, this.timer.lapNumber, this.telemetrySample());
+    if (lapTelemetry) {
+      this.telemetryLaps.push(lapTelemetry);
+      if (this.telemetryLaps.length > 12) this.telemetryLaps.shift();
+    }
     if (res) {
       // The standing-start lap is shorter than a flying lap: kept in the history, never valid.
       const rec: LapRecord = { car: this.car, timeS: res.timeS, sectorsS: res.sectorsS, valid: res.valid && !res.standing, dateIso: new Date().toISOString() };
@@ -123,6 +137,7 @@ export class RaceSession {
       const isBest = res.valid && (prevBest === null || res.timeS < prevBest) && this.timer.bestS === res.timeS;
       if (isBest) {
         this.ghost = new GhostPlayer(frames);
+        this.bestTelemetry = lapTelemetry;
         this.say(`NEW BEST LAP  ${fmt(res.timeS)}`, 'best', 4);
       } else if (res.standing) this.say(`STANDING-START LAP ${fmt(res.timeS)}`, 'info', 3);
       else if (!res.valid) this.say(`LAP ${fmt(res.timeS)} — INVALID`, 'warn', 3);
@@ -140,11 +155,22 @@ export class RaceSession {
       bestSectors: save?.bestSectors ?? base.bestSectors,
       trace: save?.trace ?? base.trace,
       ghost: ghostFrames ?? base.ghost,
+      telemetry: this.bestTelemetry ?? undefined,
       laps: this.laps.slice(-50),
     };
     // Save when the browser is idle: a synchronous localStorage write at the line costs a frame.
     if (Number.isFinite(next.bestS) || next.laps.length) whenIdle(() => saveRecords(this.car, next));
-    if (this.records) Object.assign(this.records, next);
+    this.records = next;
+  }
+
+  private telemetrySample(): TelemetrySample {
+    const t = this.entity.vehicle.telemetry;
+    return { distanceM: this.lapDist(), timeS: this.timer.lapTime, speedKmh: Math.abs(t.speed) * 3.6, throttle: t.throttle, brake: t.brake };
+  }
+
+  telemetrySnapshot(): SessionTelemetry {
+    return { laps: this.telemetryLaps.slice(), best: this.bestTelemetry, ghost: this.ghost ? this.bestTelemetry : null,
+      corners: this.track.corners.map((c) => ({ distanceM: this.track.wrapS(c.s - this.track.startLineS), turn: c.turn, name: c.name })) };
   }
 
   /** Puts the car back on the racing line at the current position and repairs it (lap becomes invalid). */

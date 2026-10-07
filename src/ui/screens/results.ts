@@ -10,6 +10,8 @@ export interface ResultsActions {
   again(): void;
   changeCar(): void;
   menu(): void;
+  telemetry(): void;
+  backToSession(): void;
 }
 
 /** Rows shown in the lap table (most recent laps). */
@@ -35,15 +37,20 @@ export class ResultsScreen implements Screen {
   readonly id = 'results' as const;
   readonly el = screenEl('results', 'Session results', 'mn-screen--dim');
   private readonly buttons: HTMLButtonElement[];
+  private readonly backToSession: HTMLButtonElement;
   private readonly summary = h('p', 'mn-results__summary');
   private readonly cards = h('div', 'mn-bests');
   private readonly body = h('tbody');
 
   constructor(actions: ResultsActions) {
+    this.backToSession = menuButton('Back to session', actions.backToSession);
+    this.backToSession.hidden = true;
     this.buttons = [
       menuButton('Race again', actions.again, { variant: 'primary' }),
       menuButton('Change car', actions.changeCar),
       menuButton('Main menu', actions.menu),
+      menuButton('Telemetry', actions.telemetry),
+      this.backToSession,
     ];
     const head = h('tr', undefined, undefined, ['Lap', 'Car', 'Time', 'S1', 'S2', 'S3', ''].map((t) => h('th', undefined, { scope: 'col' }, [t])));
     this.el.append(
@@ -84,10 +91,14 @@ export class ResultsScreen implements Screen {
   }
 
   items(): HTMLElement[] {
-    return this.buttons;
+    return this.buttons.filter((button) => !button.hidden);
+  }
+
+  setSessionReturn(enabled: boolean): void {
+    this.backToSession.hidden = !enabled;
   }
 
   back(): void {
-    this.buttons[2].click();
+    (this.backToSession.hidden ? this.buttons[2] : this.backToSession).click();
   }
 }

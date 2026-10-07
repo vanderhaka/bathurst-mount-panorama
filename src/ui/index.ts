@@ -11,6 +11,7 @@ import '@/ui/screens.css';
 import '@/ui/screens-panels.css';
 import '@/ui/tabs.css';
 import '@/ui/phone.css';
+import '@/ui/telemetry.css';
 import { CAR_SPECS, type CarKind } from '@/car/car-specs';
 import { LIVERY_PRESETS } from '@/car/liveries';
 import { h } from '@/hud/dom';
@@ -28,6 +29,7 @@ import { PauseScreen } from '@/ui/screens/pause';
 import { ResultsScreen } from '@/ui/screens/results';
 import { SettingsScreen } from '@/ui/screens/settings';
 import { TitleScreen } from '@/ui/screens/title';
+import { TelemetryScreen } from '@/ui/screens/telemetry';
 
 const KEYS: Record<string, MenuNav> = {
   ArrowUp: 'up',
@@ -57,6 +59,7 @@ interface ScreenSet {
   pause: PauseScreen;
   controls: ControlsScreen;
   results: ResultsScreen;
+  telemetry: TelemetryScreen;
 }
 
 class MenuController implements Menus {
@@ -93,6 +96,8 @@ class MenuController implements Menus {
         resetCar: () => this.leave(() => this.cb.onResetCar()),
         settings: () => sub(screens.settings),
         controls: () => sub(screens.controls),
+        results: () => this.cb.onResults?.(),
+        telemetry: () => sub(screens.telemetry),
         quit: () => {
           this.showTitle();
           this.cb.onQuitToMenu();
@@ -100,7 +105,8 @@ class MenuController implements Menus {
         session: () => this.sessionLine(),
       }),
       controls: new ControlsScreen(backFromSub),
-      results: new ResultsScreen({ again: () => this.leave(() => this.cb.onRestart()), changeCar: () => this.showCarSelect(), menu: () => (this.showTitle(), this.cb.onQuitToMenu()) }),
+      results: new ResultsScreen({ again: () => this.leave(() => this.cb.onRestart()), changeCar: () => this.showCarSelect(), menu: () => (this.showTitle(), this.cb.onQuitToMenu()), telemetry: () => sub(screens.telemetry), backToSession: () => this.showPause() }),
+      telemetry: new TelemetryScreen(() => this.cb.telemetry?.() ?? null, backFromSub, () => this.settings.units),
     };
     this.screens = screens;
     this.root = h('div', 'bx-menus', { 'data-open': 'false' }, Object.values(screens).map((s: Screen) => s.el));
@@ -242,6 +248,7 @@ class MenuController implements Menus {
 
   showResults(laps: LapRecord[], bestByCar: Partial<Record<CarKind, LapRecord>>): void {
     if (!this.screens) return;
+    this.screens.results.setSessionReturn(this.current === this.screens.pause);
     this.screens.results.set(laps, bestByCar);
     this.show(this.screens.results);
   }

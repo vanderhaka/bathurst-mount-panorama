@@ -9,6 +9,8 @@ export interface PauseActions {
   restart(): void;
   settings(): void;
   controls(): void;
+  results(): void;
+  telemetry(): void;
   quit(): void;
   /** One-line description of the running session, e.g. "Camaro ZL1 · #97 Heritage Red". */
   session(): string;
@@ -27,6 +29,8 @@ export class PauseScreen implements Screen {
       menuButton('Restart', actions.restart),
       menuButton('Settings', actions.settings),
       menuButton('Controls', actions.controls),
+      menuButton('Results', actions.results),
+      menuButton('Telemetry', actions.telemetry),
       menuButton('Quit to menu', actions.quit),
     ];
     this.el.append(

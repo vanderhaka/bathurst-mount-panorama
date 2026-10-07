@@ -2,6 +2,7 @@ import type { CarKind } from '@/car/car-specs';
 import type { LapRecord, SessionConfig, Settings } from '@/types/session';
 import type { PadStyle } from '@/input/pad-style';
 import type { TyreCompound } from '@/physics/tyre-state';
+import type { SessionTelemetry } from '@/types/telemetry';
 
 export type SectorState = 'none' | 'personalBest' | 'overallBest' | 'slower';
 
@@ -102,6 +103,10 @@ export interface MenuCallbacks {
   onRestart(): void;
   /** Pause menu "Reset to track": the car goes back on the racing line, repaired. */
   onResetCar(): void;
+  /** Pause menu's existing results screen. */
+  onResults?(): void;
+  /** Completed real lap traces for the telemetry screen. */
+  telemetry?(): SessionTelemetry | null;
   /** Settings "Graphics tuner" button: opens or closes the live graphics tuner (mouse). */
   onToggleTuner(): void;
   onQuitToMenu(): void;

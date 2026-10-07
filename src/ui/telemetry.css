@@ -1,0 +1,28 @@
+.mn-panel--telemetry { width: min(84em, 94vw); }
+.mn-telemetry__selectors { display: flex; gap: 1em; margin-bottom: 1em; }
+.mn-telemetry__selectors .mn-value { flex: 1; min-width: 0; }
+.mn-telemetry__selectors .mn-value__ctl { font-size: 0.9em; }
+.mn-telemetry__body { min-height: 0; overflow: auto; display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 1.6em; }
+.mn-telemetry__legend { display: flex; gap: 1.5em; margin: 0 0 0.6em; font-weight: 600; }
+.mn-telemetry__corners > .mn-help { margin-bottom: 0.6em; }
+.mn-telemetry__corners .mn-table { font-size: 0.9em; }
+.mn-telemetry__corners .mn-table td:nth-child(n + 2) { white-space: nowrap; }
+.mn-telemetry__corners tfoot { position: sticky; bottom: 0; background: var(--menu-panel-bg); }
+.mn-trace { margin: 0 0 0.6em; }
+.mn-trace figcaption { font-weight: 700; letter-spacing: 0.04em; }
+.mn-trace svg { display: block; width: 100%; height: auto; }
+.mn-trace__grid { stroke: var(--hud-hairline); }
+.mn-trace__axis { fill: var(--hud-text-dim); font: 13px var(--hud-font-text); }
+path.mn-trace__lap, path.mn-trace__reference { fill: none; stroke-width: 2; stroke-linejoin: round; }
+.mn-trace__lap { color: var(--hud-sector-personal); stroke: var(--hud-sector-personal); }
+.mn-trace__reference { color: var(--hud-sector-overall); stroke: var(--hud-sector-overall); }
+path.mn-trace__reference { stroke-dasharray: 6 3; }
+.mn-telemetry__corners .is-faster { color: var(--hud-sector-personal); }
+.mn-telemetry__corners .is-slower { color: var(--hud-warn, #f08065); }
+.mn-panel--results .mn-panel__foot--buttons { flex-wrap: wrap; }
+.mn-panel--results .mn-btn[hidden] { display: none; }
+@media (max-width: 850px) {
+  .mn-telemetry__body { grid-template-columns: minmax(0, 1fr); }
+  .mn-telemetry__selectors { flex-direction: column; gap: 0.5em; }
+  .mn-panel--telemetry { padding: 1em; }
+}

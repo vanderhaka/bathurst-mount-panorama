@@ -188,13 +188,14 @@ Status: done (commit e2d24102565f41fe47508bfabbb067d30c52e050; evidence `artifac
 - **Do:** the fuel load adds mass (about 0.75 kg per litre); the fuel burns per lap; a full car is slower than a light one.
 - **Done when:** a test shows a lap time difference between full and light fuel in the expected size (a few tenths of a second).
 ### 3.2 Tyre temperature and wear change the grip — M
-Status: done (commit recorded by next item; evidence `artifacts/review/item-3.2/`).
+Status: done (commit 09ef32914d0f95876e7c44564f2d3f9c92a6284c; evidence `artifacts/review/item-3.2/`).
 - **Do:**
   1. Move the display tyre model (`src/hud/tyre-heat.ts`, `tyre-fuel-model.ts`) into the physics: grip falls below and above a temperature window; wear lowers grip over a stint.
   2. Two compounds (soft and hard) with different windows and wear rates.
   3. The HUD shows the real values (no longer "display only").
 - **Done when:** the out-lap is slower than a warm lap; a long stint loses lap time; tests cover the grip curve.
 ### 3.3 Telemetry compare — M
+Status: done (commit recorded by next item; evidence `artifacts/review/item-3.3/`).
 - **Do:** after a lap, a screen with speed, throttle and brake traces against the best lap and the ghost; the time gained or lost per corner; open it from the pause menu and the results screen.
 - **Done when:** the screen shows real data for two laps and the corner deltas add up to the lap delta.
 ### 3.4 Setup screen and brake bias — M

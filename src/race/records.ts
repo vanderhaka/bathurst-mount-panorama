@@ -1,6 +1,7 @@
 import type { CarKind } from '@/car/car-specs';
 import { decodeGhost, encodeGhost, GhostPlayer } from '@/race/ghost';
 import type { LapRecord } from '@/types/session';
+import { restoreTelemetry, type LapTelemetry } from '@/types/telemetry';
 
 // v2: v1 records could hold ghosts that replayed fast and fake bests from reversing over the line.
 const KEY = (car: CarKind) => `bathurst.records.v2.${car}`;
@@ -12,6 +13,7 @@ export interface CarRecords {
   bestSectors: number[];
   trace?: number[];
   ghost?: Float32Array;
+  telemetry?: LapTelemetry;
   laps: LapRecord[];
 }
 
@@ -20,6 +22,7 @@ interface Stored {
   bestSectors: number[];
   trace?: number[];
   ghost?: string;
+  telemetry?: unknown;
   laps: LapRecord[];
 }
 
@@ -34,7 +37,8 @@ export function loadRecords(car: CarKind): CarRecords | null {
     const ghost = s.ghost ? decodeGhost(s.ghost) ?? undefined : undefined;
     // The ghost must last as long as the best lap it belongs to.
     const ghostOk = ghost && Math.abs(new GhostPlayer(ghost).duration - s.bestS) < 0.5;
-    return { bestS: s.bestS, bestSectors: s.bestSectors, trace: s.trace, ghost: ghostOk ? ghost : undefined, laps };
+    return { bestS: s.bestS, bestSectors: s.bestSectors, trace: s.trace, ghost: ghostOk ? ghost : undefined,
+      telemetry: restoreTelemetry(s.telemetry, s.bestS) ?? undefined, laps };
   } catch {
     return null;
   }
@@ -50,7 +54,8 @@ function encodeCached(g: Float32Array): string {
 
 export function saveRecords(car: CarKind, r: CarRecords): void {
   try {
-    const s: Stored = { bestS: r.bestS, bestSectors: r.bestSectors, trace: r.trace, ghost: r.ghost ? encodeCached(r.ghost) : undefined, laps: r.laps.slice(-50) };
+    const s: Stored = { bestS: r.bestS, bestSectors: r.bestSectors, trace: r.trace, ghost: r.ghost ? encodeCached(r.ghost) : undefined,
+      telemetry: r.telemetry, laps: r.laps.slice(-50) };
     localStorage.setItem(KEY(car), JSON.stringify(s));
   } catch {
     /* storage full or unavailable: records stay for this session only */

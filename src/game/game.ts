@@ -18,6 +18,7 @@ import { RaceController } from '@/game/race-controller';
 import { RaceSession } from '@/game/race-session';
 import { loadSettings, saveSettings } from '@/game/settings-store';
 import { Stage } from '@/game/stage';
+import { sessionResults } from '@/game/session-results';
 import { createHud, loadHudFonts, setHudOpacity, setHudScale } from '@/hud';
 import { InputManager } from '@/input/input-manager';
 import { TouchControls } from '@/input/touch-controls';
@@ -79,6 +80,8 @@ export class Game {
       onResume: () => game?.resume(),
       onRestart: () => game?.restart(),
       onResetCar: () => game?.resetCar(),
+      onResults: () => { if (game?.race) menus.showResults(...sessionResults(game.race.session)); },
+      telemetry: () => game?.race?.session.telemetrySnapshot() ?? null,
       onToggleTuner: () => game?.tuner.toggle(),
       onQuitToMenu: () => game?.quitToTitle(),
       onSettingsChange: (s) => game?.applySettings(s),
