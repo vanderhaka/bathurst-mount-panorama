@@ -66,7 +66,7 @@ Status: done (commit 6b64646c40908224bbe7fc797960e34619f8927c).
   3. Add screen-space ambient occlusion (`GTAOPass`) on High only.
 - **Done when:** objects sit on the ground (no floating look) in every viewpoint; shadows are sharp near the car and still present at 300 m; High stays inside its budget.
 ### 1.4 Track surface — M
-Status: done (commit pending; exact SHA is recorded by the next item and in HANDOFF.md).
+Status: done (commit bf74e230b47a894628cd54e7b36c079fa5ec136f).
 - **Depends on:** 1.1.
 - **Do:**
   1. Asphalt: procedural tiling normal and roughness maps (aggregate grain, patch repairs, crack-sealing lines), large-scale colour variation along the lap.
@@ -76,6 +76,7 @@ Status: done (commit pending; exact SHA is recorded by the next item and in HAND
   5. Painted lines: wear and small gaps.
 - **Done when:** a close view of the road at Hell Corner and The Chase reads as asphalt in the reference photos; no texture stretch or repeat pattern is visible at 5–50 m.
 ### 1.5 Terrain and grass — M
+Status: done (commit pending; exact SHA is recorded by the next item and in HANDOFF.md).
 - **Do:**
   1. Smooth terrain normals with a procedural detail normal map; keep the large shapes.
   2. Splat by slope, height and distance from the track: green grass, dry grass, bare clay, rock, gravel.

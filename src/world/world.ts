@@ -56,11 +56,19 @@ export async function buildWorld(
   root.add(buildBarriers(track, renderer));
   root.add(buildWallSigns(track));
   await progress(0.55, 'Shaping the mountain');
-  const terrain = buildTerrain(track);
+  const terrain = buildTerrain(track, undefined, quality);
   root.add(terrain.group);
   await progress(0.7, 'Planting gum trees and pitching tents');
   const scenery = buildScenery(track, terrain, profile, quality);
   scenery.contactAo.bake(terrain.group, getGraphics().bakedAo);
+  // Grass has instance-local geometry; keep it outside the terrain's AO bake.
+  terrain.group.add(terrain.grass.group);
+  const updateScenery = scenery.update;
+  scenery.update = (camera) => {
+    updateScenery(camera);
+    terrain.grass.setWind(getGraphics().grassWind);
+    terrain.grass.update(camera.x, camera.z, performance.now() / 1000);
+  };
   root.add(scenery.group);
   await progress(0.95, 'World ready');
   const lights = root.getObjectByName('start-lights');
@@ -75,6 +83,7 @@ export async function buildWorld(
 
 /** Frees GPU resources of a world's meshes (geometries only; materials are shared/cached). */
 export function disposeWorld(world: World): void {
+  world.terrain.dispose();
   world.root.traverse((o) => {
     const m = o as THREE.Mesh;
     if (m.isMesh) m.geometry.dispose();

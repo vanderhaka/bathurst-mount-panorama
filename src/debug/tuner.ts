@@ -91,6 +91,11 @@ export class GraphicsTuner {
     live(world, 'kerbWear', 0, 1, 0.05);
     live(world, 'lineWear', 0, 1, 0.05);
     live(world, 'grassTuftDensity', 0, 2, 0.05);
+    live(world, 'terrainDetail');
+    live(world, 'terrainNormalStrength', 0, 1, 0.05);
+    live(world, 'mownStrength', 0, 1, 0.05);
+    live(world, 'nearGrass');
+    live(world, 'grassWind', 0, 2, 0.05);
     live(world, 'treeLodDistance', 40, 600, 10);
     live(world, 'propDrawDistance', 300, 4000, 50);
     world.add({ rebuild: () => this.onRebuild() }, 'rebuild').name('Rebuild world');

@@ -1,11 +1,15 @@
 import * as THREE from 'three';
 import { GROUND } from '@/art/palette';
 import { linearColour } from '@/art/materials';
-import { getGraphics } from '@/config/graphics';
+import { getGraphics, QUALITY } from '@/config/graphics';
+import type { QualityPreset } from '@/render/renderer';
 import type { Track } from '@/track/track-model';
 import { createTrackPoint, heightAt, projectToTrack, sampleArray } from '@/track/track-query';
 import { DEM_EXTENT, demHeight, fbm } from '@/world/dem';
 import { bakeHeightFieldAo } from '@/art/ambient-occlusion';
+import { createTerrainMaterial, disposeTerrainMaterial } from '@/world/terrain-detail';
+import { createTerrainSurfaceSampler, prepareTerrainGeometry, terrainSplat, terrainSurfaceColour } from '@/world/terrain-surface';
+import { createNearGrass, type NearGrass } from '@/world/near-grass';
 
 const FINE_CELL = 6;
 const COARSE_CELL = 60;
@@ -34,10 +38,12 @@ export interface Terrain {
   /** Distance from the nearest barrier (m, negative = inside the track corridor). */
   clearance(x: number, z: number): number;
   box: { x0: number; z0: number; x1: number; z1: number };
+  grass: NearGrass;
+  dispose(): void;
 }
 
 /** Builds the carved fine terrain around the circuit and the coarse landscape to the horizon. */
-export function buildTerrain(track: Track, material?: THREE.Material): Terrain {
+export function buildTerrain(track: Track, material?: THREE.Material, quality: QualityPreset = 'high'): Terrain {
   const tp = createTrackPoint();
   let hint = -1;
   const noiseAmp = 1.2;
@@ -49,7 +55,7 @@ export function buildTerrain(track: Track, material?: THREE.Material): Terrain {
     hint = tp.index;
     const side = tp.d >= 0 ? track.left : track.right;
     const wall = sampleArray(track, side.wall, tp.index, tp.t);
-    return { dist: Math.abs(tp.d), wall, d: tp.d, index: tp.index, t: tp.t, cut: cutWeight((tp.index + tp.t) * track.spacing) };
+    return { dist: Math.abs(tp.d), wall, edge: sampleArray(track, side.edge, tp.index, tp.t), d: tp.d, index: tp.index, t: tp.t, cut: cutWeight((tp.index + tp.t) * track.spacing) };
   };
   const natural = (x: number, z: number) => demHeight(x, z) + fbm(x / 70, z / 70, 3, 11) * noiseAmp * fineEdgeFade(x, z);
   const heightFn = (x: number, z: number): number => {
@@ -64,7 +70,10 @@ export function buildTerrain(track: Track, material?: THREE.Material): Terrain {
     return atWall + (dem - atWall) * u;
   };
 
-  const mat = material ?? new THREE.MeshStandardMaterial({ color: 0xffffff, vertexColors: true, roughness: 0.97, flatShading: true });
+  const cfg = getGraphics(), tier = QUALITY[quality];
+  const owned = material ? null : createTerrainMaterial({ enabled: cfg.terrainDetail && tier.terrainDetail,
+    size: tier.terrainMapSize, normalStrength: cfg.terrainNormalStrength, mownStrength: cfg.mownStrength });
+  const mat = material ?? owned!;
   const group = new THREE.Group();
   group.name = 'terrain';
   const nx = Math.round((box.x1 - box.x0) / FINE_CELL);
@@ -95,9 +104,15 @@ export function buildTerrain(track: Track, material?: THREE.Material): Terrain {
   coarse.receiveShadow = true;
   coarse.name = 'terrain-coarse';
   group.add(coarse);
+  const grass = createNearGrass(createTerrainSurfaceSampler(track, heightFn), {
+    enabled: cfg.nearGrass && tier.nearGrass, capacity: tier.grassCapacity, radius: tier.grassRadius,
+    density: cfg.grassTuftDensity, wind: cfg.grassWind,
+  });
+  let disposed = false;
 
   return {
-    group,
+    group, grass,
+    dispose: () => { if (disposed) return; disposed = true; grass.dispose(); if (owned) disposeTerrainMaterial(owned); },
     heightAt: (x, z) => (x > box.x0 && x < box.x1 && z > box.z0 && z < box.z1 ? heightFn(x, z) : demHeight(x, z)),
     clearance: (x, z) => {
       const c = corridor(x, z);
@@ -176,7 +191,7 @@ function landCover(x: number, z: number, c: THREE.Color, treeTint = true): void 
 function gridGeometry(
   x0: number, z0: number, w: number, h: number, cell: number,
   height: (x: number, z: number) => number,
-  corridor: ((x: number, z: number) => { dist: number; wall: number; cut: number }) | null,
+  corridor: ((x: number, z: number) => { dist: number; wall: number; edge: number; cut: number }) | null,
   /** 0 at the edge of the detailed terrain, 1 inside: blends in the far landscape colours (no seam). */
   edgeFade?: (x: number, z: number) => number,
 ): THREE.BufferGeometry {
@@ -198,8 +213,9 @@ function gridGeometry(
   const geo = new THREE.BufferGeometry();
   geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
   geo.setIndex(idx);
-  geo.computeVertexNormals();
+  prepareTerrainGeometry(geo, height);
   const nrm = geo.getAttribute('normal');
+  const cover = geo.getAttribute('terrainCover') as THREE.BufferAttribute;
   const tmp = new THREE.Color(), far = new THREE.Color();
   for (let v = 0; v < vx * vz; v++) {
     const x = pos[v * 3], z = pos[v * 3 + 2];
@@ -215,7 +231,10 @@ function gridGeometry(
     if (corridor) {
       const c = corridor(x, z);
       const near = c.dist - c.wall;
-      if (near < 8) tmp.lerp(C.dry, 0.25 * (1 - Math.max(0, near) / 8));
+      const sample = { x, z, height: pos[v * 3 + 1], normalY: nrm.getY(v), trackDistance: c.dist - c.edge, lateral: c.dist, clearance: near };
+      terrainSurfaceColour(sample, tmp, noiseK);
+      const weights = terrainSplat(sample);
+      cover.setXYZ(v, weights.green + weights.dry, sample.trackDistance, sample.lateral);
       // The Cutting: the road is cut through layered rock and clay.
       if (c.cut > 0 && near > -1 && near < CUT.blend + 4 && slope > 0.06) {
         const band = STRATA[Math.floor((pos[v * 3 + 1] + n2 * 0.9) / 1.2) % STRATA.length];
