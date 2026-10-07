@@ -6,6 +6,7 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { chromium } from 'playwright';
+import { authenticatePreview } from './browser-auth.mjs';
 
 const args = process.argv.slice(2);
 const out = resolve(args.find((a) => !a.startsWith('--')) ?? 'artifacts/review/latest');
@@ -16,6 +17,7 @@ mkdirSync(out, { recursive: true });
 
 const browser = await chromium.launch({ channel: 'chrome', headless: true, args: ['--enable-gpu', '--ignore-gpu-blocklist', '--use-angle=metal', '--autoplay-policy=no-user-gesture-required'] });
 const page = await browser.newPage({ viewport: { width: 1920, height: 1080 } });
+await authenticatePreview(page, url);
 const errors = [];
 page.on('console', (m) => { if (m.type() === 'error' || m.type() === 'warning') errors.push(`[${m.type()}] ${m.text()}`); });
 page.on('pageerror', (e) => errors.push(`[pageerror] ${e.message}`));
@@ -104,3 +106,4 @@ metrics.errors = errors.slice(0, 40);
 writeFileSync(`${out}/metrics.json`, JSON.stringify(metrics, null, 2));
 console.log(JSON.stringify(metrics, null, 1));
 await browser.close();
+if (errors.some(e => e.startsWith('[error]') || e.startsWith('[pageerror]'))) process.exitCode = 1;

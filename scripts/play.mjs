@@ -11,6 +11,7 @@
 import { mkdirSync, readFileSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { chromium } from 'playwright';
+import { authenticatePreview } from './browser-auth.mjs';
 
 const args = process.argv.slice(2);
 const scenarioPath = args.find((a) => !a.startsWith('--') && args[args.indexOf(a) - 1]?.startsWith('--') !== true);
@@ -26,6 +27,7 @@ const context = await browser.newContext(mobile
   ? { viewport: { width: w, height: h }, isMobile: true, hasTouch: true, deviceScaleFactor: 3, userAgent: IPHONE_UA }
   : { viewport: { width: w, height: h } });
 const page = await context.newPage();
+await authenticatePreview(page, url);
 const cdp = mobile ? await context.newCDPSession(page) : null;
 const TOUCH = { start: 'touchStart', move: 'touchMove', end: 'touchEnd', cancel: 'touchCancel' };
 const errors = [];
@@ -60,3 +62,4 @@ for (const s of steps) {
 }
 console.log(JSON.stringify({ log, errors: errors.slice(0, 20) }, null, 1));
 await browser.close();
+if (errors.length) process.exitCode = 1;

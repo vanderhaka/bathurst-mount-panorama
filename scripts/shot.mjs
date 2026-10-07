@@ -7,6 +7,7 @@
 import { mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { chromium } from 'playwright';
+import { authenticatePreview } from './browser-auth.mjs';
 
 const args = Object.fromEntries(
   process.argv.slice(2).reduce((acc, cur, i, arr) => {
@@ -28,6 +29,7 @@ const browser = await chromium.launch({
   args: ['--enable-gpu', '--ignore-gpu-blocklist', '--use-angle=metal', '--enable-unsafe-swiftshader', '--autoplay-policy=no-user-gesture-required'],
 });
 const page = await browser.newPage({ viewport: { width, height }, deviceScaleFactor: 1 });
+await authenticatePreview(page, args.url);
 const errors = [];
 page.on('console', (m) => { if (m.type() === 'error' || m.type() === 'warning') errors.push(`[${m.type()}] ${m.text()}`); });
 page.on('pageerror', (e) => errors.push(`[pageerror] ${e.message}`));

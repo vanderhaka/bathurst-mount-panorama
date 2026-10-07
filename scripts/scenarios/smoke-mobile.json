@@ -1,0 +1,16 @@
+[
+  { "eval": "(() => { if (window.__game.state !== 'title') throw new Error('Title did not load'); return document.title; })()" },
+  { "tapOn": ".mn-screen--title .mn-btn--primary" },
+  { "wait": 500 },
+  { "tapOn": "[aria-label='Start time trial']" },
+  { "waitFor": "window.__game?.state === 'race' && window.__game.race.session.lights < 0", "timeout": 30000 },
+  { "down": "ArrowUp" },
+  { "wait": 1500 },
+  { "up": "ArrowUp" },
+  { "eval": "(() => { const g = window.__game; if (g.state !== 'race' || g.race.player.vehicle.speed < 1) throw new Error('Race did not drive'); return { state: g.state, speed: g.race.player.vehicle.speed, quality: g.settings.quality }; })()" },
+  { "viewport": [390, 844] },
+  { "wait": 600 },
+  { "eval": "(() => { if (window.__game.state !== 'paused') throw new Error('Portrait did not pause'); return window.__game.state; })()" },
+  { "viewport": [844, 390] },
+  { "wait": 500 }
+]
