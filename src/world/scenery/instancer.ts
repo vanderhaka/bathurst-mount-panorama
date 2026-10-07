@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { getPropAsset } from '@/props';
 import type { InstancedPropKind, PropAsset } from '@/types/props';
+import { ContactAo } from '@/art/ambient-occlusion';
 
 interface Placement {
   asset: PropAsset;
@@ -52,6 +53,7 @@ function normalise(geo: THREE.BufferGeometry): THREE.BufferGeometry {
  */
 export class PropInstancer {
   readonly group = new THREE.Group();
+  readonly contactAo = new ContactAo();
   private placements: Placement[] = [];
   private batches: Batch[] = [];
 
@@ -61,6 +63,7 @@ export class PropInstancer {
 
   add(kind: InstancedPropKind, variant: number, x: number, y: number, z: number, yaw = 0, scale = 1, colour?: number | THREE.Color): void {
     const asset = getPropAsset(kind, variant);
+    this.contactAo.add(x, z, asset.radius * scale);
     this.placements.push({ asset, x, y, z, yaw, scale, colour: colour === undefined ? undefined : colour instanceof THREE.Color ? colour : new THREE.Color(colour) });
   }
 

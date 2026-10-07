@@ -11,6 +11,7 @@ import { buildWallSigns } from '@/world/wall-signs';
 import { buildTerrain, type Terrain } from '@/world/terrain';
 import { buildScenery, type Scenery } from '@/world/scenery';
 import type { QualityPreset } from '@/render/renderer';
+import { getGraphics } from '@/config/graphics';
 
 export interface World {
   track: Track;
@@ -53,6 +54,7 @@ export async function buildWorld(
   root.add(terrain.group);
   await progress(0.7, 'Planting gum trees and pitching tents');
   const scenery = buildScenery(track, terrain, profile, quality);
+  scenery.contactAo.bake(terrain.group, getGraphics().bakedAo);
   root.add(scenery.group);
   await progress(0.95, 'World ready');
   const lights = root.getObjectByName('start-lights');

@@ -45,6 +45,7 @@ export function placeBuildings(track: Track, terrain: Terrain, inst: PropInstanc
   for (const b of F.buildings) {
     const box = orientedBox(b.poly);
     const [cx, cz] = [box.cx, box.cz];
+    inst.contactAo.add(cx, cz, Math.max(box.length, box.width) * 0.5);
     mask.add(cx, cz, Math.max(box.length, box.width) * 0.6 + 2);
     const ground = minGround(terrain, b.poly);
     if (isPitComplex(b, track)) {

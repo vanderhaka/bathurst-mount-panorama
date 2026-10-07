@@ -67,6 +67,9 @@ export class GraphicsTuner {
     live(bloom, 'bloomStrength', 0, 0.5, 0.01);
     live(bloom, 'bloomThreshold', 0.5, 8, 0.1);
     live(bloom, 'bloomRadius', 0.5, 3, 0.1);
+    const shadows = gui.addFolder('Shadows & AO');
+    live(shadows, 'shadowDistance', 300, 800, 10);
+    live(shadows, 'screenAo', 0, 1, 0.01);
     const grade = gui.addFolder('Colour grade');
     live(grade, 'saturation', 0, 2, 0.01);
     live(grade, 'contrast', 0.5, 1.6, 0.01);
@@ -77,6 +80,7 @@ export class GraphicsTuner {
     live(cam, 'fov', 40, 90, 1);
     live(cam, 'cameraShake', 0, 2, 0.05);
     const world = gui.addFolder('World (rebuild)');
+    live(world, 'bakedAo', 0, 1, 0.05);
     live(world, 'treeDensity', 0, 2, 0.05);
     live(world, 'terrainColourNoise', 0, 2, 0.05);
     live(world, 'rubberGroove', 0, 1, 0.01);

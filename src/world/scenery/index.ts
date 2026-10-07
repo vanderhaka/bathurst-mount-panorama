@@ -16,12 +16,14 @@ import { buildTown } from '@/world/scenery/town';
 import { buildPaddock } from '@/world/scenery/paddock';
 import { buildVineyards } from '@/world/scenery/vineyards';
 import { placeVegetation } from '@/world/scenery/vegetation';
+import type { ContactAo } from '@/art/ambient-occlusion';
 
 const F = featuresJson as unknown as { parking: XZ[][]; water: XZ[][]; pitLane: XZ[][]; serviceRoads: XZ[][]; stoneSign: XZ[][] };
 
 export interface Scenery {
   group: THREE.Group;
   stats: { trees: number; instances: number; batches: number };
+  contactAo: ContactAo;
   /** Per-frame LOD / draw-distance update around the camera. */
   update(camera: THREE.Vector3): void;
 }
@@ -58,6 +60,7 @@ export function buildScenery(track: Track, terrain: Terrain, profile: SpeedProfi
   let first = true;
   return {
     group,
+    contactAo: inst.contactAo,
     stats: { trees, instances, batches },
     update(camera) {
       const g = getGraphics();

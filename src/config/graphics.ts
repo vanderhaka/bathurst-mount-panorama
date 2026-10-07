@@ -36,6 +36,9 @@ export interface GraphicsConfig {
   /** Linear HDR threshold; ordinary diffuse surfaces stay below it. */
   bloomThreshold: number;
   bloomRadius: number;
+  shadowDistance: number;
+  screenAo: number;
+  bakedAo: number;
   // --- live: colour grade (display space)
   saturation: number;
   contrast: number;
@@ -86,6 +89,9 @@ export const DEFAULT_GRAPHICS: GraphicsConfig = {
   bloomStrength: 0.1,
   bloomThreshold: 2.2,
   bloomRadius: 1.5,
+  shadowDistance: 400,
+  screenAo: 0.45,
+  bakedAo: 1,
   saturation: 1.0,
   contrast: 1.04,
   warmth: 0.012,
@@ -103,12 +109,12 @@ export const DEFAULT_GRAPHICS: GraphicsConfig = {
 
 /** Values that each quality preset forces (performance, not look). */
 export const QUALITY: Record<QualityPreset, {
-  msaa: number; treeDensityScale: number; shadowMap: number; post: boolean;
+  msaa: number; treeDensityScale: number; shadowMap: number; post: boolean; cascades: number; screenAo: boolean; bakedAo: boolean;
   physicalSky: boolean; aerialPerspective: boolean; bloom: boolean; environmentSize: number;
 }> = {
-  low: { msaa: 0, treeDensityScale: 0.45, shadowMap: 1024, post: false, physicalSky: false, aerialPerspective: false, bloom: false, environmentSize: 128 },
-  medium: { msaa: 4, treeDensityScale: 0.75, shadowMap: 2048, post: true, physicalSky: false, aerialPerspective: true, bloom: false, environmentSize: 128 },
-  high: { msaa: 4, treeDensityScale: 1, shadowMap: 4096, post: true, physicalSky: true, aerialPerspective: true, bloom: true, environmentSize: 256 },
+  low: { msaa: 0, treeDensityScale: 0.45, shadowMap: 1024, post: false, physicalSky: false, aerialPerspective: false, bloom: false, environmentSize: 128, cascades: 1, screenAo: false, bakedAo: true },
+  medium: { msaa: 4, treeDensityScale: 0.75, shadowMap: 1024, post: true, physicalSky: false, aerialPerspective: true, bloom: false, environmentSize: 128, cascades: 2, screenAo: false, bakedAo: true },
+  high: { msaa: 4, treeDensityScale: 1, shadowMap: 2048, post: true, physicalSky: true, aerialPerspective: true, bloom: true, environmentSize: 256, cascades: 3, screenAo: true, bakedAo: true },
 };
 
 const STORAGE_KEY = 'bathurst.graphics.v1';

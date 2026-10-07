@@ -5,6 +5,7 @@ import { getGraphics } from '@/config/graphics';
 import type { Track } from '@/track/track-model';
 import { createTrackPoint, heightAt, projectToTrack, sampleArray } from '@/track/track-query';
 import { DEM_EXTENT, demHeight, fbm } from '@/world/dem';
+import { bakeHeightFieldAo } from '@/art/ambient-occlusion';
 
 const FINE_CELL = 6;
 const COARSE_CELL = 60;
@@ -232,6 +233,7 @@ function gridGeometry(
     col[v * 3] = tmp.r; col[v * 3 + 1] = tmp.g; col[v * 3 + 2] = tmp.b;
   }
   geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
+  bakeHeightFieldAo(geo, w, h, cell, getGraphics().bakedAo);
   geo.computeBoundingSphere();
   return geo;
 }

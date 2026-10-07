@@ -106,6 +106,12 @@ export function placeFacilities(track: Track, terrain: Terrain, profile: SpeedPr
 
   const boards: BillboardPlacement[] = [];
   placeTrackside(track, terrain, profile, inst, r, at, boards, mask);
+  for (const object of group.children) {
+    const bounds = new THREE.Box3().setFromObject(object);
+    const size = bounds.getSize(new THREE.Vector3());
+    inst.contactAo.add(object.position.x, object.position.z, Math.max(size.x, size.z) * 0.5);
+  }
+  for (const board of boards) inst.contactAo.add(board.x, board.z, 4);
   group.add(buildBillboards(boards));
   return group;
 }

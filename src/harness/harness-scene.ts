@@ -58,12 +58,12 @@ export function createHarnessScene(opts: { ground?: 'asphalt' | 'grass'; groundS
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 0.05, 20000);
   const sky = createSky(scene);
-  const lighting = createLighting(scene, 'high');
+  const lighting = createLighting(scene, 'high', camera);
   scene.environment = createSkyEnvironment(renderer, sky.dome).texture;
   scene.environmentIntensity = getGraphics().envIntensity;
   lighting.apply(getGraphics());
   const post = createPostChain(renderer, 4);
-  post.setEnabled(true, 4, true);
+  post.setEnabled(true, 4, true, true);
   post.apply(getGraphics());
 
   const size = opts.groundSize ?? 400;
@@ -119,6 +119,7 @@ export function createHarnessScene(opts: { ground?: 'asphalt' | 'grass'; groundS
   window.addEventListener('resize', () => {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
+    lighting.resize();
     renderer.setSize(window.innerWidth, window.innerHeight);
     post.setSize(window.innerWidth, window.innerHeight);
   });

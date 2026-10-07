@@ -49,7 +49,7 @@ Status: done (commit c4cfd33c090bd5da41ab3fa1361ec78ef9bae9fd).
 - **Do:** Rewrite `docs/ART_DIRECTION.md` for "about 75 % of the way to photoreal": physically based light and materials; procedural normal, roughness and detail maps allowed; smooth shading allowed for terrain and car bodies; the medium-poly geometry may show on close inspection; generated assets only; new budgets for texture memory per tier. Add 3 reference-photo pairs that show "75 %" (what to match and what may stay stylised).
 - **Done when:** the document states the new rules and the old rules that stay (no logos, generated assets, real scale, triangle budgets).
 ### 1.2 Light, sky and atmosphere — M
-Status: done (commit pending; exact SHA is recorded by the next item and in HANDOFF.md).
+Status: done (commit d8ae91fb4ef4e6173023352c14ea701525a622b3).
 - **Depends on:** D2.
 - **Do:**
   1. Compute the sun position from Bathurst's latitude and longitude, the date and the time (solar position formula). Add a time-of-day value to the graphics config.
@@ -59,6 +59,7 @@ Status: done (commit pending; exact SHA is recorded by the next item and in HAND
   5. Add subtle bloom (High only) for sun glints, lights and chrome.
 - **Done when:** the sky, the haze and the sun angle match the reference photos at Pit Straight, Skyline and Conrod; the tuner changes the time of day live.
 ### 1.3 Shadows and ambient occlusion — M
+Status: done (commit pending; exact SHA is recorded by the next item and in HANDOFF.md).
 - **Do:**
   1. Use cascaded shadow maps (three.js `CSM`): 3 cascades on High, 2 on Medium, 1 on Low. Soft edges with correct bias (no acne, no peter-panning).
   2. Bake ambient occlusion into vertex colours at world build: terrain from the height field (hemisphere samples), and a contact darkening under every placed object. This costs nothing at run time, so phones get it too.

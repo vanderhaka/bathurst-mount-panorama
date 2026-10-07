@@ -3,6 +3,7 @@ import { getGraphics, QUALITY, type GraphicsConfig } from '@/config/graphics';
 import type { QualityPreset } from '@/render/renderer';
 import { SUN_DIRECTION } from '@/world/sky';
 import { createAerialPerspective } from '@/world/aerial-perspective';
+import { createShadowRig } from '@/world/shadows';
 
 export interface SceneLighting {
   sun: THREE.DirectionalLight;
@@ -12,15 +13,11 @@ export interface SceneLighting {
   setQuality(q: QualityPreset): void;
   /** Applies live graphics values (intensities, colours, fog). Call after Sky.apply(). */
   apply(cfg: GraphicsConfig): void;
+  resize(): void;
+  dispose(): void;
 }
 
-const SHADOW: Record<QualityPreset, { size: number; extent: number }> = {
-  low: { size: 1024, extent: 45 },
-  medium: { size: 2048, extent: 60 },
-  high: { size: 4096, extent: 80 },
-};
-
-export function createLighting(scene: THREE.Scene, quality: QualityPreset = 'high'): SceneLighting {
+export function createLighting(scene: THREE.Scene, quality: QualityPreset = 'high', camera = new THREE.PerspectiveCamera(62, 1, 0.1, 16000)): SceneLighting {
   const cfg0 = getGraphics();
   const fog = new THREE.FogExp2(cfg0.fogColour, cfg0.fogDensity);
   scene.fog = fog;
@@ -34,61 +31,21 @@ export function createLighting(scene: THREE.Scene, quality: QualityPreset = 'hig
   const hemi = new THREE.HemisphereLight(cfg0.hemiSky, cfg0.hemiGround, cfg0.hemiIntensity);
   scene.add(hemi);
 
-  const sun = new THREE.DirectionalLight(cfg0.sunColour, cfg0.sunIntensity);
-  sun.castShadow = true;
-  sun.shadow.bias = -0.0005;
-  sun.shadow.normalBias = 0.09;
-  scene.add(sun);
-  scene.add(sun.target);
-
-  const apply = (q: QualityPreset) => {
-    const { size, extent } = SHADOW[q];
-    sun.shadow.mapSize.set(size, size);
-    const cam = sun.shadow.camera;
-    cam.left = -extent;
-    cam.right = extent;
-    cam.top = extent;
-    cam.bottom = -extent;
-    cam.near = 1;
-    cam.far = 900;
-    cam.updateProjectionMatrix();
-    sun.shadow.map?.dispose();
-    sun.shadow.map = null;
-  };
-  apply(quality);
-
-  const snapped = new THREE.Vector3();
-  const lightSpace = new THREE.Matrix4();
-  const inv = new THREE.Matrix4();
-  const updateLightSpace = () => {
-    lightSpace.lookAt(new THREE.Vector3(), SUN_DIRECTION.clone().negate(), new THREE.Vector3(0, 1, 0));
-    inv.copy(lightSpace).invert();
-  };
-  updateLightSpace();
+  const shadows = createShadowRig(scene, camera, quality);
   return {
-    sun,
+    get sun() { return shadows.sun; },
     hemi,
-    follow(focus) {
-      // Snap the focus to the shadow-map texel grid (in light space) to stop shimmer.
-      const { size, extent } = SHADOW[quality];
-      const texel = (extent * 2) / size;
-      snapped.copy(focus).applyMatrix4(inv);
-      snapped.x = Math.round(snapped.x / texel) * texel;
-      snapped.y = Math.round(snapped.y / texel) * texel;
-      snapped.applyMatrix4(lightSpace);
-      sun.target.position.copy(snapped);
-      sun.position.copy(snapped).addScaledVector(SUN_DIRECTION, 400);
-      sun.target.updateMatrixWorld();
-    },
+    // Haze owns the inner shader hook; CSM wraps it so changing cascades cannot erase it.
+    follow() { aerial.prepare(camera); shadows.update(); },
+    resize() { shadows.resize(); },
+    dispose() { shadows.dispose(); scene.remove(hemi); scene.onBeforeRender = previousRender; },
     setQuality(q) {
       quality = q;
-      apply(q);
+      shadows.setQuality(q);
       aerial.setEnabled(getGraphics().aerialPerspective && QUALITY[q].aerialPerspective);
     },
     apply(cfg) {
-      updateLightSpace();
-      sun.intensity = cfg.sunIntensity;
-      sun.color.set(cfg.sunColour);
+      shadows.apply(SUN_DIRECTION, cfg.sunIntensity, cfg.sunColour, cfg.shadowDistance);
       hemi.intensity = cfg.hemiIntensity;
       hemi.color.set(cfg.hemiSky);
       hemi.groundColor.set(cfg.hemiGround);

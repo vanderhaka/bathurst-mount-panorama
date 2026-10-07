@@ -1,5 +1,15 @@
 import * as THREE from 'three';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+const aoState = vi.hoisted(() => ({ instances: [] as { render: ReturnType<typeof vi.fn>; dispose: ReturnType<typeof vi.fn>; setSize: ReturnType<typeof vi.fn> }[] }));
+vi.mock('three/addons/postprocessing/GTAOPass.js', () => ({
+  GTAOPass: class {
+    static OUTPUT = { Off: -1 };
+    gtaoMap = new THREE.Texture();
+    render = vi.fn(); dispose = vi.fn(); setSize = vi.fn();
+    updateGtaoMaterial = vi.fn(); updatePdMaterial = vi.fn();
+    constructor() { aoState.instances.push(this); }
+  },
+}));
 import { DEFAULT_GRAPHICS } from '@/config/graphics';
 import { createPostChain } from '@/render/post';
 
@@ -22,6 +32,20 @@ function mockRenderer() {
 }
 
 describe('HDR post pipeline', () => {
+  it('allocates half-size High AO lazily and releases it on a tier step-down', () => {
+    const { renderer } = mockRenderer();
+    const post = createPostChain(renderer);
+    post.setEnabled(true, 4, true, true);
+    post.apply({ ...DEFAULT_GRAPHICS, screenAo: 0.5 });
+    const scene = new THREE.Scene(), camera = new THREE.PerspectiveCamera();
+    post.render(scene, camera);
+    const ao = aoState.instances.at(-1)!;
+    expect(ao.setSize).toHaveBeenCalledWith(960, 540);
+    expect(ao.render).toHaveBeenCalledOnce();
+    post.setEnabled(true, 4, false, false);
+    expect(ao.dispose).toHaveBeenCalledOnce();
+    post.dispose();
+  });
   it('reports every draw in the frame, including the High bloom passes', () => {
     const { renderer, info, rendered } = mockRenderer();
     const post = createPostChain(renderer);

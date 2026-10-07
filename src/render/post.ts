@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { getGraphics, type GraphicsConfig } from '@/config/graphics';
 import { createBloom, type Bloom } from '@/render/bloom';
 import { TONE_MAPPING } from '@/render/tone-mapping';
+import { GTAOPass } from 'three/addons/postprocessing/GTAOPass.js';
 
 /**
  * Minimal post chain: the scene renders into one MSAA half-float target, then a
@@ -11,7 +12,7 @@ import { TONE_MAPPING } from '@/render/tone-mapping';
 export interface PostChain {
   render(scene: THREE.Scene, camera: THREE.Camera): void;
   setSize(width: number, height: number): void;
-  setEnabled(enabled: boolean, msaa: number, bloom?: boolean): void;
+  setEnabled(enabled: boolean, msaa: number, bloom?: boolean, ao?: boolean): void;
   apply(cfg: GraphicsConfig): void;
   dispose(): void;
 }
@@ -19,6 +20,8 @@ export interface PostChain {
 const fragmentShader = /* glsl */ `
   uniform sampler2D tScene;
   uniform sampler2D tBloom;
+  uniform sampler2D tAo;
+  uniform float aoStrength;
   uniform float bloomStrength;
   uniform float saturation;
   uniform float contrast;
@@ -28,6 +31,7 @@ const fragmentShader = /* glsl */ `
   varying vec2 vUv;
   void main() {
     gl_FragColor = texture2D(tScene, vUv);
+    gl_FragColor.rgb *= mix(1.0, texture2D(tAo, vUv).r, aoStrength);
     gl_FragColor.rgb += texture2D(tBloom, vUv).rgb * bloomStrength;
     #include <tonemapping_fragment>
     #include <colorspace_fragment>
@@ -55,6 +59,8 @@ export function createPostChain(renderer: THREE.WebGLRenderer, msaa = 4): PostCh
     uniforms: {
       tScene: { value: target.texture },
       tBloom: { value: target.texture },
+      tAo: { value: target.texture },
+      aoStrength: { value: 0 },
       bloomStrength: { value: 0 },
       saturation: { value: 1 },
       contrast: { value: 1 },
@@ -74,6 +80,8 @@ export function createPostChain(renderer: THREE.WebGLRenderer, msaa = 4): PostCh
   const postCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
   let enabled = true;
   let tierBloom = true;
+  let tierAo = false;
+  let ao: GTAOPass | null = null;
   let bloom: Bloom | null = null;
   let cfg = getGraphics();
 
@@ -101,6 +109,18 @@ export function createPostChain(renderer: THREE.WebGLRenderer, msaa = 4): PostCh
       try {
         renderer.setRenderTarget(target);
         renderer.render(scene, camera);
+        if (tierAo && cfg.screenAo > 0) {
+          if (!ao) {
+            ao = new GTAOPass(scene, camera, Math.floor(target.width / 2), Math.floor(target.height / 2));
+            ao.output = GTAOPass.OUTPUT.Off;
+            ao.updateGtaoMaterial({ radius: 2, samples: 8, thickness: 1, screenSpaceRadius: false });
+            ao.updatePdMaterial({ samples: 8, radius: 2 });
+            ao.setSize(Math.floor(target.width / 2), Math.floor(target.height / 2));
+          }
+          ao.render(renderer, target, target, 0, false);
+          material.uniforms.tAo.value = ao.gtaoMap;
+        }
+        material.uniforms.aoStrength.value = ao && tierAo ? cfg.screenAo : 0;
         material.uniforms.tBloom.value = bloom ? bloom.render(renderer, target.texture, cfg) : target.texture;
         renderer.setRenderTarget(null);
         renderer.render(postScene, postCamera);
@@ -112,10 +132,13 @@ export function createPostChain(renderer: THREE.WebGLRenderer, msaa = 4): PostCh
       const pr = renderer.getPixelRatio();
       target.setSize(Math.floor(width * pr), Math.floor(height * pr));
       bloom?.setSize(target.width, target.height);
+      ao?.setSize(Math.floor(target.width / 2), Math.floor(target.height / 2));
     },
-    setEnabled(on, samples, highBloom = false) {
+    setEnabled(on, samples, highBloom = false, highAo = false) {
       enabled = on;
       tierBloom = highBloom;
+      tierAo = highAo && enabled;
+      if (!tierAo) { ao?.dispose(); ao = null; material.uniforms.aoStrength.value = 0; }
       if (target.samples !== samples) {
         const { width, height } = target;
         target.dispose();
@@ -138,6 +161,7 @@ export function createPostChain(renderer: THREE.WebGLRenderer, msaa = 4): PostCh
     dispose() {
       target.dispose();
       bloom?.dispose();
+      ao?.dispose();
       material.dispose();
       quad.geometry.dispose();
     },

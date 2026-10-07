@@ -26,11 +26,11 @@ export class Stage {
     const g = getGraphics();
     this.camera = new THREE.PerspectiveCamera(g.fov, 1, 0.1, 16000);
     this.sky = createSky(this.scene, 9000, quality);
-    this.lighting = createLighting(this.scene, quality);
+    this.lighting = createLighting(this.scene, quality, this.camera);
     this.environment = createSkyEnvironment(this.renderer, this.sky.dome, quality);
     this.scene.environment = this.environment.texture;
     this.post = createPostChain(this.renderer, QUALITY[quality].msaa);
-    this.post.setEnabled(QUALITY[quality].post, QUALITY[quality].msaa, QUALITY[quality].bloom);
+    this.post.setEnabled(QUALITY[quality].post, QUALITY[quality].msaa, QUALITY[quality].bloom, QUALITY[quality].screenAo);
     this.applyGraphics();
     onGraphicsChange((_cfg, changed) => {
       this.applyGraphics();
@@ -72,7 +72,7 @@ export class Stage {
     setRendererQuality(this.renderer, q);
     this.sky.setQuality(q);
     this.lighting.setQuality(q);
-    this.post.setEnabled(QUALITY[q].post, QUALITY[q].msaa, QUALITY[q].bloom);
+    this.post.setEnabled(QUALITY[q].post, QUALITY[q].msaa, QUALITY[q].bloom, QUALITY[q].screenAo);
     this.refreshEnvironment();
     this.resize();
   }
@@ -88,6 +88,7 @@ export class Stage {
     this.post.setSize(w, h);
     this.camera.aspect = w / h;
     this.camera.updateProjectionMatrix();
+    this.lighting.resize();
   }
 
   render(focus: THREE.Vector3): void {

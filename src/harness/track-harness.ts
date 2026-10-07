@@ -22,13 +22,13 @@ document.body.appendChild(renderer.domElement);
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(getGraphics().fov, window.innerWidth / window.innerHeight, 0.1, 20000);
 const sky = createSky(scene);
-const lighting = createLighting(scene, 'high');
+const lighting = createLighting(scene, 'high', camera);
 let environment = createSkyEnvironment(renderer, sky.dome);
 scene.environment = environment.texture;
 scene.environmentIntensity = getGraphics().envIntensity;
 const post = createPostChain(renderer, 4);
 post.setSize(window.innerWidth, window.innerHeight);
-post.setEnabled(true, 4, true);
+post.setEnabled(true, 4, true, true);
 post.apply(getGraphics());
 onGraphicsChange((cfg) => {
   sky.apply(cfg);
@@ -71,6 +71,7 @@ function setView(s: number, dOverride?: number) {
   }
   camera.fov = Number(params.get('fov') ?? getGraphics().fov);
   camera.updateProjectionMatrix();
+  lighting.resize();
 }
 window.__view = setView;
 /** Debug: names of the objects under a screen pixel (nearest first). */
