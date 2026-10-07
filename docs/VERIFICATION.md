@@ -79,3 +79,5 @@ Both engines check release, cancelled zoom gestures and portrait pause. WebKit's
 coarse pointer also enables controls when its emulation reports zero maxTouchPoints.
 These runs do not reproduce iOS Safari toolbar movement, physical pinch zoom,
 rotation hardware or real device performance. Check those on James's iPhone.
+
+Touch options: `node scripts/verify-touch-options.mjs chromium http://127.0.0.1:5181/ artifacts/review/item-2.7`; repeat with `webkit`. Native menu taps cover all choices and saving. Chrome held controls use CDP; WebKit held controls use synthetic routing. Tilt readings and granted/denied permission responses are explicit fixtures, with activation checked on the Enable tilt tap. They do not establish physical sensor behaviour or the native iPhone prompt.

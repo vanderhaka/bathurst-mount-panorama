@@ -24,7 +24,7 @@ class FakeWindow {
 }
 
 function fakeTouch(controls: { steer: number; throttle: number; brake: number }) {
-  const touch = { touched: false, onAction: (_a: string) => {}, shown: false, update(_dt: number, show: boolean) { touch.shown = show; return controls; } };
+  const touch = { touched: false, onAction: (_a: string) => {}, shown: false, configure() {}, update(_dt: number, show: boolean) { touch.shown = show; return controls; } };
   return touch;
 }
 

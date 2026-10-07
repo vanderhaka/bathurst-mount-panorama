@@ -71,7 +71,13 @@ export const SETTING_GROUPS: ReadonlyArray<{ title: string; fields: SettingField
     fields: [
       { key: 'steerPad', ...SENSITIVITY, label: 'Controller steering', help: 'How much the car steers for a small stick movement. Higher = more steering near the centre. Full stick is always full lock.' },
       { key: 'steerKeyboard', ...SENSITIVITY, label: 'Keyboard steering', help: 'How fast the steering turns while you hold a steering key. Higher = quicker.' },
-      { key: 'steerTouch', ...SENSITIVITY, label: 'Touch steering', help: 'How far you drag your thumb for full lock. Higher = a shorter drag.' },
+      { key: 'touchMode', kind: 'choice', label: 'Touch steering mode', help: 'Drag, tilt the phone, or hold left/right. Tap Enable tilt while driving and hold the phone centred.', options: [
+        { value: 'drag', label: 'Drag' }, { value: 'tilt', label: 'Tilt' }, { value: 'buttons', label: 'Buttons' },
+      ] },
+      { key: 'steerTouch', ...SENSITIVITY, label: 'Touch sensitivity', help: 'Higher = a shorter drag or tilt for full lock.' },
+      { key: 'touchAnalogThrottle', kind: 'choice', label: 'Analog throttle', help: 'Bottom of the pedal = no throttle; top = full throttle.', options: ON_OFF },
+      { key: 'touchAutoThrottle', kind: 'choice', label: 'Auto-throttle', help: 'Accelerates for you. Touch Brake to cut power and slow down.', options: ON_OFF },
+      { key: 'touchLeftHanded', kind: 'choice', label: 'Left-handed layout', help: 'Moves pedals left and steering right.', options: ON_OFF },
     ],
   },
   {

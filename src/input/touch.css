@@ -118,7 +118,7 @@
 }
 .tc-pedal--throttle.is-on {
   color: #fff;
-  background: rgb(64 186 104 / 0.6);
+  background: linear-gradient(to top, rgb(64 186 104 / 0.6) var(--tc-throttle, 100%), rgb(var(--hud-panel-rgb) / 0.5) var(--tc-throttle, 100%));
 }
 .tc-btn {
   width: 12cqh;
@@ -135,3 +135,60 @@
   border-radius: 50%;
   touch-action: none;
 }
+
+/* Mirroring swaps the complete driving layout; steering direction stays the same. */
+.bx-touch[data-left-handed='true'] .tc-steer {
+  left: auto;
+  right: 0;
+}
+.bx-touch[data-left-handed='true'] .tc-pedals,
+.bx-touch[data-left-handed='true'] .tc-buttons {
+  right: auto;
+  left: max(3cqh, calc(env(safe-area-inset-left) + 1cqh));
+  flex-direction: row-reverse;
+}
+.bx-touch[data-auto-throttle='true'] .tc-pedal--throttle { display: none; }
+.bx-touch[data-auto-throttle='true'] .tc-pedal--brake { width: 28cqh; }
+
+.tc-arrows,
+.tc-sensor { display: none; }
+.bx-touch[data-mode='buttons'] .tc-wheel,
+.bx-touch[data-mode='buttons'] .tc-steer__hint,
+.bx-touch[data-mode='tilt'][data-tilt-ready='true'] .tc-wheel,
+.bx-touch[data-mode='tilt'][data-tilt-ready='true'] .tc-steer__hint { display: none; }
+.bx-touch[data-mode='buttons'] .tc-arrows {
+  position: absolute;
+  bottom: max(3cqh, env(safe-area-inset-bottom));
+  left: max(3cqh, calc(env(safe-area-inset-left) + 1cqh));
+  display: flex;
+  gap: 2.5cqh;
+}
+.bx-touch[data-left-handed='true'] .tc-arrows {
+  left: auto;
+  right: max(3cqh, calc(env(safe-area-inset-right) + 1cqh));
+}
+.tc-arrow,
+.tc-tilt-enable {
+  min-width: 44px;
+  min-height: 44px;
+  border: 1px solid rgb(255 255 255 / 0.25);
+  border-radius: 1.6cqh;
+  color: var(--hud-text);
+  background: rgb(var(--hud-panel-rgb) / 0.55);
+  touch-action: none;
+  font: 700 3cqh/1 var(--hud-font-display);
+}
+.tc-arrow { width: 21cqh; height: 30cqh; font-size: 8cqh; }
+.tc-arrow:active { background: rgb(255 255 255 / 0.25); }
+.bx-touch[data-mode='tilt'] .tc-sensor {
+  position: absolute;
+  left: 50%;
+  top: 32%;
+  transform: translateX(-50%);
+  display: grid;
+  gap: 2cqh;
+  justify-items: center;
+}
+.tc-tilt-enable { padding: 2cqh 3cqh; white-space: nowrap; }
+.tc-tilt-enable:disabled { opacity: 0.6; }
+.tc-sensor__note { font-size: 2.6cqh; white-space: nowrap; color: var(--hud-text-dim); }

@@ -1,5 +1,6 @@
 import { DEFAULT_SETTINGS, type Settings } from '@/types/session';
 import { loadQualityChoice } from '@/game/quality-store';
+import { touchOptions } from '@/input/touch-model';
 
 const KEY = 'bathurst.settings.v1';
 
@@ -16,7 +17,10 @@ export function loadSettings(): Settings {
     if (raw) settings = { ...settings, ...(JSON.parse(raw) as Partial<Settings>) };
   } catch { /* storage unavailable */ }
   const graphics = loadQualityChoice(settings.quality);
-  return { ...settings, quality: graphics.quality, autoQuality: graphics.automatic };
+  const touch = touchOptions(settings);
+  return { ...settings, quality: graphics.quality, autoQuality: graphics.automatic,
+    touchMode: touch.mode, touchAnalogThrottle: touch.analogThrottle,
+    touchAutoThrottle: touch.autoThrottle, touchLeftHanded: touch.leftHanded };
 }
 
 export function saveSettings(s: Settings): void {

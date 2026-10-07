@@ -1,5 +1,6 @@
 import type { CarKind } from '@/car/car-specs';
 import type { QualityPreset } from '@/render/renderer';
+import type { TouchSteeringMode } from '@/input/touch-model';
 
 export type CameraMode = 'chase' | 'chaseFar' | 'bonnet' | 'cockpit' | 'tv';
 
@@ -14,6 +15,10 @@ export interface Settings {
   steerKeyboard: number;
   steerPad: number;
   steerTouch: number;
+  touchMode: TouchSteeringMode;
+  touchAnalogThrottle: boolean;
+  touchAutoThrottle: boolean;
+  touchLeftHanded: boolean;
   /** Full = crashes change the car's mechanics; visual = dents only; off = no damage. */
   damage: 'full' | 'visual' | 'off';
   ghost: boolean;
@@ -38,6 +43,10 @@ export const DEFAULT_SETTINGS: Settings = {
   steerKeyboard: 1,
   steerPad: 1,
   steerTouch: 1,
+  touchMode: 'drag',
+  touchAnalogThrottle: false,
+  touchAutoThrottle: false,
+  touchLeftHanded: false,
   damage: 'full',
   ghost: true,
   units: 'kmh',

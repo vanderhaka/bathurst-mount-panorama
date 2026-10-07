@@ -1,6 +1,7 @@
 import { BINDINGS, PAD_MENU, type GameAction } from '@/input/bindings';
 import { padStyleOf, type PadStyle } from '@/input/pad-style';
 import type { TouchControls } from '@/input/touch-controls';
+import { DEFAULT_TOUCH_OPTIONS, type TouchOptions } from '@/input/touch-model';
 import type { MenuNav } from '@/types/hud';
 
 /** Raw driver controls this frame (before assists). steer: +1 = full left. */
@@ -25,6 +26,7 @@ export class InputManager {
   device: 'keyboard' | 'gamepad' | 'touch' = 'keyboard';
   /** On-screen touch controls (touch screens only). */
   private touch: TouchControls | null = null;
+  private touchOptions: TouchOptions = { ...DEFAULT_TOUCH_OPTIONS };
   /** Steering sensitivity per device, from Settings > Steering (1 = default, 0.5 to 2). */
   readonly steerSensitivity = { keyboard: 1, pad: 1, touch: 1 };
   private readonly keys = new Set<string>();
@@ -68,9 +70,16 @@ export class InputManager {
   /** Connects the on-screen touch controls; their buttons become actions while racing. */
   attachTouch(touch: TouchControls): void {
     this.touch = touch;
+    touch.configure(this.touchOptions);
     touch.onAction = (action) => {
       if (!this.menusOpen) this.pressed.add(action);
     };
+  }
+
+  /** Touch-only options apply on attach and when Settings changes. No permission request. */
+  configureTouch(options: TouchOptions): void {
+    this.touchOptions = { ...options };
+    this.touch?.configure(this.touchOptions);
   }
 
   private readonly onKeyUp = (e: KeyboardEvent) => {
