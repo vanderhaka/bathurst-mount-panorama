@@ -6,6 +6,7 @@ import type { CarEntity } from '@/game/car-entity';
 import { buildHudState } from '@/game/hud-bridge';
 import { mirrorView } from '@/game/mirror-view';
 import type { RaceSession } from '@/game/race-session';
+import { PhoneVibration } from '@/input/phone-vibration';
 import type { InputManager } from '@/input/input-manager';
 import { impactSeverity } from '@/physics/damage';
 import type { VehicleInput } from '@/physics/types';
@@ -70,6 +71,7 @@ export interface RaceDeps {
 export class RaceController {
   private readonly vin: VehicleInput = { throttle: 0, brake: 0, steer: 0, shiftUp: false, shiftDown: false };
   private hudState: HudState | null = null;
+  private readonly phoneVibration = new PhoneVibration();
   private readonly e = new THREE.Euler(0, 0, 0, 'YXZ');
   /** Verification hook: when set, this driver replaces the player's controls. */
   autopilot: Autopilot | null = null;
@@ -81,6 +83,7 @@ export class RaceController {
   frame(dt: number, fps: number | null): void {
     const { input } = this.d;
     const settings = this.d.settings();
+    this.phoneVibration.setEnabled(settings.phoneVibration);
     const v = this.player.vehicle;
     const sens = input.steerSensitivity;
     sens.keyboard = settings.steerKeyboard;
@@ -116,6 +119,7 @@ export class RaceController {
       const pilot = this.autopilot;
       const impacts = this.player.simulate(this.vin, h, pilot && this.session.racing ? (vin) => { pilot.drive(v, vin); } : undefined);
       for (const imp of impacts) {
+        this.phoneVibration.impact(imp.speed);
         const sev = impactSeverity(imp.speed);
         for (let q = 0; q < 6 + sev * 40; q++) this.d.particles.emit('spark', imp.x, imp.y, imp.z, v.vx * 0.6, 0, v.vz * 0.6);
         this.d.rig.addShake(0.25 + sev);
@@ -183,6 +187,7 @@ export class RaceController {
       maxSlip = Math.max(maxSlip, w.slip);
     }
     const speed = Math.abs(v.speed);
+    this.phoneVibration.kerb(v.wheels, speed);
     if (worst === 'kerb' && speed > 8) {
       this.d.rig.addShake(0.18);
       this.d.input.rumble(0.15, 0.35, 60);

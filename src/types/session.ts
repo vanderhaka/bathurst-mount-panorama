@@ -15,6 +15,7 @@ export interface Settings {
   steerKeyboard: number;
   steerPad: number;
   steerTouch: number;
+  phoneVibration: boolean;
   touchMode: TouchSteeringMode;
   touchAnalogThrottle: boolean;
   touchAutoThrottle: boolean;
@@ -44,6 +45,7 @@ export const DEFAULT_SETTINGS: Settings = {
   steerKeyboard: 1,
   steerPad: 1,
   steerTouch: 1,
+  phoneVibration: true,
   touchMode: 'drag',
   touchAnalogThrottle: false,
   touchAutoThrottle: false,

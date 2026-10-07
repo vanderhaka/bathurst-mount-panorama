@@ -174,10 +174,11 @@ Status: done — awaiting the user's iPhone check (commit f6747bf3564a64882c8e8a
   4. Left-handed layout (mirror the controls).
 - **Done when:** each mode works in a phone play scenario and on the user's iPhone.
 ### 2.8 Minimal phone HUD — S
-Status: done — awaiting the user's iPhone check (commit recorded by next item; evidence `artifacts/review/item-2.8/`).
+Status: done — awaiting the user's iPhone check (commit 174212056fa35810378d7692ec10eb08945ac66e; evidence `artifacts/review/item-2.8/`).
 - **Do:** a Display setting with HUD size "Full" or "Minimal" (speed, gear, lap time, position on the map).
 - **Done when:** the minimal HUD covers less than 10 % of a phone screen.
 ### 2.9 Android vibration — S
+Status: done — awaiting the user's iPhone check and physical Android vibration check (commit recorded by next item; evidence `artifacts/review/item-2.9/`).
 - **Do:** short vibration pulses on kerbs and impacts where `navigator.vibrate` exists (Android); a setting to turn it off.
 - **Done when:** an Android phone pulses on the Chase kerbs; nothing happens on iPhone.
 ## Phase 3 — Racing realism
