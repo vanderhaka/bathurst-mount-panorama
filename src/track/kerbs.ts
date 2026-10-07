@@ -43,6 +43,12 @@ export function placeKerbs(track: Track, line: RacingLine, width = 1.05): KerbLa
     return out;
   };
   const l = grow(left), r = grow(right);
+  // The broad inside apron of Chase T21 is visible in the aerial reference.
+  const chase = track.corners.find((corner) => corner.turn === 21);
+  if (chase) for (let i = 0; i < n; i++) {
+    const distance = Math.abs(i * track.spacing - chase.s);
+    if (Math.min(distance, track.length - distance) < 38) l[i] = Math.max(l[i], 2);
+  }
   // A kerb never extends past the barrier.
   for (let i = 0; i < n; i++) {
     l[i] = Math.min(l[i], Math.max(0, track.left.wall[i] - track.left.edge[i] - 0.3));

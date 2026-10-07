@@ -84,6 +84,12 @@ export class GraphicsTuner {
     live(world, 'treeDensity', 0, 2, 0.05);
     live(world, 'terrainColourNoise', 0, 2, 0.05);
     live(world, 'rubberGroove', 0, 1, 0.01);
+    live(world, 'surfaceDetail');
+    live(world, 'roadNormalStrength', 0, 1.5, 0.05);
+    live(world, 'roadRepairStrength', 0, 1, 0.05);
+    live(world, 'roadSkids');
+    live(world, 'kerbWear', 0, 1, 0.05);
+    live(world, 'lineWear', 0, 1, 0.05);
     live(world, 'grassTuftDensity', 0, 2, 0.05);
     live(world, 'treeLodDistance', 40, 600, 10);
     live(world, 'propDrawDistance', 300, 4000, 50);

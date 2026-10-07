@@ -59,13 +59,14 @@ Status: done (commit d8ae91fb4ef4e6173023352c14ea701525a622b3).
   5. Add subtle bloom (High only) for sun glints, lights and chrome.
 - **Done when:** the sky, the haze and the sun angle match the reference photos at Pit Straight, Skyline and Conrod; the tuner changes the time of day live.
 ### 1.3 Shadows and ambient occlusion — M
-Status: done (commit pending; exact SHA is recorded by the next item and in HANDOFF.md).
+Status: done (commit 6b64646c40908224bbe7fc797960e34619f8927c).
 - **Do:**
   1. Use cascaded shadow maps (three.js `CSM`): 3 cascades on High, 2 on Medium, 1 on Low. Soft edges with correct bias (no acne, no peter-panning).
   2. Bake ambient occlusion into vertex colours at world build: terrain from the height field (hemisphere samples), and a contact darkening under every placed object. This costs nothing at run time, so phones get it too.
   3. Add screen-space ambient occlusion (`GTAOPass`) on High only.
 - **Done when:** objects sit on the ground (no floating look) in every viewpoint; shadows are sharp near the car and still present at 300 m; High stays inside its budget.
 ### 1.4 Track surface — M
+Status: done (commit pending; exact SHA is recorded by the next item and in HANDOFF.md).
 - **Depends on:** 1.1.
 - **Do:**
   1. Asphalt: procedural tiling normal and roughness maps (aggregate grain, patch repairs, crack-sealing lines), large-scale colour variation along the lap.

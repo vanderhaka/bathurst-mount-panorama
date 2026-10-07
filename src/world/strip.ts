@@ -32,8 +32,12 @@ export function buildStrip(track: Track, o: StripOptions): THREE.BufferGeometry 
   const repeat = o.uvRepeat ?? 1;
   for (const run of runs) {
     const base = pos.length / 3;
-    run.forEach((i, r) => {
+    let previousS = -Infinity;
+    run.forEach((i) => {
       const a = o.from(i), b = o.to(i);
+      let s = i * track.spacing;
+      while (s < previousS) s += track.length;
+      previousS = s;
       for (let k = 0; k <= seg; k++) {
         const u = k / seg;
         const d = a + (b - a) * u;
@@ -42,7 +46,6 @@ export function buildStrip(track: Track, o: StripOptions): THREE.BufferGeometry 
         c.setRGB(1, 1, 1);
         o.colour?.(i, u, d, c);
         col.push(c.r, c.g, c.b);
-        const s = r === run.length - 1 && run.closed ? track.length : i * track.spacing;
         uvs.push(d / repeat, s / repeat);
       }
     });

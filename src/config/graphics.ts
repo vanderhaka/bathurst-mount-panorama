@@ -55,6 +55,12 @@ export interface GraphicsConfig {
   terrainColourNoise: number;
   /** Darkness of the rubbered-in racing groove on the asphalt (0..1). */
   rubberGroove: number;
+  surfaceDetail: boolean;
+  roadNormalStrength: number;
+  roadRepairStrength: number;
+  roadSkids: boolean;
+  kerbWear: number;
+  lineWear: number;
   grassTuftDensity: number;
   /** Distance at which trees switch to the low-detail mesh (m). */
   treeLodDistance: number;
@@ -102,6 +108,12 @@ export const DEFAULT_GRAPHICS: GraphicsConfig = {
   treeDensity: 1,
   terrainColourNoise: 1,
   rubberGroove: 0.55,
+  surfaceDetail: true,
+  roadNormalStrength: 0.65,
+  roadRepairStrength: 0.8,
+  roadSkids: true,
+  kerbWear: 0.7,
+  lineWear: 0.6,
   grassTuftDensity: 1,
   treeLodDistance: 160,
   propDrawDistance: 1400,
@@ -111,10 +123,11 @@ export const DEFAULT_GRAPHICS: GraphicsConfig = {
 export const QUALITY: Record<QualityPreset, {
   msaa: number; treeDensityScale: number; shadowMap: number; post: boolean; cascades: number; screenAo: boolean; bakedAo: boolean;
   physicalSky: boolean; aerialPerspective: boolean; bloom: boolean; environmentSize: number;
+  detailMapSize: number; surfaceDetail: boolean; skids: boolean;
 }> = {
-  low: { msaa: 0, treeDensityScale: 0.45, shadowMap: 1024, post: false, physicalSky: false, aerialPerspective: false, bloom: false, environmentSize: 128, cascades: 1, screenAo: false, bakedAo: true },
-  medium: { msaa: 4, treeDensityScale: 0.75, shadowMap: 1024, post: true, physicalSky: false, aerialPerspective: true, bloom: false, environmentSize: 128, cascades: 2, screenAo: false, bakedAo: true },
-  high: { msaa: 4, treeDensityScale: 1, shadowMap: 2048, post: true, physicalSky: true, aerialPerspective: true, bloom: true, environmentSize: 256, cascades: 3, screenAo: true, bakedAo: true },
+  low: { msaa: 0, treeDensityScale: 0.45, shadowMap: 1024, post: false, physicalSky: false, aerialPerspective: false, bloom: false, environmentSize: 128, cascades: 1, screenAo: false, bakedAo: true, detailMapSize: 256, surfaceDetail: false, skids: false },
+  medium: { msaa: 4, treeDensityScale: 0.75, shadowMap: 1024, post: true, physicalSky: false, aerialPerspective: true, bloom: false, environmentSize: 128, cascades: 2, screenAo: false, bakedAo: true, detailMapSize: 512, surfaceDetail: false, skids: true },
+  high: { msaa: 4, treeDensityScale: 1, shadowMap: 2048, post: true, physicalSky: true, aerialPerspective: true, bloom: true, environmentSize: 256, cascades: 3, screenAo: true, bakedAo: true, detailMapSize: 1024, surfaceDetail: true, skids: true },
 };
 
 const STORAGE_KEY = 'bathurst.graphics.v1';

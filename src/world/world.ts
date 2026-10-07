@@ -11,7 +11,7 @@ import { buildWallSigns } from '@/world/wall-signs';
 import { buildTerrain, type Terrain } from '@/world/terrain';
 import { buildScenery, type Scenery } from '@/world/scenery';
 import type { QualityPreset } from '@/render/renderer';
-import { getGraphics } from '@/config/graphics';
+import { getGraphics, QUALITY } from '@/config/graphics';
 
 export interface World {
   track: Track;
@@ -44,7 +44,13 @@ export async function buildWorld(
   const profile = reuse?.profile ?? computeSpeedProfile(track, line, tunedSpec(CAR_SPECS.camaro, DEFAULT_HANDLING), LINE_PROFILE);
   const kerbs = reuse?.kerbs ?? placeKerbs(track, line);
   await progress(0.25, 'Laying the asphalt');
-  root.add(buildRoad(track, line, kerbs, renderer));
+  const cfg = getGraphics(), tier = QUALITY[quality];
+  root.add(buildRoad(track, line, kerbs, renderer, {
+    profile, detailSize: tier.detailMapSize, surfaceDetail: cfg.surfaceDetail && tier.surfaceDetail,
+    normalStrength: cfg.roadNormalStrength, repairStrength: cfg.roadRepairStrength,
+    rubberGroove: cfg.rubberGroove, skids: cfg.roadSkids && tier.skids,
+    kerbWear: cfg.kerbWear, lineWear: cfg.lineWear,
+  }));
   root.add(buildVerges(track, kerbs));
   await progress(0.4, 'Building concrete walls and catch fences');
   root.add(buildBarriers(track, renderer));
