@@ -1,0 +1,47 @@
+/* Fixed compact bounds keep the phone layout clear of the two touch-control corners. */
+.hud-minimal { display: none; }
+.bx-hud[data-size='minimal'] .hud-region:not(.hud-region--tr) { display: none; }
+.bx-hud[data-size='minimal'] .hud-region--tr {
+  top: max(8px, env(safe-area-inset-top));
+  right: max(8px, env(safe-area-inset-right));
+  font-size: 10px;
+}
+.bx-hud[data-size='minimal'] .hud-map {
+  width: 126px;
+  height: 84px;
+  padding-top: 0;
+  box-shadow: none;
+}
+.bx-hud[data-size='minimal'] .hud-map__view { height: 84px; }
+.bx-hud[data-size='minimal'] .hud-map .hud-panel__head,
+.bx-hud[data-size='minimal'] .hud-map__foot,
+.bx-hud[data-size='minimal'] .hud-map__ghost { display: none; }
+.bx-hud[data-size='minimal'] .hud-minimal {
+  position: absolute;
+  bottom: max(8px, env(safe-area-inset-bottom));
+  left: 50%;
+  transform: translateX(-50%);
+  display: grid;
+  grid-template-columns: 60px 32px 1fr;
+  gap: 8px;
+  width: min(232px, 70vw);
+  height: 56px;
+  padding: 6px 10px;
+  overflow: hidden;
+  background: var(--hud-panel-bg);
+  border-top: 2px solid var(--hud-accent);
+  clip-path: var(--hud-panel-clip);
+  font-size: 10px;
+}
+.hud-minimal > div {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 3px;
+}
+.hud-minimal b { font-weight: 800; white-space: nowrap; }
+.hud-minimal span { color: var(--hud-text-dim); font-size: 9px; letter-spacing: 0.06em; }
+.hud-minimal__speed b { font-size: 28px; }
+.hud-minimal__gear { text-align: center; }
+.hud-minimal__gear b { font-size: 32px; }
+.hud-minimal__lap b { font: 500 16px var(--hud-font-mono); }

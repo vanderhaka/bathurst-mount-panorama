@@ -83,6 +83,11 @@ export const SETTING_GROUPS: ReadonlyArray<{ title: string; fields: SettingField
   {
     title: 'Display',
     fields: [
+      {
+        key: 'hudSize', kind: 'choice', label: 'HUD size',
+        help: 'Minimal shows speed, gear, lap time and your position on the map.',
+        options: [{ value: 'full', label: 'Full' }, { value: 'minimal', label: 'Minimal' }],
+      },
       { key: 'ghost', kind: 'choice', label: 'Ghost car', help: 'Replays your best lap as a translucent car.', options: ON_OFF },
       {
         key: 'units',

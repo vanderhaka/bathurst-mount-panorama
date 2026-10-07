@@ -53,6 +53,8 @@ export interface HudState {
   fps: number | null;
 
   // ---- Optional extras (additive). The HUD works without them.
+  /** Full broadcast layout or compact speed, gear, lap time and player map. Omit = Full. */
+  hudSize?: Settings['hudSize'];
   /** Start lights: number lit (0..5) during the countdown, -1 once the lights are out. Omit = no lights strip. */
   startLights?: number;
   /** Camera view: in 'cockpit' the timing tower moves below the interior mirror. */

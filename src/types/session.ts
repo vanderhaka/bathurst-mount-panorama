@@ -31,6 +31,7 @@ export interface Settings {
   camera: CameraMode;
   masterVolume: number; // 0..1
   showFps: boolean;
+  hudSize: 'full' | 'minimal';
   motionBlur: boolean;
 }
 
@@ -56,6 +57,7 @@ export const DEFAULT_SETTINGS: Settings = {
   camera: 'chase',
   masterVolume: 0.8,
   showFps: false,
+  hudSize: 'full',
   motionBlur: true,
 };
 

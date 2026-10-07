@@ -134,12 +134,13 @@ export class TrackMap {
   }
 
   update(st: HudState): void {
-    let sig = String(st.lap.currentSector);
-    for (const sec of st.lap.sectors) sig += sec.state[0] + sec.state[1];
+    const minimal = st.hudSize === 'minimal';
+    let sig = minimal ? 'minimal' : String(st.lap.currentSector);
+    if (!minimal) for (const sec of st.lap.sectors) sig += sec.state[0] + sec.state[1];
     if (sig !== this.sig || !this.t) {
       this.sig = sig;
-      this.states = st.lap.sectors.map((x) => x.state);
-      this.current = st.lap.currentSector;
+      this.states = minimal ? [] : st.lap.sectors.map((x) => x.state);
+      this.current = minimal ? -1 : st.lap.currentSector;
       this.redraw();
     }
     const t = this.t;

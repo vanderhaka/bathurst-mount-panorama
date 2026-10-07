@@ -166,7 +166,7 @@ Status: blocked; candidate 607396a reverted by a85152a. Local offline/update che
 - **Do:** a service worker that caches the game files and fonts; a new version replaces the old one on the next start.
 - **Done when:** the Home Screen app starts and plays with the network off.
 ### 2.7 Touch-control options — M
-Status: done — awaiting the user's iPhone check (commit recorded by next item; evidence `artifacts/review/item-2.7/`).
+Status: done — awaiting the user's iPhone check (commit f6747bf3564a64882c8e8acd3927f526b96d1f20; evidence `artifacts/review/item-2.7/`).
 - **Do:** in Settings > Steering, add:
   1. Touch steering mode: drag (current), tilt (gyroscope; iOS asks for permission on a tap), or left/right buttons.
   2. Analog throttle: thumb position on the pedal sets the throttle.
@@ -174,6 +174,7 @@ Status: done — awaiting the user's iPhone check (commit recorded by next item;
   4. Left-handed layout (mirror the controls).
 - **Done when:** each mode works in a phone play scenario and on the user's iPhone.
 ### 2.8 Minimal phone HUD — S
+Status: done — awaiting the user's iPhone check (commit recorded by next item; evidence `artifacts/review/item-2.8/`).
 - **Do:** a Display setting with HUD size "Full" or "Minimal" (speed, gear, lap time, position on the map).
 - **Done when:** the minimal HUD covers less than 10 % of a phone screen.
 ### 2.9 Android vibration — S

@@ -55,6 +55,7 @@ export function buildHudState(session: RaceSession, profile: SpeedProfile, setti
   const d = v.damage;
   const state: HudState = out ?? ({} as HudState);
   state.units = settings.units;
+  state.hudSize = settings.hudSize;
   state.speedKmh = Math.abs(t.speed) * 3.6;
   state.rpm = t.rpm;
   state.maxRpm = e.limiterRpm;

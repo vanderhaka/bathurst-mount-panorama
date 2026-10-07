@@ -9,11 +9,13 @@ import '@/hud/dash.css';
 import '@/hud/map.css';
 import '@/hud/broadcast.css';
 import '@/hud/phone.css';
+import '@/hud/minimal.css';
 import type { Hud, HudState, HudTrackInfo } from '@/types/hud';
 import { Banner } from '@/hud/banner';
 import { Dash } from '@/hud/dash';
 import { DeltaStrip } from '@/hud/delta-strip';
 import { h, TextSlot } from '@/hud/dom';
+import { MinimalReadout } from '@/hud/minimal-readout';
 import { StartLights } from '@/hud/start-lights';
 import { Telemetry } from '@/hud/telemetry';
 import { TimingPanel } from '@/hud/timing-panel';
@@ -25,6 +27,7 @@ export { loadHudFonts } from '@/hud/fonts';
 interface Parts {
   root: HTMLElement;
   timing: TimingPanel;
+  minimal: MinimalReadout;
   map: TrackMap;
   dash: Dash;
   telemetry: Telemetry;
@@ -37,6 +40,7 @@ interface Parts {
 
 function build(track: HudTrackInfo): Parts {
   const timing = new TimingPanel();
+  const minimal = new MinimalReadout();
   const map = new TrackMap(track);
   const dash = new Dash();
   const telemetry = new Telemetry();
@@ -51,8 +55,9 @@ function build(track: HudTrackInfo): Parts {
     h('div', 'hud-region hud-region--tc', undefined, [lights.el, delta.el, banner.el]),
     h('div', 'hud-region hud-region--bl', undefined, [tyreFuel.el, telemetry.el]),
     h('div', 'hud-region hud-region--br', undefined, [dash.el]),
+    minimal.el,
   ]);
-  return { root, timing, map, dash, telemetry, tyreFuel, delta, lights, banner, fps };
+  return { root, timing, minimal, map, dash, telemetry, tyreFuel, delta, lights, banner, fps };
 }
 
 /** Creates the HUD. The container must cover the game viewport; it is made position:relative if static. */
@@ -73,6 +78,9 @@ export function createHud(): Hud {
       // The display-only tyre/fuel estimate integrates over time, so it keeps running while hidden.
       parts.tyreFuel.update(state);
       if (!visible) return;
+      const size = state.hudSize === 'minimal' ? 'minimal' : 'full';
+      if (parts.root.dataset.size !== size) parts.root.dataset.size = size;
+      parts.minimal.update(state);
       const view = state.view ?? 'outside';
       if (parts.root.dataset.view !== view) parts.root.dataset.view = view;
       parts.timing.update(state);
