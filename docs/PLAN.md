@@ -157,11 +157,12 @@ Status: done — awaiting the user's iPhone check (commit 486017aed92e06b84b0309
 - **Do:** measure the frame time in the first 10 seconds of a race; if it is above the tier budget, step down (High → Medium → Low, then pixel density). Save the result per device. Show a short note when the quality changes; the player can override it in Settings.
 - **Done when:** a throttled desktop (CPU and GPU slowdown in Chrome) steps down by itself and stays down after a reload.
 ### 2.5 WebKit test engine — S
-Status: done — awaiting the user's iPhone check (commit recorded by the next item; evidence `artifacts/review/item-2.5/`).
+Status: done — awaiting the user's iPhone check (commit d04b66132dd93346c09b08456c44ec04e9b3a4e6; evidence `artifacts/review/item-2.5/`).
 - **Depends on:** D4.
 - **Do:** install Playwright WebKit; run the phone play scenarios (`scripts/play.mjs --mobile`) in WebKit as well as Chrome.
 - **Done when:** the phone scenarios pass in WebKit; any WebKit-only fault has a fix or an issue.
 ### 2.6 Offline play — S
+Status: done — awaiting the user's iPhone check (commit recorded by the next item; evidence `artifacts/review/item-2.6/`).
 - **Do:** a service worker that caches the game files and fonts; a new version replaces the old one on the next start.
 - **Done when:** the Home Screen app starts and plays with the network off.
 ### 2.7 Touch-control options — M

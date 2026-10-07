@@ -1,10 +1,12 @@
 import { resolve } from 'node:path';
 import { defineConfig } from 'vitest/config';
+import { offlinePlugin } from './build/offline-plugin';
 
 const root = import.meta.dirname;
 const production = process.env.VERCEL_ENV === 'production';
 
 export default defineConfig({
+  plugins: [offlinePlugin()],
   // Dev tools on everywhere except the Vercel production deployment (src/config/build-flags.ts).
   define: { __DEV_TOOLS__: JSON.stringify(!production) },
   resolve: { alias: { '@': resolve(root, 'src') } },
