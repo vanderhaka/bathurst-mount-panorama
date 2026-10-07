@@ -12,10 +12,10 @@ export const SKY = {
 } as const;
 
 export const GROUND = {
-  grassLight: 0x9bb05a,
-  grass: 0x7f9a47,
-  grassDark: 0x5e7637,
-  grassDry: 0xb2a865,
+  grassLight: 0x9ca263,
+  grass: 0x7a874c,
+  grassDark: 0x5a663b,
+  grassDry: 0xb3a06c,
   clay: 0xa06c45,
   clayDark: 0x7a4f33,
   gravel: 0xbfab8c,
@@ -27,8 +27,28 @@ export const FOLIAGE = {
   eucalyptA: 0x6f8050,
   eucalyptB: 0x5c6c44,
   eucalyptSilver: 0x8c9a72,
+  /**
+   * Gum crown gradient, blue-grey → grey-green → sage → olive → dark olive. Dark and cool:
+   * eucalypt bush reads darker and bluer than the grass, and the warm game sun and grade
+   * shift foliage towards yellow on screen.
+   */
+  eucalyptBlueGrey: 0x607070,
+  eucalyptGreyGreen: 0x586a60,
+  eucalyptSage: 0x5f7062,
+  eucalyptOlive: 0x5a6954,
+  eucalyptDarkOlive: 0x495846,
+  /** Blue-silver sheen on the sunlit tops of gum clumps. */
+  eucalyptSheen: 0x7d8e8a,
   eucalyptTrunk: 0xd2c9b6,
+  /** Smooth white-grey gum bark (upper trunk and limbs). */
+  eucalyptTrunkPale: 0xd8dad6,
   eucalyptBark: 0x8a7764,
+  /** Shedding bark ribbons hanging at the base of smooth gums. */
+  eucalyptBarkStrip: 0x9a7a5e,
+  /** Rough, fibrous grey-brown bark of box gums (Yellow Box, Grey Box). */
+  eucalyptBoxBark: 0x948a7c,
+  /** Weathered silver-grey dead wood (stags, dead limbs). */
+  eucalyptDeadWood: 0xaeaaa2,
   pine: 0x3e5934,
   pineDark: 0x2f4529,
   pineTrunk: 0x6a4a33,
@@ -40,15 +60,15 @@ export const ROAD = {
   asphaltWorn: 0x55575a,
   groove: 0x333436,
   lineWhite: 0xf0f0ec,
-  kerbRed: 0xc62a2a,
-  kerbWhite: 0xefefea,
+  kerbRed: 0xb3352f,
+  kerbWhite: 0xe6e5df,
   pitLaneLine: 0xf2d22e,
 } as const;
 
 export const TRACKSIDE = {
   concrete: 0xc9c5ba,
   concreteDark: 0x9e9a90,
-  fencePost: 0x6c7277,
+  fencePost: 0x9aa1a6,
   fenceMesh: 0xa3abb1,
   tyre: 0x1d1e20,
   tyreBeltWhite: 0xe9e9e6,

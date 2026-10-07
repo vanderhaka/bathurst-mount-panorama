@@ -1,0 +1,122 @@
+/* Hint bar, keycaps, gamepad glyphs, tags. Tokens: src/hud/theme.css */
+/* ---- hints */
+.mn-hints {
+  position: absolute;
+  left: max(3.5em, 5.5vw);
+  bottom: 2.2em;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6em 1.8em;
+  font-size: 0.86em;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--hud-text-dim);
+}
+.mn-screen--dim .mn-hints {
+  left: 50%;
+  bottom: 1.6em;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  flex-wrap: nowrap;
+}
+.mn-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45em;
+}
+
+/* ---- keycaps + pad glyphs */
+.mn-key {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2.05em;
+  height: 2.05em;
+  padding: 0 0.5em;
+  font-family: var(--hud-font-display);
+  font-size: 0.92em;
+  font-weight: 700;
+  color: var(--hud-text);
+  background: linear-gradient(#272b30, #1b1e22);
+  border: 1px solid #3b4046;
+  border-bottom-width: 0.18em;
+  border-radius: 0.28em;
+}
+.mn-key--sm {
+  min-width: 1.9em;
+  height: 1.9em;
+  font-size: 0.82em;
+}
+.mn-key--wide {
+  min-width: 3.4em;
+}
+.mn-pad {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.75em;
+  height: 1.75em;
+  padding: 0 0.42em;
+  font-size: 0.92em;
+  font-weight: 700;
+  color: var(--hud-text);
+  background: #262a2f;
+  border: 1px solid #3b4046;
+  border-radius: 0.5em;
+  text-transform: none;
+}
+.mn-pad--a,
+.mn-pad--b,
+.mn-pad--x,
+.mn-pad--y,
+.mn-pad--ls {
+  width: 1.75em;
+  padding: 0;
+  border-radius: 50%;
+}
+.mn-pad--a { color: #6fd27d; }
+.mn-pad--b { color: #ff6b5e; }
+.mn-pad--x { color: #64a1ff; }
+.mn-pad--y { color: #f5c84a; }
+/* PlayStation symbols (the menus root carries data-pad="ps4" or "ps5"). */
+.bx-menus[data-pad^='ps'] .mn-pad--a { color: #8ab4ff; }
+.bx-menus[data-pad^='ps'] .mn-pad--b { color: #ff7b72; }
+.bx-menus[data-pad^='ps'] .mn-pad--x { color: #f08cd8; }
+.bx-menus[data-pad^='ps'] .mn-pad--y { color: #4fd6a8; }
+.mn-pad__sym {
+  width: 0.95em;
+  height: 0.95em;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.mn-pad--dpad {
+  width: 1.75em;
+  padding: 0;
+  overflow: hidden;
+  color: transparent;
+  background:
+    linear-gradient(var(--hud-text), var(--hud-text)) center / 0.36em 1.15em no-repeat,
+    linear-gradient(var(--hud-text), var(--hud-text)) center / 1.15em 0.36em no-repeat,
+    #262a2f;
+}
+.mn-tag {
+  display: inline-block;
+  padding: 0.24em 0.48em 0.2em;
+  font-size: 0.72em;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  border-radius: 1px;
+}
+.mn-tag--ob {
+  color: #fff;
+  background: var(--hud-sector-overall);
+}
+.mn-tag--bad {
+  color: #fff;
+  background: var(--hud-bad);
+}

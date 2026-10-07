@@ -1,0 +1,122 @@
+/*
+ * HUD + menu theme. Every tunable look value lives here as a custom property on
+ * :root, so a tuning panel can change any of them live with
+ *   document.documentElement.style.setProperty('--hud-accent', '#e2231a')
+ * setHudScale() / setHudOpacity() (src/hud/index.ts) write --hud-scale / --hud-opacity.
+ * Sizes inside the HUD are in em of --hud-font-size, so --hud-scale scales everything.
+ */
+:root {
+  /* ---- global scale, opacity, spacing */
+  --hud-scale: 1;
+  --hud-opacity: 1;
+  --hud-base-size: clamp(11px, min(0.82vw, 1.46vh), 26px);
+  --hud-font-size: calc(var(--hud-base-size) * var(--hud-scale));
+  --hud-margin-x: max(1.8em, 2.2vw);
+  --hud-margin-y: max(1.5em, 2.6vh);
+  --hud-gap: 0.5em;
+  --hud-radius: 2px;
+
+  /* ---- panels: dark slate base, chamfered corners, one accent band on top */
+  --hud-panel-rgb: 17 21 27;
+  --hud-panel-alpha: 0.93;
+  --hud-panel-bg: rgb(var(--hud-panel-rgb) / var(--hud-panel-alpha));
+  --hud-panel-head-bg: rgb(5 7 10 / 0.55);
+  --hud-row-bg: rgb(255 255 255 / 0.045);
+  --hud-row-you-bg: rgb(255 255 255 / 0.11);
+  --hud-cut: 0.85em;
+  --hud-band: 0.24em;
+  --hud-panel-clip: polygon(0 0, calc(100% - var(--hud-cut)) 0, 100% var(--hud-cut), 100% 100%, var(--hud-cut) 100%, 0 calc(100% - var(--hud-cut)));
+  --hud-strip-clip: polygon(var(--hud-cut) 0, 100% 0, calc(100% - var(--hud-cut)) 100%, 0 100%);
+  --hud-panel-border: rgb(255 255 255 / 0.1);
+  --hud-panel-shadow: 0 0.15em 0.9em rgb(0 0 0 / 0.28);
+  --hud-hairline: rgb(255 255 255 / 0.08);
+
+  /* ---- text */
+  --hud-text: #f3f4f0;
+  --hud-text-dim: #a0a7ac;
+  --hud-text-faint: #5f676d;
+  --hud-font-display: 'Barlow Condensed', 'Arial Narrow', 'Roboto Condensed', sans-serif;
+  --hud-font-text: 'Barlow', 'Segoe UI', system-ui, sans-serif;
+  --hud-font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  --hud-fs-label: 0.92em;
+  --hud-fs-value: 1.15em;
+  --hud-fs-lap-time: 2.75em;
+  --hud-fs-delta: 2.45em;
+  --hud-fs-gear: 5.2em;
+  --hud-fs-speed: 3.1em;
+  --hud-num-weight: 800;
+  --hud-fs-banner: 1.35em;
+  --hud-label-tracking: 0.08em;
+
+  /* ---- accents and states */
+  --hud-accent: #d7262e;
+  --hud-accent-text: #ffffff;
+  --hud-good: #33d17a;
+  --hud-bad: #ff4d3a;
+  --hud-warn: #f5a524;
+  --hud-info: #c9d3d9;
+  --hud-sector-overall: #b44cf0;
+  --hud-sector-personal: #33d17a;
+  --hud-sector-slower: #f5c518;
+  --hud-sector-none: #3b4247;
+  --hud-sector-live: #f3f4f0;
+
+  /* ---- live delta strip (bar ~9 px tall at 1080p) */
+  --hud-delta-bar-h: 0.6em;
+  --hud-delta-bar-w: 24em;
+  --hud-delta-track: rgb(255 255 255 / 0.12);
+
+  /* ---- tyres (temperature bands) and fuel */
+  --hud-tyre-cold: #3b82f6;
+  --hud-tyre-warm: #2bb7c4;
+  --hud-tyre-ok: #2fd16f;
+  --hud-tyre-hot: #f5a524;
+  --hud-tyre-over: #ff3b30;
+  --hud-tyre-text: #0b0d10;
+  --hud-est-bg: rgb(255 255 255 / 0.18);
+  --hud-fuel: #e9ece8;
+  --hud-fuel-low: #ff4d3a;
+
+  /* ---- dash cluster */
+  --hud-dash-bezel: #0c0d0e;
+  --hud-dash-screen: #020303;
+  --hud-led-off: #1b1e21;
+  --hud-led-green: #24e06c;
+  --hud-led-amber: #ffb21a;
+  --hud-led-red: #ff2b22;
+  --hud-led-blue: #2c7dff;
+  --hud-led-glow: 0.75em;
+  --hud-rpm-fill: #eef0ea;
+  --hud-rpm-warn: #ffb21a;
+  --hud-rpm-red: #ff2b22;
+  --hud-lamp-on: #ffb21a;
+  --hud-lamp-off: #2a2e32;
+
+  /* ---- inputs and damage */
+  --hud-throttle: #2fd16f;
+  --hud-brake: #ff3b30;
+  --hud-steer: #f3f4f0;
+  --hud-dmg-ok: #3ccf6e;
+  --hud-dmg-mid: #f2b01e;
+  --hud-dmg-bad: #e8362a;
+
+  /* ---- track map (canvas reads these when it redraws) */
+  --hud-map-line: #dfe3df;
+  --hud-map-casing: rgb(0 0 0 / 0.65);
+  --hud-map-line-width: 3;
+  --hud-map-player: #ffffff;
+  --hud-map-player-ring: #d7262e;
+  --hud-map-ghost: #5ec8ff;
+
+  /* ---- menus */
+  --menu-scrim: rgb(6 7 9 / 0.74);
+  --menu-scrim-side: linear-gradient(90deg, rgb(5 6 8 / 0.86) 0%, rgb(5 6 8 / 0.62) 38%, rgb(5 6 8 / 0) 72%);
+  --menu-bg-solid: #0a0c0e;
+  --menu-panel-bg: rgb(12 14 17 / 0.9);
+  --menu-item-bg: rgb(255 255 255 / 0.04);
+  --menu-item-bg-focus: rgb(255 255 255 / 0.1);
+  --menu-focus-ring: #ffffff;
+  --menu-focus-width: 2px;
+  --menu-font-size: clamp(12px, min(0.9vw, 1.6vh), 28px);
+  --menu-title-size: clamp(56px, min(8.4vw, 15vh), 220px);
+}

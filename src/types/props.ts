@@ -40,6 +40,8 @@ export interface PropAsset {
   material: THREE.Material;
   /** Lower-detail geometry for far instances (optional). Same material. */
   lodGeometry?: THREE.BufferGeometry;
+  /** Multiplies the LOD switch distance for this asset (default 1). Box stand-ins switch later than trees. */
+  lodDistanceScale?: number;
   /** True when the geometry carries per-vertex colours that should be tinted by instance colour (white areas take the tint). */
   tintable: boolean;
   castShadow: boolean;

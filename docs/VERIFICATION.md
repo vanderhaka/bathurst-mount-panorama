@@ -1,0 +1,36 @@
+# Independent verification — frozen rubric
+
+Reviewers are fresh agents that did not build the game. They get the real game, the
+evidence set from `scripts/capture-evidence.mjs`, this rubric and the references in
+`docs/references/` and `docs/research/`. They do not get the builders' notes.
+
+## Evidence
+- `node scripts/capture-evidence.mjs artifacts/review/iter-N [--car mustang]` (game served at http://127.0.0.1:5180/).
+- Screenshots: title, car select (both cars), grid, 12 famous corners in race view with the HUD,
+  4 camera modes, racing line (full mode), damage, ghost lap, pause menu.
+- `metrics.json`: load time, fps / draw calls / triangles at four places, damage values, AI lap times, console errors.
+- Reviewers may also run the game themselves (`node scripts/play.mjs`, `node scripts/shot.mjs`) and read the code.
+
+## Hard gates (any failure = FAIL regardless of score)
+1. No console errors during the evidence run.
+2. The race starts from the menus, the lights go out, and a full lap is timed.
+3. 55 fps or more at 1920×1080 at all four perf points (Apple M-series, quality `high`).
+4. Both the Camaro and the Mustang are selectable and drivable.
+
+## Weighted criteria (total 100)
+| # | Criterion | Weight | What earns full marks |
+|---|---|---|---|
+| C1 | Track realism | 20 | Layout, length (6.213 km), 174 m elevation, corner order and character match the real circuit and the references (Mountain Straight climb, Cutting, Skyline drop, Dipper, Conrod humps, Chase). |
+| C2 | World visual quality | 20 | Coherent medium-poly style; lighting and palette read as an October afternoon at Bathurst; landmarks recognisable (pit building, grandstands, gantry, camping, gum trees, stone sign); no artefacts (z-fighting, floating or sunken objects, popping, stripes). |
+| C3 | Cars | 15 | Camaro and Mustang recognisable at 10–30 m; Gen3 aero; livery; wheels; cockpit view believable; visible damage; ghost look. Primitive-built cars fail this criterion. |
+| C4 | HUD and UI | 15 | Realistic broadcast/sim style; speed, gear, rpm/shift lights, timing, sectors, delta, map, damage, inputs, next-corner speed; menus clear and navigable. |
+| C5 | Driving, racing line, speed indicators | 15 | Plausible Gen3 speeds and lap time (~2:04–2:15); racing line colours guide braking correctly; speed indicators consistent; camera feel. |
+| C6 | Feature completeness | 10 | Lap timing, ghost, damage, gamepad support, cameras, settings, graphics tuner (F2). |
+| C7 | Performance and robustness | 5 | Frame rate headroom, draw calls < 250, load time, no warnings. |
+
+Score each criterion 0–weight with direct evidence (file name or measured value).
+
+## Pass threshold
+- Overall ≥ 85 and every criterion ≥ 60 % of its weight, and all hard gates pass.
+- Report for each criterion: score, PASS/FAIL against 60 %, evidence, and the largest remaining gap.
+- Finish with the top 5 defects ranked by impact on the user's request ("extremely high quality", realistic track, medium-poly, realistic HUD).

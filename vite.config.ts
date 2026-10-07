@@ -15,11 +15,14 @@ export default defineConfig({
         props: resolve(root, 'harness/props.html'),
         hud: resolve(root, 'harness/hud.html'),
         audio: resolve(root, 'harness/audio.html'),
+        track: resolve(root, 'harness/track.html'),
       },
     },
   },
   test: {
     include: ['tests/**/*.test.ts', 'src/**/*.test.ts'],
+    // Diagnostic traces (no assertions): run with `npx vitest run tests/debug/<file> --silent=false`.
+    exclude: ['tests/debug/**', 'node_modules/**'],
     environment: 'node',
   },
 });

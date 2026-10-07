@@ -1,0 +1,303 @@
+/* Panel screens: settings, pause, controls, results. Tokens: src/hud/theme.css */
+/* ---- settings */
+.mn-panel--settings {
+  width: min(66em, 94vw);
+}
+.mn-settings__cols {
+  columns: 2;
+  column-gap: 2.2em;
+  overflow-y: auto;
+  min-height: 0;
+}
+.mn-group {
+  break-inside: avoid;
+  margin-bottom: 1.2em;
+}
+.mn-group__title {
+  margin: 0 0 0.55em;
+  font-size: 0.8em;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--hud-text-dim);
+}
+.mn-value--setting {
+  margin-bottom: 0.3em;
+  padding-top: 0.5em;
+  padding-bottom: 0.5em;
+}
+.mn-value--setting .mn-value__v {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35em;
+  min-width: 7em;
+}
+.mn-value__text {
+  font-size: 1.05em;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+.mn-value--setting[data-value='false'] .mn-value__text {
+  color: var(--hud-text-dim);
+}
+.mn-meter {
+  display: inline-flex;
+  gap: 0.12em;
+}
+.mn-meter i {
+  width: 0.22em;
+  height: 0.55em;
+  background: rgb(255 255 255 / 0.18);
+}
+.mn-meter i.is-on {
+  background: var(--hud-text);
+}
+
+/* ---- pause */
+.mn-panel--pause {
+  width: min(26em, 90vw);
+}
+.mn-pause__session {
+  margin: 0.55em 0 0;
+  font-size: 0.95em;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--hud-text-dim);
+}
+
+/* ---- controls */
+.mn-panel--controls {
+  width: min(76em, 95vw);
+}
+.mn-controls__cols {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  gap: 2.4em;
+  min-height: 0;
+  overflow-y: auto;
+}
+.mn-keys {
+  margin: 0;
+}
+.mn-keys__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1em;
+  padding: 0.34em 0;
+  border-bottom: 1px solid var(--hud-hairline);
+}
+.mn-keys__row dt {
+  font-family: var(--hud-font-text);
+  font-size: 0.95em;
+  font-weight: 500;
+}
+.mn-keys__row dd {
+  display: flex;
+  align-items: center;
+  gap: 0.3em;
+  margin: 0;
+}
+.mn-keys__or {
+  margin: 0 0.35em;
+  font-size: 0.78em;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--hud-text-faint);
+}
+.mn-gp-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 1em;
+}
+.mn-gp {
+  width: 100%;
+  max-height: 17em;
+  font-family: var(--hud-font-display);
+}
+.mn-gp__body {
+  fill: #16191c;
+  stroke: #4b5157;
+  stroke-width: 1.6;
+}
+.mn-gp__guide {
+  fill: #23272b;
+  stroke: #4b5157;
+}
+.mn-gp__ctl rect,
+.mn-gp__ctl circle,
+.mn-gp__ctl path {
+  fill: #23272b;
+  stroke: #4b5157;
+  stroke-width: 1.4;
+}
+.mn-gp__ctl text {
+  font-size: 13px;
+  font-weight: 700;
+  text-anchor: middle;
+  fill: #6b7278;
+}
+.mn-gp__ctl.is-bound rect,
+.mn-gp__ctl.is-bound > circle:first-child,
+.mn-gp__ctl.is-bound path {
+  fill: #e9ece8;
+  stroke: #ffffff;
+}
+.mn-gp__ctl.is-bound .mn-gp__cap {
+  fill: #2a2e33;
+  stroke: #e9ece8;
+}
+.mn-gp__ctl.is-bound text {
+  fill: #0d0f11;
+}
+.mn-gp__ctl.is-bound .mn-gp__cap + text {
+  fill: #e9ece8;
+}
+/* PlayStation face symbols (stroked paths, not text). */
+.mn-gp__ctl .mn-gp__sym {
+  fill: none;
+  stroke: #6b7278;
+  stroke-width: 1.9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.mn-gp__ctl.is-bound .mn-gp__sym {
+  fill: none;
+  stroke: #0d0f11;
+}
+.mn-gp-legend {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 1.6em;
+  margin: 0;
+}
+.mn-gp-legend__row {
+  display: flex;
+  align-items: center;
+  gap: 0.7em;
+  padding: 0.3em 0;
+  border-bottom: 1px solid var(--hud-hairline);
+}
+.mn-gp-legend__row dt {
+  display: flex;
+  justify-content: center;
+  width: 3.2em;
+}
+.mn-gp-legend__row dd {
+  margin: 0;
+  font-family: var(--hud-font-text);
+  font-size: 0.92em;
+  font-weight: 500;
+}
+
+/* ---- results */
+.mn-panel--results {
+  width: min(64em, 94vw);
+}
+.mn-results__summary {
+  margin: 0.5em 0 0;
+  font-size: 0.95em;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--hud-text-dim);
+}
+.mn-bests {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.8em;
+  margin-bottom: 1.2em;
+}
+.mn-best {
+  padding: 0.85em 1.1em 0.9em;
+  background: rgb(255 255 255 / 0.04);
+  border-left: 0.2em solid rgb(255 255 255 / 0.18);
+}
+.mn-best.is-overall {
+  border-left-color: var(--hud-sector-overall);
+  background: color-mix(in srgb, var(--hud-sector-overall) 10%, transparent);
+}
+.mn-best__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.mn-best__car {
+  font-size: 0.85em;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--hud-text-dim);
+}
+.mn-best__time {
+  margin: 0.25em 0 0.35em;
+  font-size: 2.3em;
+  font-weight: 700;
+  line-height: 1;
+}
+.mn-best.is-overall .mn-best__time {
+  color: var(--hud-sector-overall);
+}
+.mn-best__sectors {
+  display: flex;
+  gap: 1.3em;
+  margin: 0;
+  font-size: 0.95em;
+  font-weight: 600;
+}
+.mn-best__sectors small {
+  margin-right: 0.4em;
+  font-size: 0.78em;
+  color: var(--hud-text-faint);
+}
+.mn-table-wrap {
+  min-height: 0;
+  overflow-y: auto;
+}
+.mn-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 1em;
+}
+.mn-table th {
+  padding: 0.5em 0.7em;
+  font-size: 0.74em;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-align: left;
+  text-transform: uppercase;
+  color: var(--hud-text-dim);
+  border-bottom: 1px solid rgb(255 255 255 / 0.16);
+}
+.mn-table td {
+  padding: 0.45em 0.7em;
+  font-weight: 600;
+  border-bottom: 1px solid rgb(255 255 255 / 0.05);
+}
+.mn-table .mn-time {
+  font-size: 1.12em;
+  font-weight: 700;
+}
+.mn-table .is-ob {
+  color: var(--hud-sector-overall);
+}
+.mn-table .is-pb {
+  color: var(--hud-sector-personal);
+}
+.mn-table tr.is-invalid td {
+  color: var(--hud-text-faint);
+}
+.mn-table .mn-time.is-invalid {
+  text-decoration: line-through;
+}
+.mn-empty {
+  padding: 1.5em 0.7em;
+  color: var(--hud-text-dim);
+}
+.mn-panel__foot--buttons {
+  justify-content: flex-start;
+  gap: 0.6em;
+}

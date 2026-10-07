@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { SKY } from '@/art/palette';
+import { getGraphics, type GraphicsConfig } from '@/config/graphics';
 import type { QualityPreset } from '@/render/renderer';
 import { SUN_DIRECTION } from '@/world/sky';
 
@@ -9,6 +9,8 @@ export interface SceneLighting {
   /** Moves the shadow frustum so that it covers `focus` (call every frame). */
   follow(focus: THREE.Vector3): void;
   setQuality(q: QualityPreset): void;
+  /** Applies live graphics values (intensities, colours, fog). Call after Sky.apply(). */
+  apply(cfg: GraphicsConfig): void;
 }
 
 const SHADOW: Record<QualityPreset, { size: number; extent: number }> = {
@@ -18,15 +20,17 @@ const SHADOW: Record<QualityPreset, { size: number; extent: number }> = {
 };
 
 export function createLighting(scene: THREE.Scene, quality: QualityPreset = 'high'): SceneLighting {
-  scene.fog = new THREE.FogExp2(SKY.haze, 0.00011);
+  const cfg0 = getGraphics();
+  const fog = new THREE.FogExp2(cfg0.fogColour, cfg0.fogDensity);
+  scene.fog = fog;
 
-  const hemi = new THREE.HemisphereLight(0xe2e9ee, 0x7d7458, 1.6);
+  const hemi = new THREE.HemisphereLight(cfg0.hemiSky, cfg0.hemiGround, cfg0.hemiIntensity);
   scene.add(hemi);
 
-  const sun = new THREE.DirectionalLight(SKY.sun, 3.1);
+  const sun = new THREE.DirectionalLight(cfg0.sunColour, cfg0.sunIntensity);
   sun.castShadow = true;
-  sun.shadow.bias = -0.00035;
-  sun.shadow.normalBias = 0.04;
+  sun.shadow.bias = -0.0005;
+  sun.shadow.normalBias = 0.09;
   scene.add(sun);
   scene.add(sun.target);
 
@@ -47,8 +51,13 @@ export function createLighting(scene: THREE.Scene, quality: QualityPreset = 'hig
   apply(quality);
 
   const snapped = new THREE.Vector3();
-  const lightSpace = new THREE.Matrix4().lookAt(new THREE.Vector3(), SUN_DIRECTION.clone().negate(), new THREE.Vector3(0, 1, 0));
-  const inv = lightSpace.clone().invert();
+  const lightSpace = new THREE.Matrix4();
+  const inv = new THREE.Matrix4();
+  const updateLightSpace = () => {
+    lightSpace.lookAt(new THREE.Vector3(), SUN_DIRECTION.clone().negate(), new THREE.Vector3(0, 1, 0));
+    inv.copy(lightSpace).invert();
+  };
+  updateLightSpace();
   return {
     sun,
     hemi,
@@ -67,6 +76,17 @@ export function createLighting(scene: THREE.Scene, quality: QualityPreset = 'hig
     setQuality(q) {
       quality = q;
       apply(q);
+    },
+    apply(cfg) {
+      updateLightSpace();
+      sun.intensity = cfg.sunIntensity;
+      sun.color.set(cfg.sunColour);
+      hemi.intensity = cfg.hemiIntensity;
+      hemi.color.set(cfg.hemiSky);
+      hemi.groundColor.set(cfg.hemiGround);
+      fog.color.set(cfg.fogColour);
+      fog.density = cfg.fogDensity;
+      scene.environmentIntensity = cfg.envIntensity;
     },
   };
 }

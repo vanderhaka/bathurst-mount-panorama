@@ -2,9 +2,13 @@ import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { SKY } from '@/art/palette';
 import { paintGeometry, vertexColourMaterial } from '@/art/materials';
+import { getGraphics, sunDirection, type GraphicsConfig } from '@/config/graphics';
 
-/** Direction towards the sun: October afternoon, sun in the north-west (north is -Z), ~38 degrees high. */
-export const SUN_DIRECTION = new THREE.Vector3(-0.52, 0.62, -0.58).normalize();
+/**
+ * Direction towards the sun (October afternoon, sun in the north-west; north is -Z).
+ * Mutated in place when the graphics config changes, so holders see the update.
+ */
+export const SUN_DIRECTION = new THREE.Vector3(...sunDirection(getGraphics()));
 
 const vertexShader = /* glsl */ `
   varying vec3 vDir;
@@ -41,16 +45,18 @@ export interface Sky {
   clouds: THREE.Mesh;
   /** Keeps the dome centred on the camera. */
   follow(camera: THREE.Camera): void;
+  /** Applies live graphics values (sky colours, sun direction). */
+  apply(cfg: GraphicsConfig): void;
 }
 
 export function createSky(scene: THREE.Scene, radius = 9000): Sky {
   const material = new THREE.ShaderMaterial({
     uniforms: {
-      zenith: { value: new THREE.Color(SKY.zenith) },
+      zenith: { value: new THREE.Color(getGraphics().skyZenith) },
       mid: { value: new THREE.Color(SKY.mid) },
-      horizon: { value: new THREE.Color(SKY.horizon) },
-      sunColour: { value: new THREE.Color(SKY.sun) },
-      sunDir: { value: SUN_DIRECTION.clone() },
+      horizon: { value: new THREE.Color(getGraphics().skyHorizon) },
+      sunColour: { value: new THREE.Color(getGraphics().sunColour) },
+      sunDir: { value: SUN_DIRECTION },
     },
     vertexShader,
     fragmentShader,
@@ -73,6 +79,13 @@ export function createSky(scene: THREE.Scene, radius = 9000): Sky {
     clouds,
     follow(camera) {
       dome.position.copy(camera.position);
+    },
+    apply(cfg) {
+      SUN_DIRECTION.set(...sunDirection(cfg));
+      material.uniforms.zenith.value.set(cfg.skyZenith);
+      material.uniforms.horizon.value.set(cfg.skyHorizon);
+      material.uniforms.mid.value.set(cfg.skyZenith).lerp(new THREE.Color(cfg.skyHorizon), 0.55);
+      material.uniforms.sunColour.value.set(cfg.sunColour);
     },
   };
 }

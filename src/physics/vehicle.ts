@@ -1,0 +1,299 @@
+import type { CarSpec } from '@/car/car-specs';
+import { DEFAULT_HANDLING, type HandlingConfig } from '@/config/handling';
+import type { KerbLayout } from '@/track/kerbs';
+import type { Track } from '@/track/track-model';
+import { createTrackPoint, heightAt, projectToTrack, sampleArray, surfaceAt, VERGE_FALL, type SurfaceKind, type TrackPoint } from '@/track/track-query';
+import { resolveWalls } from '@/physics/collision';
+import { applyImpactDamage, createDamage } from '@/physics/damage';
+import { createPowertrain, stepPowertrain, type PowertrainState } from '@/physics/powertrain';
+import { SURFACE, tyreCurve, tyreForces, type TyreResult } from '@/physics/tyre';
+import type { DamageState, ImpactReport, VehicleInput, VehicleTelemetry, WheelTelemetry } from '@/physics/types';
+
+const G = 9.81;
+const RHO = 1.2;
+
+export interface VehicleAssists {
+  abs: boolean;
+  tc: boolean;
+  autoGears: boolean;
+}
+
+/** Corner geometry: lateral x (+ left), longitudinal z (+ forward) from the CG. */
+interface Corner { x: number; z: number; k: number; c: number; h0: number }
+
+/**
+ * Gen3 Supercar dynamics: planar 4-wheel tyre model on the real track surface
+ * with a heave/pitch/roll suspension that produces the tyre loads.
+ */
+export class Vehicle {
+  // Planar state (world): position of the CG, velocity, heading (0 = +Z, + = left), yaw rate.
+  x = 0; z = 0; vx = 0; vz = 0; heading = 0; yawRate = 0;
+  // Vertical state: CG height, pitch (+ nose up), roll (+ left side up).
+  y = 0; vy = 0; pitch = 0; pitchRate = 0; roll = 0; rollRate = 0;
+  readonly pt: PowertrainState;
+  readonly damage: DamageState = createDamage();
+  readonly tp: TrackPoint = createTrackPoint();
+  readonly wheels: WheelTelemetry[];
+  readonly telemetry: VehicleTelemetry;
+  assists: VehicleAssists = { abs: true, tc: true, autoGears: true };
+  handling: Readonly<HandlingConfig> = DEFAULT_HANDLING; // tuner multipliers (F2, Handling)
+  steerAngle = 0;
+  private readonly corners: Corner[];
+  private readonly wtp: TrackPoint[] = [0, 1, 2, 3].map(() => createTrackPoint());
+  private readonly tyre: TyreResult = { fx: 0, fy: 0, use: 0, absActive: false, tcActive: false };
+  private prevComp = [0, 0, 0, 0];
+  private readonly comps = [0, 0, 0, 0];
+  private readonly surfs: SurfaceKind[] = ['road', 'road', 'road', 'road'];
+  private readonly a: number;
+  private readonly b: number;
+
+  constructor(readonly spec: CarSpec, readonly track: Track, readonly kerbs: KerbLayout) {
+    const d = spec.dimensions;
+    this.b = d.wheelbase * spec.frontWeight; // CG to rear axle
+    this.a = d.wheelbase - this.b; // CG to front axle
+    const mg = spec.massKg * G;
+    const loadF = (mg * spec.frontWeight) / 2, loadR = (mg * (1 - spec.frontWeight)) / 2;
+    const mk = (x: number, z: number, k: number, load: number): Corner => ({ x, z, k, c: 2 * 0.5 * Math.sqrt(k * (load / G)), h0: spec.cgHeight + load / k });
+    this.corners = [
+      mk(d.trackFront / 2, this.a, 125000, loadF),
+      mk(-d.trackFront / 2, this.a, 125000, loadF),
+      mk(d.trackRear / 2, -this.b, 112000, loadR),
+      mk(-d.trackRear / 2, -this.b, 112000, loadR),
+    ];
+    this.pt = createPowertrain(spec);
+    this.wheels = this.corners.map(() => ({ load: 0, slip: 0, surface: 'road' as const, spin: 0, compression: 0, steer: 0 }));
+    this.telemetry = {
+      speed: 0, rpm: spec.engine.idleRpm, gear: 1, throttle: 0, brake: 0, steer: 0, onLimiter: false,
+      tcActive: false, absActive: false, shifted: false, gLong: 0, gLat: 0, wheels: this.wheels, airborne: false, load: 0,
+    };
+  }
+
+  /** Places the car at rest at distance s and lateral offset d, facing the race direction. */
+  reset(s: number, d: number): void {
+    const t = this.track;
+    const i = Math.floor(t.wrapS(s) / t.spacing);
+    this.x = t.px[i] + t.lx[i] * d;
+    this.z = t.pz[i] + t.lz[i] * d;
+    this.heading = Math.atan2(t.tx[i], t.tz[i]);
+    this.vx = this.vz = this.yawRate = 0;
+    this.vy = this.pitchRate = this.rollRate = 0;
+    this.pitch = this.roll = 0;
+    projectToTrack(t, this.x, this.z, -1, this.tp);
+    this.settleOnGround();
+    this.pt.gear = 1;
+    this.pt.rpm = this.spec.engine.idleRpm;
+    this.steerAngle = 0;
+    // Start the dampers from the real compression (a twisted or steep road is not
+    // exactly the settle plane); otherwise the first step sees a huge damper speed.
+    this.contactPass();
+    for (let w = 0; w < 4; w++) this.prevComp[w] = this.comps[w];
+  }
+
+  /** Fills `comps` (suspension compression) and `surfs` (surface) for the four corners. */
+  private contactPass(): void {
+    const { track } = this;
+    const sin = Math.sin(this.heading), cos = Math.cos(this.heading);
+    for (let w = 0; w < 4; w++) {
+      const c = this.corners[w];
+      const wx = this.x + c.x * cos + c.z * sin;
+      const wz = this.z - c.x * sin + c.z * cos;
+      const tp = projectToTrack(track, wx, wz, this.tp.index, this.wtp[w]);
+      this.surfs[w] = surfaceAt(track, tp.index, tp.t, tp.d, this.kerbs.left, this.kerbs.right);
+      const S = SURFACE[this.surfs[w]];
+      let ground = heightAt(track, tp.index, tp.t, tp.d);
+      if (S.bump > 0) ground += S.bump * (0.5 + 0.5 * Math.sin(tp.s * 3.9 + w));
+      const yc = this.y + c.z * Math.sin(this.pitch) + c.x * Math.sin(this.roll);
+      this.comps[w] = ground + c.h0 - yc;
+    }
+  }
+
+  /** Sets heave, pitch and roll so that the body sits level with the ground plane under the wheels. */
+  private settleOnGround(): void {
+    const sin = Math.sin(this.heading), cos = Math.cos(this.heading);
+    const g = this.corners.map((c, w) => {
+      const tp = projectToTrack(this.track, this.x + c.x * cos + c.z * sin, this.z - c.x * sin + c.z * cos, this.tp.index, this.wtp[w]);
+      return heightAt(this.track, tp.index, tp.t, tp.d);
+    });
+    const d = this.spec.dimensions;
+    this.pitch = Math.atan(((g[0] + g[1]) / 2 - (g[2] + g[3]) / 2) / d.wheelbase);
+    this.roll = Math.atan(((g[0] + g[2]) / 2 - (g[1] + g[3]) / 2) / ((d.trackFront + d.trackRear) / 2));
+    const groundAtCg = ((g[0] + g[1]) / 2) * (this.b / d.wheelbase) + ((g[2] + g[3]) / 2) * (this.a / d.wheelbase);
+    this.y = groundAtCg + this.spec.cgHeight;
+  }
+
+  /** World x/z of a wheel's contact patch. */
+  wheelWorld(i: number, out: [number, number]): [number, number] {
+    const c = this.corners[i];
+    const sin = Math.sin(this.heading), cos = Math.cos(this.heading);
+    out[0] = this.x + c.x * cos + c.z * sin;
+    out[1] = this.z - c.x * sin + c.z * cos;
+    return out;
+  }
+
+  repair(): void {
+    Object.assign(this.damage, createDamage());
+  }
+
+  get speed(): number {
+    return this.vx * Math.sin(this.heading) + this.vz * Math.cos(this.heading);
+  }
+
+  /** Advances the simulation by dt seconds (use about 1/360 s). Returns wall impacts. */
+  step(input: VehicleInput, dt: number): ImpactReport[] {
+    const { spec, track } = this;
+    const hc = this.handling, curve = tyreCurve((hc.peakSlipDeg * Math.PI) / 180, hc.slideGrip);
+    const m = spec.massKg;
+    const sin = Math.sin(this.heading), cos = Math.cos(this.heading);
+    // Body axes: forward f = (sin, cos), left l = (cos, -sin).
+    const vLong = this.vx * sin + this.vz * cos;
+    const vLat = this.vx * cos - this.vz * sin;
+    projectToTrack(track, this.x, this.z, this.tp.index, this.tp);
+
+    // Steering: rate-limited road-wheel angle, plus a pull from suspension damage.
+    const targetSteer = input.steer * spec.maxSteerRad;
+    const rate = ((hc.steerSpeedDeg * Math.PI) / 180) * dt;
+    this.steerAngle += Math.max(-rate, Math.min(rate, targetSteer - this.steerAngle));
+    const pull = (this.damage.left - this.damage.right) * this.damage.suspension * 0.03;
+
+    // Aero.
+    const v2 = vLong * vLong + vLat * vLat;
+    const downforce = 0.5 * RHO * spec.clA * hc.downforce * (1 - 0.35 * this.damage.aero) * v2;
+    const drag = 0.5 * RHO * spec.cdA * (1 + 0.25 * this.damage.aero) * Math.sqrt(v2);
+
+    // Powertrain (rear-wheel drive, locked-ish differential: equal split).
+    let rearSlip = Math.max(this.wheels[2].slip, this.wheels[3].slip);
+    // Automatic reverse: the brake pedal drives backwards (powertrain), the throttle pedal brakes.
+    const autoRev = this.assists.autoGears && this.pt.gear === -1;
+    const drivePedal = autoRev ? input.brake : input.throttle;
+    const brakePedal = autoRev ? input.throttle : input.brake;
+    const spinRpm = rearSlip > 1 && drivePedal > 0.3 ? Math.min(2500, (rearSlip - 1) * 6000) : 0;
+    const drive = stepPowertrain(spec, this.pt, {
+      throttle: input.throttle, brake: input.brake, shiftUp: input.shiftUp, shiftDown: input.shiftDown,
+      autoGears: this.assists.autoGears, wheelSpeed: vLong, spinRpm, engineDamage: this.damage.engine, noAutoReverse: input.hold,
+    }, dt);
+
+    let fLong = 0, fLat = 0, yawM = 0, heave = 0, pitchM = 0, rollM = 0, gx = 0, gz = 0;
+    let anyGround = false, absActive = false, tcActive = false;
+    const R = spec.dimensions.wheelRadius;
+    rearSlip = 0;
+    // Pass 1: contact points, ground and suspension compression of all four corners.
+    this.contactPass();
+    const comps = this.comps, surfs = this.surfs;
+    // Pass 2: tyre loads and forces.
+    for (let w = 0; w < 4; w++) {
+      const c = this.corners[w];
+      const front = w < 2;
+      const tp = this.wtp[w];
+      const surf = surfs[w];
+      const S = SURFACE[surf];
+      const comp = comps[w];
+      const compRate = (comp - this.prevComp[w]) / dt;
+      const staticComp = c.h0 - spec.cgHeight;
+      // Spring + damper (damper force limited like a real blow-off valve) + bump stop.
+      const damper = Math.max(-9000, Math.min(14000, c.c * compRate));
+      let fs = comp > 0 ? c.k * comp + damper : 0;
+      if (comp > staticComp + 0.07) fs += (comp - staticComp - 0.07) * 900000;
+      // Anti-roll bars: part of the suspension force, so they move load between the corners of an axle.
+      if (comp > 0) fs += (front ? 52000 : 26000) * (comp - comps[w ^ 1]) * 0.5;
+      fs = Math.max(0, fs);
+      const fz = fs;
+      if (fz > 0) anyGround = true;
+      // Velocity of the contact patch in body axes, then in wheel axes.
+      const uB = vLong - this.yawRate * c.x;
+      const wB = vLat + this.yawRate * c.z;
+      const steer = front ? this.steerAngle + pull : 0;
+      const cs = Math.cos(steer), sn = Math.sin(steer);
+      const u = uB * cs + wB * sn;
+      const wl = -uB * sn + wB * cs;
+      const sideDamage = c.x > 0 ? this.damage.left : this.damage.right;
+      const mu = spec.tyreMu * hc.grip * (front ? 1 : hc.rearGrip) * S.grip * (1 - 0.18 * sideDamage * this.damage.suspension);
+      const bias = front ? spec.brakeBiasFront : 1 - spec.brakeBiasFront;
+      const brakeF = (brakePedal * spec.maxBrakeTorqueNm * (bias / spec.brakeBiasFront)) / R;
+      const driveF = front ? 0 : drive / 2;
+      const r = tyreForces(fz, mu, u, wl, driveF, brakeF, this.assists.abs, this.assists.tc, fz / G, dt, this.tyre, curve);
+      absActive ||= r.absActive;
+      tcActive ||= r.tcActive;
+      // Surface drag (grass, gravel) and rolling resistance oppose wheel travel.
+      const roll = fz * S.drag * Math.tanh(u * 2);
+      const fxw = r.fx - roll;
+      const fbL = fxw * cs - r.fy * sn;
+      const fbT = fxw * sn + r.fy * cs;
+      fLong += fbL;
+      fLat += fbT;
+      yawM += c.z * fbT - c.x * fbL;
+      heave += fs;
+      pitchM += fs * c.z;
+      rollM += fs * c.x;
+      // Slope: the ground reaction leans with the surface (horizontal push downhill).
+      const grade = sampleArray(track, track.grade, tp.index, tp.t);
+      const side = tp.d >= 0 ? track.left : track.right;
+      const edge = sampleArray(track, side.edge, tp.index, tp.t);
+      const cross = Math.abs(tp.d) <= edge ? Math.tan(sampleArray(track, track.bank, tp.index, tp.t)) : -VERGE_FALL * Math.sign(tp.d);
+      const ti = tp.index;
+      gx -= fz * (grade * track.tx[ti] / Math.max(0.2, Math.hypot(track.tx[ti], track.tz[ti])) + cross * track.lx[ti]);
+      gz -= fz * (grade * track.tz[ti] / Math.max(0.2, Math.hypot(track.tx[ti], track.tz[ti])) + cross * track.lz[ti]);
+      const wt = this.wheels[w];
+      wt.load = fz;
+      wt.slip = r.use;
+      wt.surface = surf;
+      wt.spin += (u / R) * dt * (r.use > 1 && !front && input.throttle > 0.3 ? 1.6 : 1);
+      wt.compression = comp - (c.h0 - spec.cgHeight);
+      wt.steer = steer;
+      if (!front) rearSlip = Math.max(rearSlip, r.use);
+    }
+    for (let w = 0; w < 4; w++) this.prevComp[w] = comps[w];
+
+    // Planar integration (body forces to world).
+    fLong -= drag * vLong;
+    fLat -= drag * vLat;
+    const fx = fLong * sin + fLat * cos + gx;
+    const fz2 = fLong * cos - fLat * sin + gz;
+    const ax = fx / m, az = fz2 / m;
+    this.vx += ax * dt;
+    this.vz += az * dt;
+    this.yawRate += (yawM / spec.yawInertia) * dt;
+    if (!anyGround) this.yawRate *= 1 - 0.5 * dt;
+    this.heading += this.yawRate * dt;
+    this.x += this.vx * dt;
+    this.z += this.vz * dt;
+    // Hold the car still at very low speed with no throttle (static friction).
+    if (drivePedal < 0.02 && Math.hypot(this.vx, this.vz) < 0.25 && anyGround) {
+      this.vx = this.vz = 0;
+      this.yawRate *= 0.5;
+    }
+
+    // Vertical, pitch and roll.
+    const h = spec.cgHeight;
+    this.vy += ((heave - m * G - downforce) / m) * dt;
+    this.y += this.vy * dt;
+    const dF = downforce * spec.aeroBalanceFront, dR = downforce - dF;
+    this.pitchRate += ((pitchM - dF * this.a + dR * this.b + fLong * h) / 1900) * dt;
+    this.pitchRate *= 1 - 2 * dt;
+    this.pitch += this.pitchRate * dt;
+    this.rollRate += ((rollM + fLat * h) / 560) * dt;
+    this.rollRate *= 1 - 2 * dt;
+    this.roll += this.rollRate * dt;
+    this.pitch = Math.max(-0.4, Math.min(0.4, this.pitch));
+    this.roll = Math.max(-0.3, Math.min(0.3, this.roll));
+
+    const impacts = resolveWalls(this, track);
+    for (const imp of impacts) applyImpactDamage(this, imp);
+
+    const t = this.telemetry;
+    t.speed = this.speed;
+    t.rpm = this.pt.rpm;
+    t.gear = this.pt.gear;
+    t.throttle = input.throttle;
+    t.brake = input.brake;
+    t.steer = input.steer;
+    t.onLimiter = this.pt.onLimiter;
+    t.tcActive = tcActive;
+    t.absActive = absActive;
+    t.shifted = t.shifted || this.pt.shifted;
+    t.gLong = (ax * sin + az * cos) / G;
+    t.gLat = (ax * cos - az * sin) / G;
+    t.airborne = !anyGround;
+    t.load = input.throttle > 0.05 ? input.throttle : 0;
+    return impacts;
+  }
+}

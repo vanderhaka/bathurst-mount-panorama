@@ -1,0 +1,1160 @@
+{
+"description": "Points where the OSM lap centreline crosses NSW Spatial Services topographic contours (2 m interval). chainage_m = metres from start of OSM 'Pit Straight' way in race direction (flat local projection, lap = 6204 m). Source: https://portal.spatial.nsw.gov.au/server/rest/services/NSW_Elevation_and_Depth_Theme/MapServer/2 (layer Contour), queried 2026-10-07 for bbox lon 149.540..149.575 lat -33.465..-33.432. Vertical accuracy class 5 m per source attribute.",
+"crossings": [
+{
+"chainage_m": 64.2,
+"elevation_m": 702,
+"osm_way": "Pit Straight"
+},
+{
+"chainage_m": 82.9,
+"elevation_m": 704,
+"osm_way": "Pit Straight"
+},
+{
+"chainage_m": 130.5,
+"elevation_m": 706,
+"osm_way": "Pit Straight"
+},
+{
+"chainage_m": 319.4,
+"elevation_m": 708,
+"osm_way": "Pit Straight"
+},
+{
+"chainage_m": 405.8,
+"elevation_m": 710,
+"osm_way": "Pit Straight"
+},
+{
+"chainage_m": 423.5,
+"elevation_m": 710,
+"osm_way": "Pit Straight"
+},
+{
+"chainage_m": 471.5,
+"elevation_m": 712,
+"osm_way": "Hell Corner"
+},
+{
+"chainage_m": 508.1,
+"elevation_m": 714,
+"osm_way": "Mountain Straight"
+},
+{
+"chainage_m": 561.3,
+"elevation_m": 716,
+"osm_way": "Mountain Straight"
+},
+{
+"chainage_m": 612.4,
+"elevation_m": 718,
+"osm_way": "Mountain Straight"
+},
+{
+"chainage_m": 652.7,
+"elevation_m": 720,
+"osm_way": "Mountain Straight"
+},
+{
+"chainage_m": 684.1,
+"elevation_m": 720,
+"osm_way": "Mountain Straight"
+},
+{
+"chainage_m": 687.5,
+"elevation_m": 722,
+"osm_way": "Mountain Straight"
+},
+{
+"chainage_m": 729.0,
+"elevation_m": 724,
+"osm_way": "Mountain Straight"
+},
+{
+"chainage_m": 766.1,
+"elevation_m": 726,
+"osm_way": "Mountain Straight"
+},
+{
+"chainage_m": 803.2,
+"elevation_m": 728,
+"osm_way": "Mountain Straight"
+},
+{
+"chainage_m": 828.5,
+"elevation_m": 730,
+"osm_way": "Mountain Straight"
+},
+{
+"chainage_m": 835.7,
+"elevation_m": 730,
+"osm_way": "Mountain Straight"
+},
+{
+"chainage_m": 868.3,
+"elevation_m": 732,
+"osm_way": "Mountain Straight"
+},
+{
+"chainage_m": 902.8,
+"elevation_m": 734,
+"osm_way": "Mountain Straight"
+},
+{
+"chainage_m": 937.6,
+"elevation_m": 736,
+"osm_way": "Mountain Straight"
+},
+{
+"chainage_m": 983.6,
+"elevation_m": 738,
+"osm_way": "Mountain Straight"
+},
+{
+"chainage_m": 1020.0,
+"elevation_m": 740,
+"osm_way": "Mountain Straight"
+},
+{
+"chainage_m": 1022.9,
+"elevation_m": 740,
+"osm_way": "Mountain Straight"
+},
+{
+"chainage_m": 1062.6,
+"elevation_m": 742,
+"osm_way": "Mountain Straight"
+},
+{
+"chainage_m": 1100.0,
+"elevation_m": 744,
+"osm_way": "Mountain Straight"
+},
+{
+"chainage_m": 1126.9,
+"elevation_m": 746,
+"osm_way": "Mountain Straight"
+},
+{
+"chainage_m": 1158.2,
+"elevation_m": 748,
+"osm_way": "Mountain Straight"
+},
+{
+"chainage_m": 1179.5,
+"elevation_m": 750,
+"osm_way": "Mountain Straight"
+},
+{
+"chainage_m": 1211.3,
+"elevation_m": 750,
+"osm_way": "Mountain Straight"
+},
+{
+"chainage_m": 1351.9,
+"elevation_m": 750,
+"osm_way": "Mountain Straight"
+},
+{
+"chainage_m": 1363.0,
+"elevation_m": 750,
+"osm_way": "Mountain Straight"
+},
+{
+"chainage_m": 1401.4,
+"elevation_m": 752,
+"osm_way": "Mountain Straight"
+},
+{
+"chainage_m": 1426.4,
+"elevation_m": 754,
+"osm_way": "Mountain Straight"
+},
+{
+"chainage_m": 1449.8,
+"elevation_m": 756,
+"osm_way": "Mountain Straight"
+},
+{
+"chainage_m": 1472.9,
+"elevation_m": 758,
+"osm_way": "Mountain Straight"
+},
+{
+"chainage_m": 1494.6,
+"elevation_m": 760,
+"osm_way": "Mountain Straight"
+},
+{
+"chainage_m": 1509.3,
+"elevation_m": 760,
+"osm_way": "Mountain Straight"
+},
+{
+"chainage_m": 1521.0,
+"elevation_m": 762,
+"osm_way": "Mountain Straight"
+},
+{
+"chainage_m": 1540.3,
+"elevation_m": 764,
+"osm_way": "Mountain Straight"
+},
+{
+"chainage_m": 1563.8,
+"elevation_m": 766,
+"osm_way": "Griffins Bend"
+},
+{
+"chainage_m": 1583.0,
+"elevation_m": 768,
+"osm_way": "Griffins Bend"
+},
+{
+"chainage_m": 1588.4,
+"elevation_m": 770,
+"osm_way": "Griffins Bend"
+},
+{
+"chainage_m": 1603.1,
+"elevation_m": 770,
+"osm_way": "Griffins Bend"
+},
+{
+"chainage_m": 1619.4,
+"elevation_m": 772,
+"osm_way": "Griffins Bend"
+},
+{
+"chainage_m": 1633.4,
+"elevation_m": 774,
+"osm_way": "Griffins Bend"
+},
+{
+"chainage_m": 1649.8,
+"elevation_m": 776,
+"osm_way": "Griffins Bend"
+},
+{
+"chainage_m": 1668.3,
+"elevation_m": 778,
+"osm_way": "Griffins Bend"
+},
+{
+"chainage_m": 1682.3,
+"elevation_m": 780,
+"osm_way": "Griffins Bend"
+},
+{
+"chainage_m": 1693.1,
+"elevation_m": 780,
+"osm_way": "Griffins Bend"
+},
+{
+"chainage_m": 1700.0,
+"elevation_m": 782,
+"osm_way": "Griffins Bend"
+},
+{
+"chainage_m": 1719.0,
+"elevation_m": 784,
+"osm_way": "Griffins Bend"
+},
+{
+"chainage_m": 1735.1,
+"elevation_m": 786,
+"osm_way": "Griffins Bend"
+},
+{
+"chainage_m": 1755.7,
+"elevation_m": 788,
+"osm_way": "Griffins Bend"
+},
+{
+"chainage_m": 1765.1,
+"elevation_m": 790,
+"osm_way": "Griffins Bend"
+},
+{
+"chainage_m": 1773.6,
+"elevation_m": 790,
+"osm_way": "The Cutting"
+},
+{
+"chainage_m": 1792.1,
+"elevation_m": 792,
+"osm_way": "The Cutting"
+},
+{
+"chainage_m": 1809.4,
+"elevation_m": 794,
+"osm_way": "The Cutting"
+},
+{
+"chainage_m": 1826.0,
+"elevation_m": 796,
+"osm_way": "The Cutting"
+},
+{
+"chainage_m": 1842.1,
+"elevation_m": 798,
+"osm_way": "The Cutting"
+},
+{
+"chainage_m": 1859.9,
+"elevation_m": 800,
+"osm_way": "The Cutting"
+},
+{
+"chainage_m": 1869.2,
+"elevation_m": 800,
+"osm_way": "The Cutting"
+},
+{
+"chainage_m": 1874.8,
+"elevation_m": 802,
+"osm_way": "The Cutting"
+},
+{
+"chainage_m": 1889.0,
+"elevation_m": 804,
+"osm_way": "The Cutting"
+},
+{
+"chainage_m": 1902.3,
+"elevation_m": 806,
+"osm_way": "The Cutting"
+},
+{
+"chainage_m": 1919.5,
+"elevation_m": 808,
+"osm_way": "The Cutting"
+},
+{
+"chainage_m": 1932.0,
+"elevation_m": 810,
+"osm_way": "The Cutting"
+},
+{
+"chainage_m": 1940.3,
+"elevation_m": 810,
+"osm_way": "The Cutting"
+},
+{
+"chainage_m": 1959.9,
+"elevation_m": 812,
+"osm_way": "The Cutting"
+},
+{
+"chainage_m": 1982.6,
+"elevation_m": 814,
+"osm_way": "The Cutting"
+},
+{
+"chainage_m": 2008.5,
+"elevation_m": 816,
+"osm_way": "The Cutting"
+},
+{
+"chainage_m": 2024.0,
+"elevation_m": 818,
+"osm_way": "The Cutting"
+},
+{
+"chainage_m": 2042.5,
+"elevation_m": 820,
+"osm_way": "The Cutting"
+},
+{
+"chainage_m": 2057.5,
+"elevation_m": 820,
+"osm_way": "The Cutting"
+},
+{
+"chainage_m": 2062.7,
+"elevation_m": 822,
+"osm_way": "The Cutting"
+},
+{
+"chainage_m": 2079.9,
+"elevation_m": 824,
+"osm_way": "The Cutting"
+},
+{
+"chainage_m": 2096.4,
+"elevation_m": 826,
+"osm_way": "The Cutting"
+},
+{
+"chainage_m": 2110.5,
+"elevation_m": 828,
+"osm_way": "The Cutting"
+},
+{
+"chainage_m": 2117.6,
+"elevation_m": 830,
+"osm_way": "The Cutting"
+},
+{
+"chainage_m": 2126.4,
+"elevation_m": 830,
+"osm_way": "The Cutting"
+},
+{
+"chainage_m": 2141.7,
+"elevation_m": 832,
+"osm_way": "The Cutting"
+},
+{
+"chainage_m": 2159.9,
+"elevation_m": 834,
+"osm_way": "The Cutting"
+},
+{
+"chainage_m": 2175.3,
+"elevation_m": 836,
+"osm_way": "The Cutting"
+},
+{
+"chainage_m": 2195.0,
+"elevation_m": 838,
+"osm_way": "The Cutting"
+},
+{
+"chainage_m": 2217.1,
+"elevation_m": 840,
+"osm_way": "Reid Park"
+},
+{
+"chainage_m": 2219.8,
+"elevation_m": 840,
+"osm_way": "Reid Park"
+},
+{
+"chainage_m": 2258.3,
+"elevation_m": 842,
+"osm_way": "Reid Park"
+},
+{
+"chainage_m": 2294.7,
+"elevation_m": 844,
+"osm_way": "Reid Park"
+},
+{
+"chainage_m": 2321.6,
+"elevation_m": 846,
+"osm_way": "Reid Park"
+},
+{
+"chainage_m": 2344.2,
+"elevation_m": 848,
+"osm_way": "Reid Park"
+},
+{
+"chainage_m": 2360.8,
+"elevation_m": 850,
+"osm_way": "Reid Park"
+},
+{
+"chainage_m": 2371.6,
+"elevation_m": 850,
+"osm_way": "Reid Park"
+},
+{
+"chainage_m": 2380.2,
+"elevation_m": 852,
+"osm_way": "Reid Park"
+},
+{
+"chainage_m": 2398.7,
+"elevation_m": 854,
+"osm_way": "Reid Park"
+},
+{
+"chainage_m": 2413.4,
+"elevation_m": 856,
+"osm_way": "Reid Park"
+},
+{
+"chainage_m": 2431.1,
+"elevation_m": 858,
+"osm_way": "Reid Park"
+},
+{
+"chainage_m": 2449.8,
+"elevation_m": 860,
+"osm_way": "Reid Park"
+},
+{
+"chainage_m": 2467.2,
+"elevation_m": 862,
+"osm_way": "Reid Park"
+},
+{
+"chainage_m": 2484.0,
+"elevation_m": 860,
+"osm_way": "Reid Park"
+},
+{
+"chainage_m": 2484.7,
+"elevation_m": 864,
+"osm_way": "Reid Park"
+},
+{
+"chainage_m": 2504.8,
+"elevation_m": 866,
+"osm_way": "Reid Park"
+},
+{
+"chainage_m": 2537.0,
+"elevation_m": 868,
+"osm_way": "Sulman Park"
+},
+{
+"chainage_m": 2559.9,
+"elevation_m": 870,
+"osm_way": "Sulman Park"
+},
+{
+"chainage_m": 2576.9,
+"elevation_m": 870,
+"osm_way": "Sulman Park"
+},
+{
+"chainage_m": 2667.7,
+"elevation_m": 870,
+"osm_way": "Sulman Park"
+},
+{
+"chainage_m": 2676.7,
+"elevation_m": 870,
+"osm_way": "Sulman Park"
+},
+{
+"chainage_m": 2708.6,
+"elevation_m": 868,
+"osm_way": "Sulman Park"
+},
+{
+"chainage_m": 2775.4,
+"elevation_m": 868,
+"osm_way": "Sulman Park"
+},
+{
+"chainage_m": 2838.2,
+"elevation_m": 870,
+"osm_way": "Sulman Park"
+},
+{
+"chainage_m": 2915.3,
+"elevation_m": 870,
+"osm_way": "McPhillamy Park"
+},
+{
+"chainage_m": 2944.1,
+"elevation_m": 872,
+"osm_way": "McPhillamy Park"
+},
+{
+"chainage_m": 3055.0,
+"elevation_m": 872,
+"osm_way": "McPhillamy Park"
+},
+{
+"chainage_m": 3074.5,
+"elevation_m": 870,
+"osm_way": "McPhillamy Park"
+},
+{
+"chainage_m": 3148.1,
+"elevation_m": 870,
+"osm_way": "McPhillamy Park"
+},
+{
+"chainage_m": 3202.2,
+"elevation_m": 870,
+"osm_way": "Brocks Skyline"
+},
+{
+"chainage_m": 3232.6,
+"elevation_m": 870,
+"osm_way": "Brocks Skyline"
+},
+{
+"chainage_m": 3277.8,
+"elevation_m": 868,
+"osm_way": "Brocks Skyline"
+},
+{
+"chainage_m": 3375.1,
+"elevation_m": 866,
+"osm_way": "Brocks Skyline"
+},
+{
+"chainage_m": 3396.4,
+"elevation_m": 864,
+"osm_way": "The Esses"
+},
+{
+"chainage_m": 3413.6,
+"elevation_m": 862,
+"osm_way": "The Esses"
+},
+{
+"chainage_m": 3428.3,
+"elevation_m": 860,
+"osm_way": "The Esses"
+},
+{
+"chainage_m": 3448.3,
+"elevation_m": 858,
+"osm_way": "The Esses"
+},
+{
+"chainage_m": 3463.3,
+"elevation_m": 856,
+"osm_way": "The Esses"
+},
+{
+"chainage_m": 3476.7,
+"elevation_m": 854,
+"osm_way": "The Esses"
+},
+{
+"chainage_m": 3492.8,
+"elevation_m": 852,
+"osm_way": "The Esses"
+},
+{
+"chainage_m": 3507.2,
+"elevation_m": 850,
+"osm_way": "The Esses"
+},
+{
+"chainage_m": 3526.3,
+"elevation_m": 848,
+"osm_way": "The Esses"
+},
+{
+"chainage_m": 3537.0,
+"elevation_m": 850,
+"osm_way": "The Esses"
+},
+{
+"chainage_m": 3543.7,
+"elevation_m": 846,
+"osm_way": "The Esses"
+},
+{
+"chainage_m": 3561.4,
+"elevation_m": 844,
+"osm_way": "The Esses"
+},
+{
+"chainage_m": 3579.5,
+"elevation_m": 842,
+"osm_way": "The Esses"
+},
+{
+"chainage_m": 3588.3,
+"elevation_m": 840,
+"osm_way": "The Esses"
+},
+{
+"chainage_m": 3594.5,
+"elevation_m": 840,
+"osm_way": "The Esses"
+},
+{
+"chainage_m": 3608.5,
+"elevation_m": 838,
+"osm_way": "The Esses"
+},
+{
+"chainage_m": 3618.8,
+"elevation_m": 836,
+"osm_way": "The Esses"
+},
+{
+"chainage_m": 3630.6,
+"elevation_m": 834,
+"osm_way": "The Esses"
+},
+{
+"chainage_m": 3645.0,
+"elevation_m": 832,
+"osm_way": "The Esses"
+},
+{
+"chainage_m": 3654.7,
+"elevation_m": 830,
+"osm_way": "The Esses"
+},
+{
+"chainage_m": 3658.2,
+"elevation_m": 830,
+"osm_way": "The Esses"
+},
+{
+"chainage_m": 3672.7,
+"elevation_m": 828,
+"osm_way": "The Esses"
+},
+{
+"chainage_m": 3690.2,
+"elevation_m": 826,
+"osm_way": "The Esses"
+},
+{
+"chainage_m": 3709.7,
+"elevation_m": 824,
+"osm_way": "The Esses"
+},
+{
+"chainage_m": 3728.4,
+"elevation_m": 822,
+"osm_way": "The Esses"
+},
+{
+"chainage_m": 3744.8,
+"elevation_m": 820,
+"osm_way": "The Esses"
+},
+{
+"chainage_m": 3748.0,
+"elevation_m": 820,
+"osm_way": "The Esses"
+},
+{
+"chainage_m": 3768.9,
+"elevation_m": 818,
+"osm_way": "The Esses"
+},
+{
+"chainage_m": 3788.0,
+"elevation_m": 816,
+"osm_way": "The Esses"
+},
+{
+"chainage_m": 3809.0,
+"elevation_m": 814,
+"osm_way": "The Esses"
+},
+{
+"chainage_m": 3834.9,
+"elevation_m": 812,
+"osm_way": "The Esses"
+},
+{
+"chainage_m": 3870.9,
+"elevation_m": 810,
+"osm_way": "The Esses"
+},
+{
+"chainage_m": 3899.9,
+"elevation_m": 808,
+"osm_way": "The Esses"
+},
+{
+"chainage_m": 3913.7,
+"elevation_m": 810,
+"osm_way": "Forrest's Elbow"
+},
+{
+"chainage_m": 3915.3,
+"elevation_m": 806,
+"osm_way": "Forrest's Elbow"
+},
+{
+"chainage_m": 3929.6,
+"elevation_m": 804,
+"osm_way": "Forrest's Elbow"
+},
+{
+"chainage_m": 3944.3,
+"elevation_m": 802,
+"osm_way": "Forrest's Elbow"
+},
+{
+"chainage_m": 3957.1,
+"elevation_m": 800,
+"osm_way": "Forrest's Elbow"
+},
+{
+"chainage_m": 3971.2,
+"elevation_m": 800,
+"osm_way": "Forrest's Elbow"
+},
+{
+"chainage_m": 3971.3,
+"elevation_m": 798,
+"osm_way": "Forrest's Elbow"
+},
+{
+"chainage_m": 3984.4,
+"elevation_m": 796,
+"osm_way": "Forrest's Elbow"
+},
+{
+"chainage_m": 3996.2,
+"elevation_m": 794,
+"osm_way": "Forrest's Elbow"
+},
+{
+"chainage_m": 4011.4,
+"elevation_m": 792,
+"osm_way": "Forrest's Elbow"
+},
+{
+"chainage_m": 4026.3,
+"elevation_m": 790,
+"osm_way": "Forrest's Elbow"
+},
+{
+"chainage_m": 4029.0,
+"elevation_m": 790,
+"osm_way": "Forrest's Elbow"
+},
+{
+"chainage_m": 4044.0,
+"elevation_m": 788,
+"osm_way": "Conrod Straight"
+},
+{
+"chainage_m": 4062.3,
+"elevation_m": 786,
+"osm_way": "Conrod Straight"
+},
+{
+"chainage_m": 4079.2,
+"elevation_m": 784,
+"osm_way": "Conrod Straight"
+},
+{
+"chainage_m": 4096.7,
+"elevation_m": 782,
+"osm_way": "Conrod Straight"
+},
+{
+"chainage_m": 4111.0,
+"elevation_m": 780,
+"osm_way": "Conrod Straight"
+},
+{
+"chainage_m": 4114.8,
+"elevation_m": 780,
+"osm_way": "Conrod Straight"
+},
+{
+"chainage_m": 4132.4,
+"elevation_m": 778,
+"osm_way": "Conrod Straight"
+},
+{
+"chainage_m": 4148.9,
+"elevation_m": 776,
+"osm_way": "Conrod Straight"
+},
+{
+"chainage_m": 4167.4,
+"elevation_m": 774,
+"osm_way": "Conrod Straight"
+},
+{
+"chainage_m": 4184.0,
+"elevation_m": 772,
+"osm_way": "Conrod Straight"
+},
+{
+"chainage_m": 4197.9,
+"elevation_m": 770,
+"osm_way": "Conrod Straight"
+},
+{
+"chainage_m": 4200.8,
+"elevation_m": 770,
+"osm_way": "Conrod Straight"
+},
+{
+"chainage_m": 4218.7,
+"elevation_m": 768,
+"osm_way": "Conrod Straight"
+},
+{
+"chainage_m": 4234.5,
+"elevation_m": 766,
+"osm_way": "Conrod Straight"
+},
+{
+"chainage_m": 4251.8,
+"elevation_m": 764,
+"osm_way": "Conrod Straight"
+},
+{
+"chainage_m": 4270.9,
+"elevation_m": 762,
+"osm_way": "Conrod Straight"
+},
+{
+"chainage_m": 4289.3,
+"elevation_m": 760,
+"osm_way": "Conrod Straight"
+},
+{
+"chainage_m": 4307.6,
+"elevation_m": 758,
+"osm_way": "Conrod Straight"
+},
+{
+"chainage_m": 4315.0,
+"elevation_m": 760,
+"osm_way": "Conrod Straight"
+},
+{
+"chainage_m": 4325.7,
+"elevation_m": 756,
+"osm_way": "Conrod Straight"
+},
+{
+"chainage_m": 4344.3,
+"elevation_m": 754,
+"osm_way": "Conrod Straight"
+},
+{
+"chainage_m": 4364.3,
+"elevation_m": 752,
+"osm_way": "Conrod Straight"
+},
+{
+"chainage_m": 4381.2,
+"elevation_m": 750,
+"osm_way": "Conrod Straight"
+},
+{
+"chainage_m": 4398.8,
+"elevation_m": 750,
+"osm_way": "Conrod Straight"
+},
+{
+"chainage_m": 4404.5,
+"elevation_m": 748,
+"osm_way": "Conrod Straight"
+},
+{
+"chainage_m": 4430.9,
+"elevation_m": 746,
+"osm_way": "Conrod Straight"
+},
+{
+"chainage_m": 4458.9,
+"elevation_m": 744,
+"osm_way": "Conrod Straight"
+},
+{
+"chainage_m": 4494.1,
+"elevation_m": 742,
+"osm_way": "Conrod Straight"
+},
+{
+"chainage_m": 4506.6,
+"elevation_m": 740,
+"osm_way": "Conrod Straight"
+},
+{
+"chainage_m": 4527.2,
+"elevation_m": 740,
+"osm_way": "Conrod Straight"
+},
+{
+"chainage_m": 4566.2,
+"elevation_m": 738,
+"osm_way": "Conrod Straight"
+},
+{
+"chainage_m": 4616.0,
+"elevation_m": 736,
+"osm_way": "Conrod Straight"
+},
+{
+"chainage_m": 4724.1,
+"elevation_m": 736,
+"osm_way": "Conrod Straight"
+},
+{
+"chainage_m": 4758.5,
+"elevation_m": 738,
+"osm_way": "Conrod Straight"
+},
+{
+"chainage_m": 4798.5,
+"elevation_m": 740,
+"osm_way": "Conrod Straight"
+},
+{
+"chainage_m": 4906.4,
+"elevation_m": 740,
+"osm_way": "Conrod Straight"
+},
+{
+"chainage_m": 4965.8,
+"elevation_m": 738,
+"osm_way": "Conrod Straight"
+},
+{
+"chainage_m": 5003.6,
+"elevation_m": 736,
+"osm_way": "Conrod Straight"
+},
+{
+"chainage_m": 5040.8,
+"elevation_m": 734,
+"osm_way": "Conrod Straight"
+},
+{
+"chainage_m": 5077.7,
+"elevation_m": 732,
+"osm_way": "Conrod Straight"
+},
+{
+"chainage_m": 5110.5,
+"elevation_m": 730,
+"osm_way": "Conrod Straight"
+},
+{
+"chainage_m": 5140.6,
+"elevation_m": 730,
+"osm_way": "Conrod Straight"
+},
+{
+"chainage_m": 5146.6,
+"elevation_m": 728,
+"osm_way": "Conrod Straight"
+},
+{
+"chainage_m": 5178.4,
+"elevation_m": 726,
+"osm_way": "Conrod Straight"
+},
+{
+"chainage_m": 5213.2,
+"elevation_m": 724,
+"osm_way": "Conrod Straight"
+},
+{
+"chainage_m": 5244.2,
+"elevation_m": 720,
+"osm_way": "Conrod Straight"
+},
+{
+"chainage_m": 5250.3,
+"elevation_m": 722,
+"osm_way": "Conrod Straight"
+},
+{
+"chainage_m": 5337.4,
+"elevation_m": 720,
+"osm_way": "The Chase"
+},
+{
+"chainage_m": 5372.0,
+"elevation_m": 718,
+"osm_way": "The Chase"
+},
+{
+"chainage_m": 5410.5,
+"elevation_m": 716,
+"osm_way": "The Chase"
+},
+{
+"chainage_m": 5467.2,
+"elevation_m": 714,
+"osm_way": "The Chase"
+},
+{
+"chainage_m": 5470.9,
+"elevation_m": 710,
+"osm_way": "The Chase"
+},
+{
+"chainage_m": 5525.6,
+"elevation_m": 710,
+"osm_way": "The Chase"
+},
+{
+"chainage_m": 5563.5,
+"elevation_m": 714,
+"osm_way": "The Chase"
+},
+{
+"chainage_m": 5610.1,
+"elevation_m": 716,
+"osm_way": "The Chase"
+},
+{
+"chainage_m": 5668.4,
+"elevation_m": 718,
+"osm_way": "The Chase"
+},
+{
+"chainage_m": 5703.4,
+"elevation_m": 718,
+"osm_way": "The Chase"
+},
+{
+"chainage_m": 5779.9,
+"elevation_m": 716,
+"osm_way": "Conrod Straight"
+},
+{
+"chainage_m": 5873.8,
+"elevation_m": 714,
+"osm_way": "Conrod Straight"
+},
+{
+"chainage_m": 5928.0,
+"elevation_m": 712,
+"osm_way": "Conrod Straight"
+},
+{
+"chainage_m": 5960.8,
+"elevation_m": 710,
+"osm_way": "Conrod Straight"
+},
+{
+"chainage_m": 5970.0,
+"elevation_m": 710,
+"osm_way": "Conrod Straight"
+},
+{
+"chainage_m": 5991.2,
+"elevation_m": 708,
+"osm_way": "Conrod Straight"
+},
+{
+"chainage_m": 6026.9,
+"elevation_m": 706,
+"osm_way": "Conrod Straight"
+},
+{
+"chainage_m": 6063.7,
+"elevation_m": 704,
+"osm_way": "Conrod Straight"
+},
+{
+"chainage_m": 6115.2,
+"elevation_m": 702,
+"osm_way": "Conrod Straight"
+},
+{
+"chainage_m": 6165.0,
+"elevation_m": 700,
+"osm_way": "Murrays Corner"
+},
+{
+"chainage_m": 6190.7,
+"elevation_m": 700,
+"osm_way": "Murrays Corner"
+}
+]
+}

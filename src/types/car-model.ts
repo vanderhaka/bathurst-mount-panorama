@@ -63,6 +63,10 @@ export interface CarModel {
   resetDamage(): void;
   /** Translucent single-colour look for the ghost car (no shadows). */
   setGhost(on: boolean): void;
+  /** Live values for the in-car dash display (cockpit view). Optional: low detail has no dash. */
+  setDash?(state: DashState): void;
+  /** Live rear-view picture for the interior mirror (shown mirrored left/right); null = plain mirror glass. */
+  setMirrorTexture?(tex: THREE.Texture | null): void;
   /** Show or hide the interior (driver, cage, dash). The game hides it for far LOD. */
   setInteriorVisible(on: boolean): void;
   /** Camera anchors (children of `body`): driver eye point and bonnet camera. Look along +Z. */
@@ -71,6 +75,16 @@ export interface CarModel {
   /** Exhaust exit points (children of `body`) for flame/smoke effects. */
   exhausts: THREE.Object3D[];
   dispose(): void;
+}
+
+export interface DashState {
+  gear: number; // -1 R, 0 N, 1..6
+  speedKmh: number;
+  /** 0..1 of the shift-light range. */
+  shiftLights: number;
+  lapS: number | null;
+  deltaS: number | null;
+  waterTempC: number;
 }
 
 export interface CarModelOptions {

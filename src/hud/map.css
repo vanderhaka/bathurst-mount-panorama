@@ -1,0 +1,299 @@
+/* Track map, driver inputs, damage schematic. Tokens: theme.css */
+.hud-map {
+  width: 19.5em;
+  overflow: hidden;
+}
+.hud-map__view {
+  position: relative;
+  height: 12.6em;
+}
+.hud-map__canvas {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.hud-map__car,
+.hud-map__ghost {
+  position: absolute;
+  left: 0;
+  top: 0;
+  will-change: transform;
+}
+.hud-map__car {
+  z-index: 2;
+}
+.hud-map__car::before {
+  content: '';
+  position: absolute;
+  left: -0.8em;
+  top: -0.8em;
+  width: 1.6em;
+  height: 1.6em;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--hud-map-player-ring) 38%, transparent);
+}
+.hud-map__arrow {
+  position: absolute;
+  left: -0.62em;
+  top: -0.62em;
+  width: 1.24em;
+  height: 1.24em;
+}
+.hud-map__arrow svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+.hud-map__arrow path {
+  fill: var(--hud-map-player);
+  stroke: #000;
+  stroke-width: 1.6;
+  stroke-linejoin: round;
+  paint-order: stroke;
+}
+.hud-map__ghost {
+  width: 0.8em;
+  height: 0.8em;
+  margin: -0.4em 0 0 -0.4em;
+  border-radius: 50%;
+  border: 0.17em solid var(--hud-map-ghost);
+  background: rgb(0 0 0 / 0.5);
+}
+.hud-map__ghost[data-on='false'] {
+  display: none;
+}
+.hud-map__foot {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  height: 2.35em;
+  padding: 0 0.75em;
+  background: var(--hud-panel-head-bg);
+  border-top: 1px solid var(--hud-hairline);
+}
+.hud-map__turn {
+  padding: 0.24em 0.36em 0.2em;
+  font-size: 0.86em;
+  font-weight: 700;
+  color: var(--hud-accent-text);
+  background: var(--hud-accent);
+  border-radius: 1px;
+}
+.hud-map__turn[data-on='false'] {
+  display: none;
+}
+.hud-map__next {
+  display: none;
+  font-size: var(--hud-fs-label);
+  font-weight: 600;
+  letter-spacing: var(--hud-label-tracking);
+  color: var(--hud-text-dim);
+}
+[data-kind='next'] .hud-map__next {
+  display: inline;
+}
+.hud-map__corner {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 1.1em;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  white-space: pre;
+  text-overflow: ellipsis;
+}
+[data-kind='next'] .hud-map__corner {
+  font-weight: 600;
+  color: var(--hud-text-dim);
+}
+.hud-map__alt {
+  display: flex;
+  align-items: baseline;
+  gap: 0.3em;
+}
+.hud-map__alt-v {
+  font-size: 1.1em;
+  font-weight: 700;
+}
+
+/* ---- inputs + damage */
+.hud-telemetry {
+  display: flex;
+  align-items: stretch;
+  gap: 0.9em;
+  height: 10.8em;
+  padding: 0.7em 0.85em 0.65em;
+}
+.hud-telemetry__rule {
+  width: 1px;
+  background: var(--hud-hairline);
+}
+.hud-pedals {
+  display: flex;
+  gap: 0.5em;
+}
+.hud-pedal {
+  --pc: var(--hud-throttle);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4em;
+}
+.hud-pedal--brake {
+  --pc: var(--hud-brake);
+}
+.hud-pedal__track {
+  position: relative;
+  flex: 1;
+  width: 1.1em;
+  overflow: hidden;
+  background: rgb(255 255 255 / 0.08);
+}
+.hud-pedal__fill {
+  position: absolute;
+  inset: 0;
+  background: var(--pc);
+  transform-origin: bottom;
+  transform: scaleY(var(--f, 0));
+}
+.hud-pedal__track::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(0deg, transparent 0 calc(25% - 1px), rgb(0 0 0 / 0.5) calc(25% - 1px) 25%);
+}
+.hud-wheel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4em;
+}
+.hud-wheel__rot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 5.4em;
+  height: 5.4em;
+  margin: auto 0;
+  transform: rotate(calc(var(--a, 0) * 1deg));
+}
+.hud-wheel__svg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+.hud-wheel__bar {
+  fill: none;
+  stroke: var(--hud-steer);
+  stroke-width: 6;
+  stroke-linecap: round;
+}
+.hud-wheel__grip {
+  fill: var(--hud-steer);
+}
+.hud-wheel__spoke {
+  fill: none;
+  stroke: var(--hud-steer);
+  stroke-width: 6;
+  stroke-linecap: round;
+}
+.hud-wheel__hub {
+  fill: #24282c;
+  stroke: var(--hud-steer);
+  stroke-width: 2.2;
+}
+.hud-wheel__screen {
+  fill: #07090a;
+}
+.hud-wheel__mark {
+  fill: var(--hud-accent);
+}
+.hud-damage {
+  display: flex;
+  gap: 0.65em;
+  transition: opacity 0.3s ease;
+}
+.hud-damage[data-pristine='true'] {
+  opacity: 0.62;
+}
+.hud-car {
+  height: 100%;
+  width: auto;
+  aspect-ratio: 64 / 132;
+  overflow: visible;
+}
+.hud-dmg {
+  --d1: 0;
+  --d2: 0;
+  fill-opacity: calc(0.5 + var(--d1) * 0.5);
+  --dmg-c: color-mix(
+    in oklch,
+    var(--hud-dmg-bad) calc(var(--d2) * 100%),
+    color-mix(in oklch, var(--hud-dmg-mid) calc(var(--d1) * 100%), var(--hud-dmg-ok))
+  );
+  fill: var(--dmg-c);
+}
+.hud-car__cabin {
+  fill: #2a2f33;
+}
+.hud-car__seams {
+  fill: none;
+  stroke: rgb(var(--hud-panel-rgb));
+  stroke-width: 1.5;
+}
+.hud-car__glass {
+  fill: #0a0c0e;
+  stroke: rgb(255 255 255 / 0.28);
+  stroke-width: 0.6;
+}
+.hud-car__outline {
+  fill: none;
+  stroke: rgb(255 255 255 / 0.5);
+  stroke-width: 1;
+}
+.hud-car__aero {
+  fill-opacity: 1;
+  stroke: rgb(0 0 0 / 0.8);
+  stroke-width: 0.8;
+}
+.hud-car__suspension {
+  fill-opacity: 1;
+  stroke: #050607;
+  stroke-width: 1;
+}
+.hud-systems {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 0.15em 0;
+}
+.hud-sys {
+  display: grid;
+  grid-template-columns: 1.7em auto;
+  column-gap: 0.45em;
+  row-gap: 0.18em;
+  align-items: center;
+}
+.hud-sys__icon {
+  grid-row: span 2;
+  width: 1.7em;
+  height: 1.7em;
+}
+.hud-sys__suspension {
+  fill: none;
+  stroke: var(--dmg-c);
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.hud-sys__pct {
+  font-size: 0.95em;
+  font-weight: 700;
+}
+.hud-sys[data-ok='true'] .hud-sys__pct {
+  color: var(--hud-text-dim);
+}

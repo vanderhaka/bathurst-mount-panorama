@@ -1,0 +1,275 @@
+/* Intro screens: side column, loading, title, car select. Tokens: src/hud/theme.css */
+
+/* ---- side column (title, car select) */
+.mn-side {
+  position: relative;
+  width: min(34em, 44vw);
+  margin-left: max(3.5em, 5.5vw);
+  display: flex;
+  flex-direction: column;
+  gap: 1.1em;
+  animation: mn-slide 0.34s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+/* ---- loading */
+.mn-screen--loading {
+  background: var(--menu-bg-solid);
+}
+.mn-loading__art {
+  position: absolute;
+  right: 5vw;
+  top: 47%;
+  width: min(58vw, 103vh);
+  transform: translateY(-50%);
+  overflow: visible;
+}
+.mn-loading__ghost,
+.mn-loading__draw {
+  fill: none;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+}
+.mn-loading__ghost {
+  stroke: rgb(255 255 255 / 0.08);
+  stroke-width: 2;
+}
+.mn-loading__draw {
+  stroke: var(--hud-text);
+  stroke-width: 3;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+}
+.mn-loading__head {
+  fill: var(--hud-accent);
+  stroke: var(--menu-bg-solid);
+  stroke-width: 3;
+}
+.mn-loading__sf rect {
+  fill: var(--hud-text);
+}
+.mn-loading__sf text {
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  fill: var(--hud-text-dim);
+}
+.mn-loading__body {
+  position: absolute;
+  left: max(3.5em, 5.5vw);
+  bottom: 12vh;
+  width: min(32em, 42vw);
+}
+.mn-loading__title {
+  margin: 0.25em 0 0.55em;
+  font-size: 4.2em;
+  font-weight: 800;
+  line-height: 0.9;
+  text-transform: uppercase;
+}
+.mn-progress {
+  position: relative;
+  height: 0.22em;
+  overflow: hidden;
+  background: rgb(255 255 255 / 0.12);
+}
+.mn-progress__fill {
+  position: absolute;
+  inset: 0;
+  background: var(--hud-accent);
+  transform-origin: left;
+  transform: scaleX(var(--p, 0));
+  transition: transform 0.3s ease-out;
+}
+.mn-loading__meta {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 0.75em;
+  font-size: 0.9em;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--hud-text-dim);
+}
+.mn-loading__pct {
+  color: var(--hud-text);
+}
+
+/* ---- title */
+.mn-title {
+  display: flex;
+  flex-direction: column;
+  margin: 0.05em 0 0.05em -0.04em;
+  font-weight: 800;
+  line-height: 0.82;
+  text-transform: uppercase;
+  text-shadow: 0 0.04em 0.4em rgb(0 0 0 / 0.35);
+}
+.mn-title__a {
+  font-size: calc(var(--menu-title-size) * 0.42);
+  font-weight: 700;
+  letter-spacing: 0.34em;
+  margin-left: 0.06em;
+}
+.mn-title__b {
+  font-size: var(--menu-title-size);
+  letter-spacing: -0.005em;
+}
+.mn-facts {
+  display: flex;
+  gap: 2.2em;
+  margin: 0.2em 0 1.2em;
+  padding-top: 0.9em;
+  border-top: 1px solid rgb(255 255 255 / 0.18);
+}
+.mn-fact dt {
+  font-size: 0.74em;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--hud-text-dim);
+}
+.mn-fact dd {
+  margin: 0.2em 0 0;
+  font-size: 1.85em;
+  font-weight: 700;
+}
+.mn-fact small {
+  margin-left: 0.2em;
+  font-size: 0.5em;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: var(--hud-text-dim);
+  text-transform: uppercase;
+}
+.mn-screen--title .mn-list {
+  width: min(22em, 100%);
+}
+
+/* ---- car select */
+.mn-side--car {
+  width: min(31em, 42vw);
+  gap: 0.75em;
+}
+.mn-value--car {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.4em;
+  padding: 0.75em 0.9em 0.85em;
+}
+.mn-value--car .mn-value__ctl {
+  justify-content: space-between;
+}
+.mn-value--car .mn-value__v {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4em;
+}
+.mn-value__label {
+  text-transform: none;
+}
+.mn-value--car .mn-value__label,
+.mn-value--livery .mn-value__label {
+  font-size: 0.78em;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--hud-text-dim);
+}
+.mn-car__maker {
+  font-size: 0.85em;
+  font-weight: 600;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--hud-text-dim);
+}
+.mn-car__name {
+  font-size: 2.7em;
+  font-weight: 800;
+  line-height: 0.92;
+  text-transform: uppercase;
+}
+.mn-specs {
+  margin: 0;
+  padding: 0.2em 0.9em;
+  background: rgb(0 0 0 / 0.25);
+  border-left: 0.2em solid rgb(255 255 255 / 0.12);
+}
+.mn-specs__note {
+  margin: 0.45em 0 0 1.1em;
+  font-family: var(--hud-font-text);
+  font-size: 0.82em;
+  color: var(--hud-text-dim);
+}
+.mn-spec {
+  display: flex;
+  justify-content: space-between;
+  gap: 1em;
+  padding: 0.5em 0;
+  border-bottom: 1px solid var(--hud-hairline);
+}
+.mn-spec:last-child {
+  border-bottom: 0;
+}
+.mn-spec dt {
+  font-size: 0.82em;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--hud-text-dim);
+}
+.mn-spec dd {
+  margin: 0;
+  font-family: var(--hud-font-text);
+  font-size: 0.95em;
+  font-weight: 500;
+}
+.mn-value--livery {
+  flex-wrap: wrap;
+}
+.mn-value--livery .mn-value__ctl {
+  flex: 1;
+  justify-content: flex-end;
+}
+.mn-value--livery .mn-value__v {
+  display: flex;
+  align-items: center;
+  gap: 0.75em;
+  flex: 1;
+}
+.mn-swatches {
+  display: inline-flex;
+  border: 1px solid rgb(255 255 255 / 0.25);
+}
+.mn-swatches i {
+  width: 1.15em;
+  height: 1.9em;
+}
+.mn-swatches i:first-child {
+  width: 1.9em;
+}
+.mn-livery__text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15em;
+  flex: 1;
+}
+.mn-livery__name {
+  font-size: 1.25em;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.mn-livery__meta {
+  font-size: 0.82em;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: var(--hud-text-dim);
+  text-transform: uppercase;
+}
+.mn-actions {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 0.5em;
+  margin-top: 0.4em;
+}

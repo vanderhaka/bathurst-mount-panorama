@@ -1,0 +1,230 @@
+/* Race dash cluster (MoTeC-style colour display) + next-corner chip. Tokens: theme.css */
+.hud-dash {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--hud-gap);
+}
+
+/* ---- next corner chip */
+.hud-next {
+  --nc: var(--hud-good);
+  display: flex;
+  align-items: center;
+  gap: 0.75em;
+  padding: calc(var(--hud-band) + 0.4em) 1.6em 0.42em 1.5em;
+  clip-path: var(--hud-strip-clip);
+  box-shadow: inset 0 var(--hud-band) 0 var(--nc);
+  transition: opacity 0.2s ease;
+}
+.hud-next[data-on='false'] {
+  opacity: 0;
+}
+.hud-next[data-brake='true'] {
+  --nc: var(--hud-bad);
+}
+.hud-next__val {
+  display: flex;
+  align-items: baseline;
+  gap: 0.3em;
+}
+.hud-next__v {
+  font-size: 1.6em;
+  font-weight: var(--hud-num-weight);
+  line-height: 0.9;
+}
+
+/* ---- bezel + LEDs */
+.hud-dash__bezel {
+  width: 27.5em;
+  padding: calc(var(--hud-band) + 0.5em) 0.6em 0.6em;
+  background: var(--hud-panel-bg);
+  box-shadow: inset 0 var(--hud-band) 0 var(--hud-accent);
+  clip-path: var(--hud-panel-clip);
+}
+.hud-leds {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.2em 0.55em 0.6em;
+}
+.hud-led {
+  --lc: var(--hud-led-green);
+  width: 1.08em;
+  height: 1.08em;
+  border-radius: 50%;
+  background: var(--hud-led-off);
+  box-shadow: inset 0 0.12em 0.22em rgb(0 0 0 / 0.75), 0 0 0 1px rgb(0 0 0 / 0.7);
+}
+.hud-led[data-c='amber'] { --lc: var(--hud-led-amber); }
+.hud-led[data-c='red'] { --lc: var(--hud-led-red); }
+.hud-led[data-lit='true'],
+[data-phase='shift'] .hud-led,
+[data-phase='limiter'] .hud-led {
+  background: radial-gradient(circle at 38% 34%, rgb(255 255 255 / 0.9) 0 9%, var(--lc) 42%);
+  box-shadow: 0 0 var(--hud-led-glow) color-mix(in srgb, var(--lc) 75%, transparent), 0 0 0 1px rgb(0 0 0 / 0.55);
+}
+[data-phase='shift'] .hud-led,
+[data-phase='limiter'] .hud-led {
+  --lc: var(--hud-led-blue);
+  animation: hud-led-flash 0.18s steps(1) infinite;
+}
+[data-phase='limiter'] .hud-led {
+  animation-duration: 0.1s;
+}
+@keyframes hud-led-flash {
+  50% {
+    background: var(--hud-led-off);
+    box-shadow: inset 0 0.12em 0.22em rgb(0 0 0 / 0.75), 0 0 0 1px rgb(0 0 0 / 0.7);
+  }
+}
+
+/* ---- screen */
+.hud-dash__screen {
+  position: relative;
+  padding: 0.6em 0.75em 0.5em;
+  background: var(--hud-dash-screen);
+  border: 1px solid #1c1f22;
+  border-radius: 2px;
+}
+.hud-rpm__track {
+  position: relative;
+  height: 1.05em;
+  overflow: hidden;
+}
+.hud-rpm__lit,
+.hud-rpm__cover,
+.hud-rpm__gaps {
+  position: absolute;
+  inset: 0;
+}
+.hud-rpm__lit {
+  background: linear-gradient(
+    90deg,
+    var(--hud-rpm-fill) 0 calc(var(--warn, 0.8) * 100%),
+    var(--hud-rpm-warn) calc(var(--warn, 0.8) * 100%) calc(var(--red, 0.95) * 100%),
+    var(--hud-rpm-red) calc(var(--red, 0.95) * 100%)
+  );
+}
+.hud-rpm__cover {
+  background: #15181b;
+  transform-origin: right center;
+  transform: scaleX(calc(1 - var(--f, 0)));
+}
+.hud-rpm__gaps {
+  background: repeating-linear-gradient(90deg, transparent 0 0.38em, var(--hud-dash-screen) 0.38em 0.52em);
+}
+.hud-rpm__track::after {
+  content: '';
+  position: absolute;
+  left: calc(var(--red, 0.95) * 100%);
+  right: 0;
+  bottom: 0;
+  height: 0.16em;
+  background: var(--hud-rpm-red);
+}
+.hud-rpm__scale {
+  position: relative;
+  height: 1.1em;
+  margin-top: 0.22em;
+}
+.hud-rpm__scale span {
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  font-size: var(--hud-fs-label);
+  font-weight: 600;
+  color: var(--hud-text-faint);
+}
+.hud-rpm__scale span.is-red {
+  color: var(--hud-rpm-red);
+}
+.hud-dash__main {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  margin-top: 0.3em;
+}
+.hud-dash__speed,
+.hud-dash__rpm {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3em;
+}
+.hud-dash__rpm {
+  align-items: flex-end;
+}
+.hud-dash__speed-v {
+  font-size: var(--hud-fs-speed);
+  font-weight: var(--hud-num-weight);
+  line-height: 0.82;
+}
+.hud-dash__rpm-v {
+  font-size: 1.95em;
+  font-weight: 700;
+  line-height: 0.85;
+}
+.hud-dash__gear {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 3.6em;
+  height: 4.9em;
+  margin: 0 0.9em;
+  border-left: 1px solid #23272b;
+  border-right: 1px solid #23272b;
+}
+.hud-dash__gear-v {
+  font-size: var(--hud-fs-gear);
+  font-weight: var(--hud-num-weight);
+  line-height: 0.78;
+}
+[data-phase='shift'] .hud-dash__gear-v {
+  color: var(--hud-led-blue);
+}
+[data-phase='limiter'] .hud-dash__gear {
+  animation: hud-gear-flash 0.1s steps(1) infinite;
+}
+@keyframes hud-gear-flash {
+  0% { background: var(--hud-led-red); }
+  50% { background: transparent; }
+}
+
+/* ---- lamps */
+.hud-dash__lamps {
+  display: flex;
+  align-items: center;
+  gap: 0.35em;
+  margin-top: 0.5em;
+  padding-top: 0.45em;
+  border-top: 1px solid #1a1d20;
+}
+.hud-dash__spacer {
+  flex: 1;
+}
+.hud-lamp {
+  padding: 0.24em 0.5em 0.2em;
+  font-size: var(--hud-fs-label);
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  color: #4a5056;
+  border: 1px solid var(--hud-lamp-off);
+  border-radius: 1px;
+}
+.hud-lamp[data-on='true'] {
+  color: #121212;
+  background: var(--hud-lamp-on);
+  border-color: var(--hud-lamp-on);
+}
+.hud-lamp--lim[data-on='true'] {
+  color: #fff;
+  background: var(--hud-led-red);
+  border-color: var(--hud-led-red);
+  animation: hud-blink 0.2s steps(1) infinite;
+}
+.hud-lamp--mode {
+  color: var(--hud-text-dim);
+  border-color: #2f3439;
+}
+@keyframes hud-blink {
+  50% { opacity: 0.25; }
+}

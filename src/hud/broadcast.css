@@ -1,0 +1,235 @@
+/* Broadcast strips: start lights, live delta, tyres + fuel panel. Tokens: theme.css */
+
+/* ---- start lights (5 pods x 2 lamps) */
+.hud-lights {
+  display: flex;
+  gap: 0.55em;
+  padding: calc(var(--hud-band) + 0.55em) 1.6em 0.6em;
+  clip-path: var(--hud-strip-clip);
+  transition: opacity 0.35s ease;
+}
+.hud-lights[data-on='false'] {
+  display: none;
+}
+.hud-lights[data-phase='out'] {
+  opacity: 0;
+  transition-delay: 0.5s;
+}
+.hud-light {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35em;
+  padding: 0.4em;
+  background: #07090b;
+  border-radius: 0.35em;
+}
+.hud-light i {
+  width: 2.1em;
+  height: 2.1em;
+  border-radius: 50%;
+  background: radial-gradient(circle at 40% 35%, #3a1716, #1a0b0b 70%);
+  box-shadow: inset 0 0.15em 0.3em rgb(0 0 0 / 0.8);
+}
+.hud-light[data-lit='true'] i {
+  background: radial-gradient(circle at 40% 35%, #ffd4cf 0 8%, #ff3127 38%, #c4120c 80%);
+  box-shadow: 0 0 1.1em rgb(255 40 30 / 0.75), inset 0 -0.1em 0.2em rgb(0 0 0 / 0.35);
+}
+
+/* ---- live delta strip */
+.hud-delta {
+  --dc: var(--hud-text-dim);
+  display: flex;
+  align-items: center;
+  gap: 1.1em;
+  padding: calc(var(--hud-band) + 0.5em) 2em 0.55em 1.8em;
+  clip-path: var(--hud-strip-clip);
+}
+.hud-delta[data-delta='faster'] { --dc: var(--hud-good); }
+.hud-delta[data-delta='slower'] { --dc: var(--hud-bad); }
+.hud-delta[data-hidden='true'] {
+  display: none;
+}
+.hud-delta__num {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.25em;
+  min-width: 5.4em;
+}
+.hud-delta__v {
+  font-size: var(--hud-fs-delta);
+  font-weight: var(--hud-num-weight);
+  line-height: 0.82;
+  color: var(--dc);
+}
+.hud-delta__gauge {
+  width: var(--hud-delta-bar-w);
+}
+.hud-delta__bar {
+  position: relative;
+  height: var(--hud-delta-bar-h);
+  background: var(--hud-delta-track);
+}
+.hud-delta__fill {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 50%;
+  transform-origin: left center;
+  transform: scaleX(var(--f, 0));
+  background: var(--dc);
+}
+.hud-delta__ticks i {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  z-index: 1;
+  width: 2px;
+  margin-left: -1px;
+  background: rgb(var(--hud-panel-rgb) / 0.85);
+}
+.hud-delta__zero {
+  position: absolute;
+  left: 50%;
+  top: -0.32em;
+  bottom: -0.32em;
+  z-index: 2;
+  width: 0.18em;
+  margin-left: -0.09em;
+  background: var(--hud-text);
+}
+.hud-delta__scale {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-top: 0.4em;
+  font-size: var(--hud-fs-label);
+  font-weight: 700;
+  color: var(--hud-text-faint);
+}
+.hud-delta__scale .is-fast { color: color-mix(in srgb, var(--hud-good) 70%, var(--hud-text-faint)); }
+.hud-delta__scale .is-slow { color: color-mix(in srgb, var(--hud-bad) 70%, var(--hud-text-faint)); }
+.hud-delta__ref {
+  display: flex;
+  align-items: baseline;
+  gap: 0.45em;
+}
+.hud-delta__ref .hud-micro {
+  font-size: 1em;
+}
+.hud-delta__ref-v {
+  font-weight: 700;
+  color: var(--hud-text-dim);
+}
+
+/* ---- tyres + fuel */
+.hud-tyrefuel {
+  min-width: 20em;
+}
+.hud-tyrefuel__body {
+  display: flex;
+  align-items: stretch;
+  gap: 0.9em;
+  padding: 0.55em 1.1em 0.7em 0.85em;
+}
+.hud-tyrefuel__rule {
+  width: 1px;
+  background: var(--hud-hairline);
+}
+.hud-tyres {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45em;
+}
+.hud-tyres__grid {
+  display: grid;
+  grid-template-columns: repeat(2, 3em);
+  grid-auto-rows: 2.6em;
+  column-gap: 0.9em;
+  row-gap: 0.4em;
+}
+.hud-tyre {
+  --tc: var(--hud-tyre-cold);
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-bottom: 0.2em;
+  color: var(--hud-tyre-text);
+  background: var(--tc);
+  border-radius: 0.22em;
+}
+.hud-tyre[data-band='warm'] { --tc: var(--hud-tyre-warm); }
+.hud-tyre[data-band='ok'] { --tc: var(--hud-tyre-ok); }
+.hud-tyre[data-band='hot'] { --tc: var(--hud-tyre-hot); }
+.hud-tyre[data-band='over'] { --tc: var(--hud-tyre-over); }
+.hud-tyre__t {
+  font-size: 1.25em;
+  font-weight: var(--hud-num-weight);
+}
+.hud-tyre__life {
+  position: absolute;
+  left: 0.3em;
+  right: 0.3em;
+  bottom: 0.28em;
+  height: 0.2em;
+  background: rgb(0 0 0 / 0.22);
+}
+.hud-tyre__life-fill {
+  position: absolute;
+  inset: 0;
+  background: rgb(0 0 0 / 0.72);
+  transform-origin: left center;
+  transform: scaleX(var(--f, 1));
+}
+.hud-fuel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-width: 6.4em;
+}
+.hud-fuel__main {
+  display: flex;
+  align-items: baseline;
+  gap: 0.2em;
+}
+.hud-fuel__v {
+  font-size: 1.85em;
+  font-weight: var(--hud-num-weight);
+  line-height: 0.9;
+}
+.hud-fuel__u {
+  font-size: var(--hud-fs-label);
+  font-weight: 700;
+  color: var(--hud-text-dim);
+}
+.hud-fuel__gauge {
+  position: relative;
+  height: 0.42em;
+  overflow: hidden;
+  background: rgb(255 255 255 / 0.1);
+}
+.hud-fuel__fill {
+  position: absolute;
+  inset: 0;
+  background: var(--hud-fuel);
+  transform-origin: left center;
+  transform: scaleX(var(--f, 1));
+}
+.hud-fuel[data-low='true'] .hud-fuel__fill {
+  background: var(--hud-fuel-low);
+}
+.hud-fuel__laps {
+  display: flex;
+  align-items: baseline;
+  gap: 0.35em;
+}
+.hud-fuel__laps-v {
+  font-size: 1.2em;
+  font-weight: 700;
+}
+.hud-fuel[data-low='true'] .hud-fuel__laps-v {
+  color: var(--hud-fuel-low);
+}

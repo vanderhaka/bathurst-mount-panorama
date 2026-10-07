@@ -1,0 +1,148 @@
+/* HUD base, layout regions, shared panel parts, timing graphic, banner. Tokens: theme.css */
+.bx-hud {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  pointer-events: none;
+  user-select: none;
+  overflow: hidden;
+  font-size: var(--hud-font-size);
+  font-family: var(--hud-font-display);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  color: var(--hud-text);
+  opacity: var(--hud-opacity);
+  transition: opacity 0.25s ease;
+  -webkit-font-smoothing: antialiased;
+  contain: layout style;
+}
+.bx-hud[data-visible='false'] {
+  opacity: 0;
+  visibility: hidden;
+}
+.bx-hud *,
+.bx-hud *::before,
+.bx-hud *::after {
+  box-sizing: border-box;
+}
+
+.hud-region {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  gap: var(--hud-gap);
+}
+.hud-region--tl {
+  top: var(--hud-margin-y);
+  left: var(--hud-margin-x);
+  align-items: flex-start;
+}
+/* In the cockpit view the interior mirror sits top left of centre: keep it clear. */
+.bx-hud[data-view='cockpit'] .hud-region--tl {
+  top: var(--hud-cockpit-tower-top, 31%);
+}
+.hud-region--tr {
+  top: var(--hud-margin-y);
+  right: var(--hud-margin-x);
+  align-items: flex-end;
+}
+.hud-region--tc {
+  top: var(--hud-margin-y);
+  left: 50%;
+  transform: translateX(-50%);
+  align-items: center;
+}
+.hud-region--bl {
+  bottom: var(--hud-margin-y);
+  left: var(--hud-margin-x);
+}
+.hud-region--br {
+  bottom: var(--hud-margin-y);
+  right: var(--hud-margin-x);
+  align-items: flex-end;
+}
+
+/* ---- shared panel parts: slate base, chamfered corners, accent band on top */
+.hud-panel {
+  padding-top: var(--hud-band);
+  background: var(--hud-panel-bg);
+  box-shadow: inset 0 var(--hud-band) 0 var(--hud-accent);
+  clip-path: var(--hud-panel-clip);
+}
+.hud-panel__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 1.95em;
+  padding: 0 0.75em;
+  background: var(--hud-panel-head-bg);
+  border-bottom: 1px solid var(--hud-hairline);
+}
+.hud-micro {
+  font-family: var(--hud-font-display);
+  font-weight: 600;
+  font-size: var(--hud-fs-label);
+  letter-spacing: var(--hud-label-tracking);
+  text-transform: uppercase;
+  color: var(--hud-text-dim);
+  white-space: nowrap;
+}
+.hud-micro--strong {
+  color: var(--hud-text);
+}
+
+/* ---- FPS */
+.hud-fps {
+  padding: 0.3em 0.5em;
+  font-family: var(--hud-font-mono);
+  font-size: var(--hud-fs-label);
+  font-weight: 500;
+  color: var(--hud-text-dim);
+  background: var(--hud-panel-bg);
+  clip-path: var(--hud-strip-clip);
+  padding-inline: 0.9em;
+}
+.hud-fps[data-on='false'] {
+  display: none;
+}
+
+/* ---- banner */
+.hud-banner {
+  --kc: var(--hud-info);
+  display: flex;
+  align-items: stretch;
+  min-width: 24em;
+  max-width: 48em;
+  background: rgb(var(--hud-panel-rgb) / 0.9);
+  border: 1px solid var(--hud-panel-border);
+  border-radius: var(--hud-radius);
+  box-shadow: var(--hud-panel-shadow);
+  opacity: 0;
+  transform: translateY(-0.9em);
+  transition: opacity 0.18s ease, transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.hud-banner[data-on='true'] {
+  opacity: 1;
+  transform: none;
+}
+.hud-banner[data-kind='warn'] { --kc: var(--hud-bad); }
+.hud-banner[data-kind='good'] { --kc: var(--hud-good); }
+.hud-banner[data-kind='best'] { --kc: var(--hud-sector-overall); }
+.hud-banner__bar {
+  width: 0.42em;
+  flex: none;
+  background: var(--kc);
+}
+.hud-banner__text {
+  flex: 1;
+  padding: 0.55em 1.4em 0.5em;
+  font-size: var(--hud-fs-banner);
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-align: center;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.hud-banner[data-kind='best'] {
+  background: color-mix(in srgb, var(--hud-sector-overall) 30%, rgb(var(--hud-panel-rgb) / 0.92));
+}
