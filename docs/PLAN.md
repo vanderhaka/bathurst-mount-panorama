@@ -1,13 +1,12 @@
 # Plan: next work for Mount Panorama (from October 2026)
 
-This plan puts all agreed ideas in the order to do them. Do the phases in order. Inside a phase, do the items in order unless an item says that it can move.
+This plan puts the agreed work in order. Do the phases in order. Inside a phase, do the items in order unless an item says that it can move. Not in this plan (later): game modes and competition, and error monitoring (Sentry).
 
 | Phase | Theme | Items | Goal |
 |---|---|---|---|
 | 1 | Graphics realism | 1.0 – 1.12 | Close 50 % of the gap between the game and real photos (Realism Index), toward the new art direction: about 75 % of the way to photoreal |
-| 2 | Phone strength | 2.1 – 2.10 | A safe, fast, measurable phone version |
+| 2 | Phone strength | 2.1 – 2.9 | A safe, fast, measurable phone version |
 | 3 | Racing realism | 3.1 – 3.11 | Tyres, brakes, fuel, setup and track grip that behave like a real Gen3 car |
-| 4 | Game modes and competition | 4.1 – 4.13 | Goals, competition with other players, races |
 
 Sizes: **S** = small, **M** = medium, **L** = large (relative to each other, not time promises).
 
@@ -27,19 +26,18 @@ Sizes: **S** = small, **M** = medium, **L** = large (relative to each other, not
 6. Commit with one Conventional Commit per item (or per clear slice), then run `/cap` to `main`.
 7. Phone items: the user checks the item on a real iPhone after the deployment.
 8. Dev-only tools stay behind `DEV_TOOLS` (local builds and Vercel preview deployments).
+9. Agents that work without the user (for example overnight): when an item needs an open decision, use the recommendation in the decisions table and write the choice in the commit message. Do not stop for a decision that has a recommendation.
 
 ## Decisions for the user
 
-Decide these when the plan reaches them. Each one names the item that needs it.
+Decide these when the plan reaches them. Each one names the item that needs it. If the user is not available, use the recommendation.
 
 | # | Decision | Needed by | Recommendation |
 |---|---|---|---|
 | D1 | Change the art direction from "medium-poly, not photoreal" | 1.1 | **Decided (2026-10-07): about 75 % of the way to photoreal.** Real light, materials and detail; the medium-poly geometry may show on close inspection; generated assets only (no photo textures, no real logos). |
 | D2 | Default time of day for the look | 1.2 | Race-day afternoon (about 15:00 AEDT, second Sunday of October). |
 | D3 | Frame-rate budget for phones | 1.11 | 50 fps or more on the user's iPhone on Medium. |
-| D4 | A Sentry project for this game (error reports) | 2.1 | Create a separate Sentry project; put the DSN in Vercel environment variables. |
-| D5 | Download the Playwright WebKit browser (about 100 MB) | 2.6 | Accept: it tests the Safari engine, which Chrome emulation does not. |
-| D6 | A Supabase project for leaderboards | 4.4 | Free tier first. |
+| D4 | Download the Playwright WebKit browser (about 100 MB) | 2.5 | Accept: it tests the Safari engine, which Chrome emulation does not. |
 
 ---
 
@@ -144,7 +142,7 @@ Decide these when the plan reaches them. Each one names the item that needs it.
   1. Put every Phase 1 feature in the tier table (`QUALITY` in `src/config/graphics.ts`).
   2. Extend `scripts/capture-evidence.mjs` to record GPU frame time per tier.
   3. Measure on desktop High and on the user's iPhone on Medium and Low.
-- **Done when:** every tier meets Appendix B; phones show no new graphics-loss reports (once 2.1 is live).
+- **Done when:** every tier meets Appendix B; the user's iPhone runs 3 laps on Medium with no graphics loss.
 
 ### 1.12 Scorecard round, user review and release — S
 - **Do:**
@@ -157,42 +155,37 @@ Decide these when the plan reaches them. Each one names the item that needs it.
 
 ## Phase 2 — Phone strength
 
-**Goal.** The phone version is safe, fast and measurable. Do 2.1 first: it gives data for every later item.
+**Goal.** The phone version is safe, fast and measurable.
 
-### 2.1 Error monitoring (Sentry) — S
-- **Depends on:** D4.
-- **Do:** add the Sentry browser SDK with source maps; report JavaScript errors, WebGL context loss, the quality tier, the device class and the frame rate at the end of each lap. Never send personal data.
-- **Done when:** a test error from a preview deployment shows in Sentry with a readable stack trace.
-
-### 2.2 Keep the screen awake — S
+### 2.1 Keep the screen awake — S
 - **Do:** request a Screen Wake Lock while a race runs; release it on pause, results and page hide; request it again after the page shows.
 - **Done when:** the iPhone screen does not dim during a 3-minute lap.
 
-### 2.3 Android full screen and landscape lock — S
+### 2.2 Android full screen and landscape lock — S
 - **Do:** on the first tap on Android, request full screen and lock the orientation to landscape. Do nothing on iPhone (no support); keep the Home Screen tip there.
 - **Done when:** an Android phone plays in full screen landscape after one tap.
 
-### 2.4 Smaller download and less memory — S
+### 2.3 Smaller download and less memory — S
 - **Do:**
   1. Remove the test pages (`harness/*.html`) from the production build.
   2. On phones: smaller shadow maps, livery atlas and terrain textures; dispose unused render targets.
   3. Measure the download size and the GPU memory before and after.
 - **Done when:** the first download is at least 25 % smaller; phone GPU memory is lower than before Phase 1.
 
-### 2.5 Automatic graphics quality — M
+### 2.4 Automatic graphics quality — M
 - **Do:** measure the frame time in the first 10 seconds of a race; if it is above the tier budget, step down (High → Medium → Low, then pixel density). Save the result per device. Show a short note when the quality changes; the player can override it in Settings.
 - **Done when:** a throttled desktop (CPU and GPU slowdown in Chrome) steps down by itself and stays down after a reload.
 
-### 2.6 WebKit test engine — S
-- **Depends on:** D5.
+### 2.5 WebKit test engine — S
+- **Depends on:** D4.
 - **Do:** install Playwright WebKit; run the phone play scenarios (`scripts/play.mjs --mobile`) in WebKit as well as Chrome.
 - **Done when:** the phone scenarios pass in WebKit; any WebKit-only fault has a fix or an issue.
 
-### 2.7 Offline play — S
+### 2.6 Offline play — S
 - **Do:** a service worker that caches the game files and fonts; a new version replaces the old one on the next start.
 - **Done when:** the Home Screen app starts and plays with the network off.
 
-### 2.8 Touch-control options — M
+### 2.7 Touch-control options — M
 - **Do:** in Settings > Steering, add:
   1. Touch steering mode: drag (current), tilt (gyroscope; iOS asks for permission on a tap), or left/right buttons.
   2. Analog throttle: thumb position on the pedal sets the throttle.
@@ -200,11 +193,11 @@ Decide these when the plan reaches them. Each one names the item that needs it.
   4. Left-handed layout (mirror the controls).
 - **Done when:** each mode works in a phone play scenario and on the user's iPhone.
 
-### 2.9 Minimal phone HUD — S
+### 2.8 Minimal phone HUD — S
 - **Do:** a Display setting with HUD size "Full" or "Minimal" (speed, gear, lap time, position on the map).
 - **Done when:** the minimal HUD covers less than 10 % of a phone screen.
 
-### 2.10 Android vibration — S
+### 2.9 Android vibration — S
 - **Do:** short vibration pulses on kerbs and impacts where `navigator.vibrate` exists (Android); a setting to turn it off.
 - **Done when:** an Android phone pulses on the Chase kerbs; nothing happens on iPhone.
 
@@ -266,28 +259,6 @@ Decide these when the plan reaches them. Each one names the item that needs it.
 
 ---
 
-## Phase 4 — Game modes and competition
-
-**Goal.** Give the driver goals and other people to beat. Phase 4 items come from the first brainstorm.
-
-| # | Item | Size | Depends on | Done when |
-|---|---|---|---|---|
-| 4.1 | **Top 10 Shootout mode**: out lap, one timed lap, one try; a grid position against the real 2025 pole | S | 3.9 | A shootout result screen shows the grid position |
-| 4.2 | **Share a lap card**: an image with the lap time, sectors, car and livery | S | — | The card downloads and shares from a phone |
-| 4.3 | **Learn the Mountain**: a coached lap with corner names, braking points and target speeds | M | — | A new player completes a coached lap with each corner tip shown |
-| 4.4 | **Online leaderboard** per car with lap-validity and ghost checks against cheats | M | D6, 2.1 | A lap from two devices shows on one board; a false lap is refused |
-| 4.5 | **Race the world-record ghost**: download the fastest ghost per car | M | 4.4 | The record ghost plays in time trial |
-| 4.6 | **Daily challenge**: a set car and condition each day, one board | M | 4.4 | A new challenge appears each day |
-| 4.7 | **Replays with the TV cameras**, built from the ghost data | M | — | A replay of the best lap plays with camera cuts |
-| 4.8 | **Livery editor**: colours, number, pattern; save and share | M | — | A custom livery saves, shows in races and shares |
-| 4.9 | **Steering wheel and pedal support** with a calibration screen | M | — | A Logitech wheel drives with correct ranges |
-| 4.10 | **AI opponents and a sprint race** (10–20 cars of the three makes) | L | 3.2 | A 5-lap race finishes with positions and no stuck cars |
-| 4.11 | **Short Bathurst 1000**: about 20 laps, tyre wear, fuel, compulsory pit stops | L | 4.10, 3.1, 3.2 | A full short race with pit stops finishes |
-| 4.12 | **Older Bathurst legends**: lookalike cars from earlier eras to unlock | L | 1.8 | Two legend cars drive with their own specs |
-| 4.13 | **Offline-first phone race** (AI race on phones on Low/Medium) | M | 4.10, 2.5 | A phone runs the sprint race inside its budget |
-
----
-
 ## Appendix A — Realism Index
 
 - **Viewpoints:** 12 corner viewpoints (as `scripts/capture-evidence.mjs`) and 3 car close-ups. Each viewpoint has one real reference photo from `docs/references/` taken from a similar place and angle.
@@ -306,23 +277,38 @@ Decide these when the plan reaches them. Each one names the item that needs it.
 
 ## Appendix C — Item index
 
-| Item | Phase | Size | Item | Phase | Size |
-|---|---|---|---|---|---|
-| 1.0 Baseline and guard rails | 1 | S | 2.6 WebKit test engine | 2 | S |
-| 1.1 Art direction update | 1 | S | 2.7 Offline play | 2 | S |
-| 1.2 Light, sky and atmosphere | 1 | M | 2.8 Touch-control options | 2 | M |
-| 1.3 Shadows and ambient occlusion | 1 | M | 2.9 Minimal phone HUD | 2 | S |
-| 1.4 Track surface | 1 | M | 2.10 Android vibration | 2 | S |
-| 1.5 Terrain and grass | 1 | M | 3.1 Fuel weight | 3 | S |
-| 1.6 Gum trees and bush | 1 | L | 3.2 Tyre temperature and wear | 3 | M |
-| 1.7 Trackside and distance | 1 | M | 3.3 Telemetry compare | 3 | M |
-| 1.8 Cars | 1 | M | 3.4 Setup screen and brake bias | 3 | M |
-| 1.9 Anti-aliasing and camera effects | 1 | S | 3.5 Tyre load sensitivity | 3 | M |
-| 1.10 Effects | 1 | S | 3.6 Brake temperature and fade | 3 | M |
-| 1.11 Quality tiers and performance | 1 | M | 3.7 Track grip on and off the line | 3 | S |
-| 1.12 Scorecard round and release | 1 | S | 3.8 Kerb types | 3 | M |
-| 2.1 Error monitoring | 2 | S | 3.9 Real pole reference | 3 | S |
-| 2.2 Keep the screen awake | 2 | S | 3.10 Head movement and sound | 3 | S |
-| 2.3 Android full screen | 2 | S | 3.11 Weather and time of day | 3 | L |
-| 2.4 Smaller download, less memory | 2 | S | 4.1 – 4.13 Game modes | 4 | see Phase 4 |
-| 2.5 Automatic graphics quality | 2 | M | | | |
+| Item | Phase | Size |
+|---|---|---|
+| 1.0 Baseline and guard rails | 1 | S |
+| 1.1 Art direction update | 1 | S |
+| 1.2 Light, sky and atmosphere | 1 | M |
+| 1.3 Shadows and ambient occlusion | 1 | M |
+| 1.4 Track surface | 1 | M |
+| 1.5 Terrain and grass | 1 | M |
+| 1.6 Gum trees and bush | 1 | L |
+| 1.7 Trackside and distance | 1 | M |
+| 1.8 Cars | 1 | M |
+| 1.9 Anti-aliasing and camera effects | 1 | S |
+| 1.10 Effects | 1 | S |
+| 1.11 Quality tiers and performance | 1 | M |
+| 1.12 Scorecard round, user review and release | 1 | S |
+| 2.1 Keep the screen awake | 2 | S |
+| 2.2 Android full screen and landscape lock | 2 | S |
+| 2.3 Smaller download and less memory | 2 | S |
+| 2.4 Automatic graphics quality | 2 | M |
+| 2.5 WebKit test engine | 2 | S |
+| 2.6 Offline play | 2 | S |
+| 2.7 Touch-control options | 2 | M |
+| 2.8 Minimal phone HUD | 2 | S |
+| 2.9 Android vibration | 2 | S |
+| 3.1 Fuel weight | 3 | S |
+| 3.2 Tyre temperature and wear change the grip | 3 | M |
+| 3.3 Telemetry compare | 3 | M |
+| 3.4 Setup screen and brake bias | 3 | M |
+| 3.5 Tyre load sensitivity | 3 | M |
+| 3.6 Brake temperature, fade and flat spots | 3 | M |
+| 3.7 Track grip on and off the racing line | 3 | S |
+| 3.8 Kerb types | 3 | M |
+| 3.9 Real pole reference | 3 | S |
+| 3.10 Head movement and sound detail | 3 | S |
+| 3.11 Weather and time of day | 3 | L |

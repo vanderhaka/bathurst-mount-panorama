@@ -6,7 +6,7 @@ Ford Mustang GT and the Toyota GR Supra (new in 2026). Built with three.js, Type
 
 ## Plan
 
-The next work, in order, is in [`docs/PLAN.md`](docs/PLAN.md): graphics realism (toward about 75 % of the way to photoreal), phone strength, racing realism, then game modes and competition.
+The next work, in order, is in [`docs/PLAN.md`](docs/PLAN.md): graphics realism (toward about 75 % of the way to photoreal), phone strength, then racing realism.
 
 ## Run
 
