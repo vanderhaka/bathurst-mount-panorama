@@ -82,6 +82,32 @@ describe('InputManager', () => {
     expect(input.consume('tuner')).toBe(true);
   });
 
+  it('applies the controller steering sensitivity near centre but keeps full stick at full lock', () => {
+    const input = new InputManager(new FakeWindow() as unknown as Window);
+    const steerAt = (stick: number, sens: number): number => {
+      input.steerSensitivity.pad = sens;
+      pads = [fakePad({}, [stick, 0, 0, 0])];
+      return -input.update(1 / 60).steer;
+    };
+    const normal = steerAt(0.5, 1), high = steerAt(0.5, 1.5), low = steerAt(0.5, 0.5);
+    expect(high).toBeGreaterThan(normal * 1.3);
+    expect(low).toBeLessThan(normal * 0.6);
+    for (const sens of [0.5, 1, 2]) expect(steerAt(1, sens)).toBeCloseTo(1, 6);
+  });
+
+  it('turns the keyboard steering faster with a higher keyboard sensitivity', () => {
+    const lockAfter = (sens: number): number => {
+      const w = new FakeWindow();
+      const input = new InputManager(w as unknown as Window);
+      input.steerSensitivity.keyboard = sens;
+      w.key('keydown', 'ArrowLeft');
+      let c = input.update(1 / 60);
+      for (let i = 0; i < 5; i++) c = input.update(1 / 60);
+      return c.steer;
+    };
+    expect(lockAfter(2)).toBeCloseTo(lockAfter(1) * 2, 5);
+  });
+
   it('changes the camera with R1 / RB in a race, and the tab with L1 / R1 in the menus', () => {
     const input = new InputManager(new FakeWindow() as unknown as Window);
     pads = [fakePad({ 5: 1 })]; // RB / R1

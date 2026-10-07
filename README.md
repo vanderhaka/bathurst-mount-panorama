@@ -117,6 +117,7 @@ The racing-line colours and corner-speed hints use the new values from the next 
 ## Menus
 
 Every build has **Settings > Graphics and audio > Frame rate limit** (30, 60, 120 or Max).
+Every build also has **Settings > Steering**: a sensitivity for each device (controller, keyboard and touch), from 50 % to 200 %. A higher controller value gives more steering near the centre of the stick, and full stick is always full lock. A higher keyboard value turns the wheel faster. A higher touch value needs a shorter thumb drag for full lock.
 
 - Up and down move between items. Left and right change a value, or move to the button beside.
 - **LB / RB** (L1 / R1) or **Q / E** change the Settings tab.

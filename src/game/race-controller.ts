@@ -82,6 +82,10 @@ export class RaceController {
     const { input } = this.d;
     const settings = this.d.settings();
     const v = this.player.vehicle;
+    const sens = input.steerSensitivity;
+    sens.keyboard = settings.steerKeyboard;
+    sens.pad = settings.steerPad;
+    sens.touch = settings.steerTouch;
     const controls = input.update(dt);
     v.assists = { abs: settings.abs, tc: settings.tractionControl, autoGears: settings.autoGears, mechanicalDamage: settings.damage === 'full' };
     this.player.visualDamage = settings.damage !== 'off';

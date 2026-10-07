@@ -3,12 +3,12 @@
 // the tab. Dev builds also get the "Graphics tuner" button.
 import { DEV_TOOLS } from '@/config/build-flags';
 import { h } from '@/hud/dom';
-import type { Settings } from '@/types/session';
+import { DEFAULT_SETTINGS, type Settings } from '@/types/session';
 import { fillPadText } from '@/input/pad-style';
 import { currentPadStyle, padText } from '@/ui/pad-glyphs';
 import { hintBar, kicker, menuButton, type Screen, screenEl, STD_HINTS, valueRow } from '@/ui/screen';
 import { HandlingPage } from '@/ui/screens/handling-page';
-import { adjustSetting, optionIndex, SETTING_GROUPS, type SettingField, valueLabel } from '@/ui/settings-model';
+import { adjustSetting, optionIndex, rangeFraction, SETTING_GROUPS, type SettingField, valueLabel } from '@/ui/settings-model';
 import { TabBar } from '@/ui/tab-bar';
 
 interface Row {
@@ -32,8 +32,10 @@ export interface SettingsActions {
 
 function indicator(field: SettingField, settings: Settings): HTMLElement {
   if (field.kind === 'range') {
-    const on = Math.round(settings.masterVolume * 20);
-    return h('span', 'mn-meter', { 'aria-hidden': 'true' }, Array.from({ length: 20 }, (_, i) => h('i', i < on ? 'is-on' : '')));
+    // 20 ticks; the taller tick marks the default value.
+    const on = Math.round(rangeFraction(field, settings[field.key]) * 20);
+    const mark = Math.round(rangeFraction(field, DEFAULT_SETTINGS[field.key]) * 20) - 1;
+    return h('span', 'mn-meter', { 'aria-hidden': 'true' }, Array.from({ length: 20 }, (_, i) => h('i', `${i < on ? 'is-on' : ''} ${i === mark ? 'is-default' : ''}`.trim())));
   }
   const active = optionIndex(field, settings);
   return h(

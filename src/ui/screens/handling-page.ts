@@ -10,7 +10,7 @@ const METER_TICKS = 20;
 
 function meter(fraction: number, defaultFraction: number): HTMLElement {
   const on = Math.round(fraction * METER_TICKS);
-  const mark = Math.round(defaultFraction * METER_TICKS);
+  const mark = Math.round(defaultFraction * METER_TICKS) - 1; // last lit tick at the default
   return h('span', 'mn-meter', { 'aria-hidden': 'true' }, Array.from({ length: METER_TICKS }, (_, i) => h('i', `${i < on ? 'is-on' : ''} ${i === mark ? 'is-default' : ''}`.trim())));
 }
 

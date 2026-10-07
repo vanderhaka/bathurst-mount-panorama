@@ -56,3 +56,14 @@ describe('InputManager with touch controls', () => {
     expect(input.consume('pause')).toBe(false);
   });
 });
+
+describe('touch steering sensitivity', () => {
+  it('passes Settings > Steering > Touch steering to the touch controls', () => {
+    const input = new InputManager(new FakeWindow() as unknown as Window);
+    const touch = { ...fakeTouch({ steer: 0, throttle: 0, brake: 0 }), sensitivity: 1 };
+    input.attachTouch(touch as unknown as TouchControls);
+    input.steerSensitivity.touch = 1.6;
+    input.update(1 / 60);
+    expect(touch.sensitivity).toBe(1.6);
+  });
+});

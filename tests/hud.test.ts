@@ -180,6 +180,18 @@ describe('menu models', () => {
     expect(valueLabel(vol, DEFAULT_SETTINGS)).toBe('80%');
   });
 
+  it('steps steering sensitivity in 10 % steps between 50 % and 200 %', () => {
+    const pad = ALL_FIELDS.find((f) => f.key === 'steerPad');
+    if (!pad) throw new Error('missing steerPad');
+    expect(valueLabel(pad, DEFAULT_SETTINGS)).toBe('100%');
+    expect(adjustSetting(DEFAULT_SETTINGS, pad, 1).steerPad).toBe(1.1);
+    expect(adjustSetting({ ...DEFAULT_SETTINGS, steerPad: 2 }, pad, 1).steerPad).toBe(2);
+    expect(adjustSetting({ ...DEFAULT_SETTINGS, steerPad: 0.5 }, pad, -1).steerPad).toBe(0.5);
+    let s = DEFAULT_SETTINGS;
+    for (let i = 0; i < 7; i++) s = adjustSetting(s, pad, 1);
+    expect(s.steerPad).toBe(1.7); // no float drift
+  });
+
   it('covers every Settings field', () => {
     expect(new Set(ALL_FIELDS.map((f) => f.key))).toEqual(new Set(Object.keys(DEFAULT_SETTINGS)));
   });

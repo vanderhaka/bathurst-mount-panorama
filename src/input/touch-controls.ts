@@ -32,6 +32,8 @@ export class TouchControls {
   touched = false;
   /** Pause and camera buttons. */
   onAction: (action: GameAction) => void = () => {};
+  /** Settings > Steering > Touch steering: a higher value needs a shorter drag for full lock. */
+  sensitivity = 1;
   private readonly pointers = new Map<number, Pointer>();
   private readonly steerZone = h('div', 'tc-steer');
   private readonly wheel = h('div', 'tc-wheel', { 'aria-hidden': 'true' }, [h('i', 'tc-wheel__knob')]);
@@ -66,7 +68,7 @@ export class TouchControls {
   }
 
   private range(): number {
-    return STEER_RANGE * Math.min(this.el.clientWidth, this.el.clientHeight);
+    return (STEER_RANGE * Math.min(this.el.clientWidth, this.el.clientHeight)) / this.sensitivity;
   }
 
   /** Brake left of throttle: the pedal under a thumb is the one on its side of the gap. */

@@ -56,7 +56,7 @@
 .mn-tabpage__rows > .mn-btn {
   margin-top: 0.6em;
 }
-/* Handling meter: the tick under the measured car's value stands taller. */
+/* Meters (Handling and range settings): the tick at the default value stands taller. */
 .mn-meter i.is-default {
   height: 0.85em;
   margin-top: -0.3em;

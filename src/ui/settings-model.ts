@@ -12,13 +12,20 @@ interface ChoiceField<K extends SettingKey> {
   options: ReadonlyArray<{ value: Settings[K]; label: string }>;
 }
 
+/** Numeric settings, shown as a percentage with a meter. */
+export type RangeKey = 'masterVolume' | 'steerKeyboard' | 'steerPad' | 'steerTouch';
+
 interface RangeField {
-  key: 'masterVolume';
+  key: RangeKey;
   kind: 'range';
   label: string;
   help: string;
+  min: number;
+  max: number;
   step: number;
 }
+
+const SENSITIVITY = { kind: 'range', min: 0.5, max: 2, step: 0.1 } as const;
 
 export type SettingField = ChoiceField<SettingKey> | RangeField;
 
@@ -57,6 +64,14 @@ export const SETTING_GROUPS: ReadonlyArray<{ title: string; fields: SettingField
           { value: 'off', label: 'Off' },
         ],
       },
+    ],
+  },
+  {
+    title: 'Steering',
+    fields: [
+      { key: 'steerPad', ...SENSITIVITY, label: 'Controller steering', help: 'How much the car steers for a small stick movement. Higher = more steering near the centre. Full stick is always full lock.' },
+      { key: 'steerKeyboard', ...SENSITIVITY, label: 'Keyboard steering', help: 'How fast the steering turns while you hold a steering key. Higher = quicker.' },
+      { key: 'steerTouch', ...SENSITIVITY, label: 'Touch steering', help: 'How far you drag your thumb for full lock. Higher = a shorter drag.' },
     ],
   },
   {
@@ -115,7 +130,7 @@ export const SETTING_GROUPS: ReadonlyArray<{ title: string; fields: SettingField
           { value: 0, label: 'Max' },
         ],
       },
-      { key: 'masterVolume', kind: 'range', label: 'Master volume', help: 'Engine, tyres and ambient sound.', step: 0.05 },
+      { key: 'masterVolume', kind: 'range', label: 'Master volume', help: 'Engine, tyres and ambient sound.', min: 0, max: 1, step: 0.05 },
     ],
   },
 ];
@@ -130,16 +145,21 @@ export function optionIndex(field: ChoiceField<SettingKey>, settings: Settings):
 /** Returns new settings with the field moved one step in `dir` (choices wrap, range clamps). */
 export function adjustSetting(settings: Settings, field: SettingField, dir: -1 | 1): Settings {
   if (field.kind === 'range') {
-    const v = Math.round((settings.masterVolume + dir * field.step) * 100) / 100;
-    return { ...settings, masterVolume: Math.max(0, Math.min(1, v)) };
+    const v = Math.round((settings[field.key] + dir * field.step) * 100) / 100;
+    return { ...settings, [field.key]: Math.max(field.min, Math.min(field.max, v)) };
   }
   const n = field.options.length;
   const next = field.options[(optionIndex(field, settings) + dir + n) % n];
   return { ...settings, [field.key]: next.value };
 }
 
+/** Position (0..1) of a range value between its min and max, for the meter. */
+export function rangeFraction(field: RangeField, value: number): number {
+  return (value - field.min) / (field.max - field.min);
+}
+
 /** Text shown for the field's current value. */
 export function valueLabel(field: SettingField, settings: Settings): string {
-  if (field.kind === 'range') return `${Math.round(settings.masterVolume * 100)}%`;
+  if (field.kind === 'range') return `${Math.round(settings[field.key] * 100)}%`;
   return field.options[optionIndex(field, settings)].label;
 }

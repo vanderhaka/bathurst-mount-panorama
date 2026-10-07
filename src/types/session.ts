@@ -10,6 +10,10 @@ export interface Settings {
   tractionControl: boolean;
   abs: boolean;
   steeringAssist: boolean;
+  /** Steering sensitivity per input device (1 = the default feel; 0.5 to 2). */
+  steerKeyboard: number;
+  steerPad: number;
+  steerTouch: number;
   /** Full = crashes change the car's mechanics; visual = dents only; off = no damage. */
   damage: 'full' | 'visual' | 'off';
   ghost: boolean;
@@ -28,6 +32,9 @@ export const DEFAULT_SETTINGS: Settings = {
   tractionControl: true,
   abs: true,
   steeringAssist: true,
+  steerKeyboard: 1,
+  steerPad: 1,
+  steerTouch: 1,
   damage: 'full',
   ghost: true,
   units: 'kmh',

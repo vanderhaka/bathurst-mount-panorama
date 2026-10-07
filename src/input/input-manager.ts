@@ -13,6 +13,8 @@ export interface DriverControls {
 }
 
 const AXIS_DEADZONE = 0.09;
+/** Stick response exponent at sensitivity 1: precise near centre, full lock at the end. */
+const PAD_STEER_EXP = 1.55;
 const TRIGGER_DEADZONE = 0.04;
 
 /**
@@ -23,6 +25,8 @@ export class InputManager {
   device: 'keyboard' | 'gamepad' | 'touch' = 'keyboard';
   /** On-screen touch controls (touch screens only). */
   private touch: TouchControls | null = null;
+  /** Steering sensitivity per device, from Settings > Steering (1 = default, 0.5 to 2). */
+  readonly steerSensitivity = { keyboard: 1, pad: 1, touch: 1 };
   private readonly keys = new Set<string>();
   private readonly pressed = new Set<GameAction>();
   private readonly padPrev = new Map<number, boolean>();
@@ -150,8 +154,8 @@ export class InputManager {
         this.stickNavCooldown = 0.22;
       }
       const raw = Math.abs(ax) < AXIS_DEADZONE ? 0 : (Math.abs(ax) - AXIS_DEADZONE) / (1 - AXIS_DEADZONE);
-      // Gentle response curve: precise near centre, full lock at the end.
-      padSteer = raw === 0 ? 0 : -Math.sign(ax) * Math.pow(raw, 1.55);
+      // Response curve: a higher sensitivity flattens it (more steering near centre); full stick stays full lock.
+      padSteer = raw === 0 ? 0 : -Math.sign(ax) * Math.pow(raw, PAD_STEER_EXP / this.steerSensitivity.pad);
       const trig = (i: number) => {
         const v = pad.buttons[i]?.value ?? 0;
         return v < TRIGGER_DEADZONE ? 0 : (v - TRIGGER_DEADZONE) / (1 - TRIGGER_DEADZONE);
@@ -164,11 +168,12 @@ export class InputManager {
     // Keyboard: ramp digital keys into smooth analog values.
     const left = this.held('steerLeft'), right = this.held('steerRight');
     const target = (left ? 1 : 0) - (right ? 1 : 0);
-    const steerRate = target === 0 ? 5.5 : Math.sign(target) !== Math.sign(this.kbSteer) && this.kbSteer !== 0 ? 7 : 3.2;
+    const steerRate = (target === 0 ? 5.5 : Math.sign(target) !== Math.sign(this.kbSteer) && this.kbSteer !== 0 ? 7 : 3.2) * this.steerSensitivity.keyboard;
     this.kbSteer += Math.max(-steerRate * dt, Math.min(steerRate * dt, target - this.kbSteer));
     this.kbThrottle += Math.max(-8 * dt, Math.min(6 * dt, (this.held('throttle') ? 1 : 0) - this.kbThrottle));
     this.kbBrake += Math.max(-10 * dt, Math.min(9 * dt, (this.held('brake') ? 1 : 0) - this.kbBrake));
 
+    if (this.touch) this.touch.sensitivity = this.steerSensitivity.touch;
     const touch = this.touch?.update(dt, this.device === 'touch' && !this.menusOpen);
     if (this.device === 'touch' && touch) return { ...touch, analogSteer: true };
     if (this.device === 'gamepad' && pad) {
