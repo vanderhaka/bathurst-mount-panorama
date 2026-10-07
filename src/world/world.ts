@@ -83,6 +83,7 @@ export async function buildWorld(
 
 /** Frees GPU resources of a world's meshes (geometries only; materials are shared/cached). */
 export function disposeWorld(world: World): void {
+  world.scenery.dispose();
   world.terrain.dispose();
   world.root.traverse((o) => {
     const m = o as THREE.Mesh;

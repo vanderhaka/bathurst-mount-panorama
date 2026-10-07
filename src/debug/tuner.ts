@@ -79,9 +79,14 @@ export class GraphicsTuner {
     const cam = gui.addFolder('Camera');
     live(cam, 'fov', 40, 90, 1);
     live(cam, 'cameraShake', 0, 2, 0.05);
+    const trees = gui.addFolder('Gum trees');
+    live(trees, 'treeWind', 0, 1, 0.02);
     const world = gui.addFolder('World (rebuild)');
     live(world, 'bakedAo', 0, 1, 0.05);
     live(world, 'treeDensity', 0, 2, 0.05);
+    live(world, 'treeBarkDetail');
+    live(world, 'woodlandUndergrowth');
+    live(world, 'woodlandDensity', 0, 1, 0.05);
     live(world, 'terrainColourNoise', 0, 2, 0.05);
     live(world, 'rubberGroove', 0, 1, 0.01);
     live(world, 'surfaceDetail');

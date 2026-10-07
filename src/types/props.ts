@@ -13,6 +13,8 @@ export type InstancedPropKind =
   | 'eucalyptusYoung'
   | 'pine'
   | 'shrub'
+  | 'gumShrub' // native under-tree bush on the Mountain
+  | 'fallenBark'
   | 'rock'
   | 'grassTuft'
   | 'tyreStack' // 5-6 tyres high column for barrier walls
@@ -38,6 +40,8 @@ export type InstancedPropKind =
 export interface PropAsset {
   geometry: THREE.BufferGeometry;
   material: THREE.Material;
+  customDepthMaterial?: THREE.Material;
+  customDistanceMaterial?: THREE.Material;
   /** Lower-detail geometry for far instances (optional). Same material. */
   lodGeometry?: THREE.BufferGeometry;
   /** Multiplies the LOD switch distance for this asset (default 1). Box stand-ins switch later than trees. */

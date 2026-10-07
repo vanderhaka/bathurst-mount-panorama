@@ -10,7 +10,7 @@ export const SHADOW_TIERS = {
 
 /** Keeps material shader hooks intact when the add-on installs CSM uniforms. */
 export function createShadowRig(scene: THREE.Scene, camera: THREE.PerspectiveCamera, quality: QualityPreset) {
-  const originals = new Map<THREE.Material, { compile: THREE.Material['onBeforeCompile']; key: THREE.Material['customProgramCacheKey'] }>();
+  const originals = new Map<THREE.Material, { compile: THREE.Material['onBeforeCompile']; key: THREE.Material['customProgramCacheKey']; release: () => void }>();
   let direction = new THREE.Vector3(0.4, -0.6, -0.4).normalize();
   let intensity = 3, colour = '#fff1dc', distance = 400;
   const make = () => {
@@ -30,7 +30,14 @@ export function createShadowRig(scene: THREE.Scene, camera: THREE.PerspectiveCam
       if (!(material instanceof THREE.MeshStandardMaterial) || originals.has(material)) continue;
       const original = material.onBeforeCompile;
       const originalKey = material.customProgramCacheKey;
-      originals.set(material, { compile: original, key: originalKey });
+      const release = () => {
+        csm.shaders.delete(material); originals.delete(material);
+        material.onBeforeCompile = original; material.customProgramCacheKey = originalKey;
+        if (material.defines) { delete material.defines.USE_CSM; delete material.defines.CSM_CASCADES; delete material.defines.CSM_FADE; }
+        material.removeEventListener('dispose', release);
+      };
+      originals.set(material, { compile: original, key: originalKey, release });
+      material.addEventListener('dispose', release);
       csm.setupMaterial(material);
       const install = material.onBeforeCompile;
       material.onBeforeCompile = (shader, renderer) => { install.call(material, shader, renderer); original.call(material, shader, renderer); };
@@ -42,7 +49,10 @@ export function createShadowRig(scene: THREE.Scene, camera: THREE.PerspectiveCam
     csm.remove();
     for (const light of csm.lights) light.shadow.dispose();
     csm.dispose();
-    for (const [material, original] of originals) { material.onBeforeCompile = original.compile; material.customProgramCacheKey = original.key; }
+    for (const [material, original] of originals) {
+      material.onBeforeCompile = original.compile; material.customProgramCacheKey = original.key;
+      material.removeEventListener('dispose', original.release);
+    }
     originals.clear();
   };
   return {

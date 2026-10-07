@@ -12,6 +12,8 @@ const BUDGET: Record<InstancedPropKind, [min: number, max: number]> = {
   eucalyptusYoung: [150, 450],
   pine: [150, 450],
   shrub: [20, SMALL],
+  gumShrub: [20, SMALL],
+  fallenBark: [20, 60],
   rock: [20, SMALL],
   grassTuft: [10, 80],
   tyreStack: [100, SMALL],
@@ -148,7 +150,7 @@ describe('instanced props', () => {
     expect(smooth.triangles).toBe(after.triangles);
     resetPropsLook();
     expect(PROPS_LOOK.eucalyptus.foliage.length).toBeGreaterThan(1);
-    expect((getPropAsset('eucalyptus', 0).material as THREE.MeshStandardMaterial).flatShading).toBe(true);
+    expect((getPropAsset('eucalyptus', 0).material as THREE.MeshStandardMaterial).flatShading).toBe(false);
     clearPropCache();
     expect(getPropAsset('eucalyptus', 0)).not.toBe(after);
   });

@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import type { Rng } from '@/props/core/rng';
-import { blob } from '@/props/core/shapes';
+import { crownCards } from '@/props/trees/gum-leaves';
 
 // Gum crown: one connected, rounded-oval mass made of lumpy clusters packed around
 // an envelope ellipsoid. Clusters overlap heavily, so the crown reads as one canopy
@@ -18,8 +18,8 @@ export interface CrownShape {
   radii: THREE.Vector3;
 }
 
-/** Triangles per near cluster (displaced icosahedron, detail 0). */
-export const CLUSTER_TRIS = 20;
+/** Six intersecting leaf cards per near cluster. */
+export const CLUSTER_TRIS = 12;
 
 /**
  * Packs `count` clusters around the envelope: one core cluster, the rest on a
@@ -51,36 +51,19 @@ export function planClusters(shape: CrownShape, count: number, size: [number, nu
   return out;
 }
 
-/** Near cluster geometry: a lumpy icosahedron, flattened below. */
+/** An oval cluster of generated leaf cards, heavily overlapped with the core. */
 export function clusterGeometry(c: Cluster, rng: Rng): THREE.BufferGeometry {
-  const g = blob(c.size, 0, rng, 0.24, 0.8);
-  g.rotateY(rng() * Math.PI);
-  g.translate(c.centre.x, c.centre.y, c.centre.z);
-  return g;
+  return crownCards({ centre: c.centre, radii: c.size }, rng() * Math.PI / 6);
 }
 
-/**
- * Far crown (≤ 48 tris): two overlapping lumpy lobes laid along the crown's long
- * axis (side by side for wide crowns, stacked for tall ones) and one small
- * octahedral lump on the rim, so the silhouette stays a ragged oval.
- */
+/** Far crossed impostor: a rounded, ragged oval with the exact near crown envelope. */
 export function farCrownGeometry(shape: CrownShape, rng: Rng): THREE.BufferGeometry[] {
-  const { centre, radii } = shape;
-  const wide = radii.x >= radii.y;
-  const parts: THREE.BufferGeometry[] = [];
-  for (const s of [-1, 1]) {
-    const off = wide ? new THREE.Vector3(s * radii.x * 0.38, rng.jitter(radii.y * 0.08), rng.jitter(radii.z * 0.15)) : new THREE.Vector3(s * radii.x * 0.18, s * radii.y * 0.24, rng.jitter(radii.z * 0.12));
-    const size = wide ? new THREE.Vector3(radii.x * 0.64, radii.y * 0.9, radii.z * 0.88) : new THREE.Vector3(radii.x * 0.9, radii.y * 0.78, radii.z * 0.9);
-    const g = blob(size, 0, rng, 0.24, 0.8);
-    g.rotateY(rng() * Math.PI);
-    g.translate(centre.x + off.x, centre.y + off.y, centre.z + off.z);
-    parts.push(g);
-  }
-  const a = rng() * Math.PI * 2;
-  const lump = new THREE.OctahedronGeometry(1, 0).scale(radii.x * 0.42, radii.y * 0.4, radii.z * 0.42);
-  lump.deleteAttribute('normal');
-  lump.deleteAttribute('uv');
-  lump.translate(centre.x + Math.cos(a) * radii.x * 0.62, centre.y + radii.y * 0.25, centre.z + Math.sin(a) * radii.z * 0.62);
-  parts.push(lump);
-  return parts;
+  return [crownCards(shape, 0, rng.int(3, 10))];
+}
+
+/** Bounds from the actual cards, including asymmetry, hanging clusters and rim tufts. */
+export function crownEnvelope(cards: readonly THREE.BufferGeometry[]): CrownShape {
+  const bounds = new THREE.Box3();
+  for (const g of cards) { g.computeBoundingBox(); bounds.union(g.boundingBox!); }
+  return { centre: bounds.getCenter(new THREE.Vector3()), radii: bounds.getSize(new THREE.Vector3()).multiplyScalar(0.5) };
 }

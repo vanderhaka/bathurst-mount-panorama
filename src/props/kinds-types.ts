@@ -16,6 +16,8 @@ export interface KindBuilder {
   castShadow: boolean;
   /** Uses the rougher foliage material. */
   foliage?: boolean;
+  /** Uses the world-owned leaf/bark atlas and its matching shadow materials. */
+  gumSurface?: boolean;
   /** Overrides the shared material (e.g. gum trees: leaf-only hue tint). */
   material?: () => THREE.Material;
   build(variant: number): BuiltProp;

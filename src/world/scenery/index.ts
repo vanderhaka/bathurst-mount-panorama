@@ -17,6 +17,7 @@ import { buildPaddock } from '@/world/scenery/paddock';
 import { buildVineyards } from '@/world/scenery/vineyards';
 import { placeVegetation } from '@/world/scenery/vegetation';
 import type { ContactAo } from '@/art/ambient-occlusion';
+import { createGumLayer } from '@/world/scenery/gum-layer';
 
 const F = featuresJson as unknown as { parking: XZ[][]; water: XZ[][]; pitLane: XZ[][]; serviceRoads: XZ[][]; stoneSign: XZ[][] };
 
@@ -26,6 +27,7 @@ export interface Scenery {
   contactAo: ContactAo;
   /** Per-frame LOD / draw-distance update around the camera. */
   update(camera: THREE.Vector3): void;
+  dispose(): void;
 }
 
 /** Everything that stands around the circuit, placed from real OpenStreetMap data where it exists. */
@@ -41,14 +43,14 @@ export function buildScenery(track: Track, terrain: Terrain, profile: SpeedProfi
   for (const ring of F.stoneSign) for (const [x, z] of densify(ring, 4)) mask.add(x, z, 8);
   maskTvSightlines(track, terrain, mask);
 
-  const inst = new PropInstancer();
+  const gums = createGumLayer(quality), inst = new PropInstancer(gums.getPropAsset);
   group.add(placeBuildings(track, terrain, inst, mask));
   group.add(placeFacilities(track, terrain, profile, inst, mask));
   const paddock = buildPaddock(track, terrain, inst, mask);
   if (paddock) group.add(paddock);
   const vines = buildVineyards(terrain, mask);
   if (vines) group.add(vines);
-  const trees = placeVegetation(terrain, inst, mask, QUALITY[quality].treeDensityScale);
+  const trees = placeVegetation(terrain, inst, mask, QUALITY[quality].treeDensityScale, quality);
   placeCutRocks(track, terrain, inst);
   group.add(buildTown(terrain));
   const stone = buildStoneSign(terrain);
@@ -64,9 +66,11 @@ export function buildScenery(track: Track, terrain: Terrain, profile: SpeedProfi
     stats: { trees, instances, batches },
     update(camera) {
       const g = getGraphics();
+      gums.update(performance.now() / 1000);
       if (first) { inst.updateAll(camera, g.treeLodDistance, g.propDrawDistance); first = false; }
       else inst.update(camera, g.treeLodDistance, g.propDrawDistance);
     },
+    dispose() { inst.dispose(); gums.dispose(); },
   };
 }
 

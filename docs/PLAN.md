@@ -76,7 +76,7 @@ Status: done (commit bf74e230b47a894628cd54e7b36c079fa5ec136f).
   5. Painted lines: wear and small gaps.
 - **Done when:** a close view of the road at Hell Corner and The Chase reads as asphalt in the reference photos; no texture stretch or repeat pattern is visible at 5–50 m.
 ### 1.5 Terrain and grass — M
-Status: done (commit pending; exact SHA is recorded by the next item and in HANDOFF.md).
+Status: done (commit d29d20ac5ae27e26b481d55b9db827f5cb584926).
 - **Do:**
   1. Smooth terrain normals with a procedural detail normal map; keep the large shapes.
   2. Splat by slope, height and distance from the track: green grass, dry grass, bare clay, rock, gravel.
@@ -84,6 +84,7 @@ Status: done (commit pending; exact SHA is recorded by the next item and in HAND
   4. Instanced grass blades near the camera with wind movement in the vertex shader; density per tier.
 - **Done when:** the grass on Mountain Straight and the verges at Conrod match the reference colours and texture at game distance; no tiling pattern is visible from the TV cameras.
 ### 1.6 Gum trees and bush — L
+Status: done (commit pending; exact SHA is recorded by the next item and in HANDOFF.md).
 - **Do:**
   1. Eucalyptus crowns from clusters of alpha-tested leaf cards (procedurally drawn leaves), with alpha to coverage under MSAA.
   2. Bark: pale smooth gums and rough grey box trees with procedural bark textures; the existing trunk shapes stay.

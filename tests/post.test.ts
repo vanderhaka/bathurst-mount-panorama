@@ -1,12 +1,12 @@
 import * as THREE from 'three';
 import { describe, expect, it, vi } from 'vitest';
-const aoState = vi.hoisted(() => ({ instances: [] as { render: ReturnType<typeof vi.fn>; dispose: ReturnType<typeof vi.fn>; setSize: ReturnType<typeof vi.fn> }[] }));
+const aoState = vi.hoisted(() => ({ instances: [] as { render: ReturnType<typeof vi.fn>; dispose: ReturnType<typeof vi.fn>; setSize: ReturnType<typeof vi.fn>; setGBuffer: ReturnType<typeof vi.fn> }[] }));
 vi.mock('three/addons/postprocessing/GTAOPass.js', () => ({
   GTAOPass: class {
     static OUTPUT = { Off: -1 };
     gtaoMap = new THREE.Texture();
     render = vi.fn(); dispose = vi.fn(); setSize = vi.fn();
-    updateGtaoMaterial = vi.fn(); updatePdMaterial = vi.fn();
+    updateGtaoMaterial = vi.fn(); updatePdMaterial = vi.fn(); setGBuffer = vi.fn();
     constructor() { aoState.instances.push(this); }
   },
 }));
@@ -32,6 +32,18 @@ function mockRenderer() {
 }
 
 describe('HDR post pipeline', () => {
+  it('reuses the visible scene depth so wind and cutout leaves contribute their real silhouette', () => {
+    const { renderer, rendered } = mockRenderer();
+    const post = createPostChain(renderer);
+    post.setEnabled(true, 4, false, true);
+    post.apply({ ...DEFAULT_GRAPHICS, screenAo: 0.5 });
+    post.render(new THREE.Scene(), new THREE.PerspectiveCamera());
+    const depth = rendered[0]?.depthTexture;
+    expect(depth).toBeInstanceOf(THREE.DepthTexture);
+    expect(aoState.instances.at(-1)!.setGBuffer).toHaveBeenCalledWith(depth);
+    expect(rendered[0]?.resolveDepthBuffer).toBe(true);
+    post.dispose();
+  });
   it('allocates half-size High AO lazily and releases it on a tier step-down', () => {
     const { renderer } = mockRenderer();
     const post = createPostChain(renderer);

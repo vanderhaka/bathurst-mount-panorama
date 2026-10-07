@@ -1,5 +1,6 @@
 import featuresJson from '@/track/data/features.json';
-import { getGraphics } from '@/config/graphics';
+import { getGraphics, QUALITY } from '@/config/graphics';
+import type { QualityPreset } from '@/render/renderer';
 import { FOLIAGE, GROUND } from '@/art/palette';
 import { PROP_VARIANTS } from '@/props';
 
@@ -7,6 +8,7 @@ import { DEM_EXTENT, demHeight, fbm } from '@/world/dem';
 import type { Terrain } from '@/world/terrain';
 import { pointInPolygon, rng, type SpatialMask, type XZ } from '@/world/scenery/geo';
 import type { PropInstancer } from '@/world/scenery/instancer';
+import { placeUnderTreeDetails } from '@/world/scenery/undergrowth';
 
 const F = featuresJson as unknown as { woods: Array<{ kind: string; poly: XZ[] }>; trees: XZ[]; treeRows: XZ[][]; grassland: XZ[][]; buildings: Array<{ kind: string; poly: XZ[] }> };
 
@@ -66,8 +68,17 @@ function bbox(poly: XZ[]): number[] {
 }
 
 /** Places eucalypts, pines, shrubs, rocks and grass tufts. `mask` holds buildings, camp pitches, roads. */
-export function placeVegetation(terrain: Terrain, inst: PropInstancer, mask: SpatialMask, densityScale: number): number {
+export function placeVegetation(terrain: Terrain, inst: PropInstancer, mask: SpatialMask, densityScale: number, quality: QualityPreset = 'high'): number {
   const g = getGraphics();
+  const tier = QUALITY[quality];
+  let undergrowth = 0;
+  const plantGum = (kind: 'eucalyptus' | 'eucalyptusYoung', variant: number, x: number, y: number, z: number, yaw: number, scale: number, colour?: number) => {
+    const asset = inst.add(kind, variant, x, y, z, yaw, scale, colour);
+    const seed = Math.imul(Math.round(x * 100), 73856093) ^ Math.imul(Math.round(z * 100), 19349663);
+    undergrowth += placeUnderTreeDetails(terrain, inst, mask, { x, z, yaw, scale, radius: asset.radius, seed }, {
+      enabled: g.woodlandUndergrowth && tier.woodlandUndergrowth, density: g.woodlandDensity, capacity: tier.woodlandCapacity - undergrowth,
+    });
+  };
   const r = rng(1234);
   const woods = F.woods.map((w) => ({ poly: w.poly, bbox: bbox(w.poly) }));
   const open = F.grassland.filter((p) => p.length > 3).map((p) => ({ poly: p, bbox: bbox(p) }));
@@ -103,10 +114,10 @@ export function placeVegetation(terrain: Terrain, inst: PropInstancer, mask: Spa
       const roll = r();
       if (roll < dens * 0.62) {
         const t = r();
-        if (t < 0.84) inst.add('eucalyptus', gumVariant(r, eucV), px, y, pz, r() * Math.PI * 2, 0.78 + r() * 0.5, tint(r(), FOLIAGE.eucalyptA));
-        else if (t < 0.96) inst.add('eucalyptusYoung', Math.floor(r() * youngV), px, y, pz, r() * Math.PI * 2, 0.8 + r() * 0.5);
+        if (t < 0.84) plantGum('eucalyptus', gumVariant(r, eucV), px, y, pz, r() * Math.PI * 2, 0.78 + r() * 0.5, tint(r(), FOLIAGE.eucalyptA));
+        else if (t < 0.96) plantGum('eucalyptusYoung', Math.floor(r() * youngV), px, y, pz, r() * Math.PI * 2, 0.8 + r() * 0.5);
         else if (nearHomes(px, pz)) inst.add('pine', Math.floor(r() * pineV), px, y, pz, r() * Math.PI * 2, 0.85 + r() * 0.4);
-        else inst.add('eucalyptus', gumVariant(r, eucV), px, y, pz, r() * Math.PI * 2, 0.9 + r() * 0.4, tint(r(), FOLIAGE.eucalyptA));
+        else plantGum('eucalyptus', gumVariant(r, eucV), px, y, pz, r() * Math.PI * 2, 0.9 + r() * 0.4, tint(r(), FOLIAGE.eucalyptA));
         count++;
       } else if (roll < dens * 0.62 + dens * 0.25) {
         inst.add('shrub', Math.floor(r() * shrubV), px, y + 0.1, pz, r() * Math.PI * 2, 0.7 + r() * 0.8);

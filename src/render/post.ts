@@ -54,7 +54,11 @@ const vertexShader = /* glsl */ `
 
 export function createPostChain(renderer: THREE.WebGLRenderer, msaa = 4): PostChain {
   const size = renderer.getDrawingBufferSize(new THREE.Vector2());
-  let target = new THREE.WebGLRenderTarget(size.x, size.y, { type: THREE.HalfFloatType, samples: msaa, colorSpace: THREE.LinearSRGBColorSpace });
+  const sceneTarget = (width: number, height: number, samples: number, depth: boolean) => new THREE.WebGLRenderTarget(width, height, {
+    type: THREE.HalfFloatType, samples, colorSpace: THREE.LinearSRGBColorSpace,
+    depthTexture: depth ? new THREE.DepthTexture(width, height, THREE.UnsignedIntType) : null,
+  });
+  let target = sceneTarget(size.x, size.y, msaa, false);
   const material = new THREE.ShaderMaterial({
     uniforms: {
       tScene: { value: target.texture },
@@ -112,6 +116,9 @@ export function createPostChain(renderer: THREE.WebGLRenderer, msaa = 4): PostCh
         if (tierAo && cfg.screenAo > 0) {
           if (!ao) {
             ao = new GTAOPass(scene, camera, Math.floor(target.width / 2), Math.floor(target.height / 2));
+            // The visible pass includes alpha-tested foliage and its shader wind.
+            // Reconstruct normals from its depth instead of drawing solid cards again.
+            ao.setGBuffer(target.depthTexture!);
             ao.output = GTAOPass.OUTPUT.Off;
             ao.updateGtaoMaterial({ radius: 2, samples: 8, thickness: 1, screenSpaceRadius: false });
             ao.updatePdMaterial({ samples: 8, radius: 2 });
@@ -139,10 +146,11 @@ export function createPostChain(renderer: THREE.WebGLRenderer, msaa = 4): PostCh
       tierBloom = highBloom;
       tierAo = highAo && enabled;
       if (!tierAo) { ao?.dispose(); ao = null; material.uniforms.aoStrength.value = 0; }
-      if (target.samples !== samples) {
+      if (target.samples !== samples || Boolean(target.depthTexture) !== tierAo) {
         const { width, height } = target;
         target.dispose();
-        target = new THREE.WebGLRenderTarget(width, height, { type: THREE.HalfFloatType, samples, colorSpace: THREE.LinearSRGBColorSpace });
+        ao?.dispose(); ao = null;
+        target = sceneTarget(width, height, samples, tierAo);
         material.uniforms.tScene.value = target.texture;
       }
       updateBloom();

@@ -4,7 +4,8 @@ import { createRng, lerp, type Rng } from '@/props/core/rng';
 import { tube } from '@/props/core/shapes';
 import type { TreeLook } from '@/props/look';
 import { barkColour, clumpTint, crownColour, foliageBase } from '@/props/trees/gum-colours';
-import { CLUSTER_TRIS, clusterGeometry, farCrownGeometry, planClusters, type CrownShape } from '@/props/trees/gum-crown';
+import { CLUSTER_TRIS, clusterGeometry, crownEnvelope, farCrownGeometry, planClusters, type CrownShape } from '@/props/trees/gum-crown';
+import { decorateGumGeometry, setCrownNormals } from '@/props/trees/gum-leaves';
 
 // Eucalyptus ("gum") builder. A short bare trunk forks low (25–40 % of the height)
 // into 2–4 thick limbs that disappear into one connected, rounded-oval crown of
@@ -176,18 +177,23 @@ export function buildGum(look: TreeLook, style: GumStyle, seed: number): GumResu
     const y = rng.range(-0.2, 0.55);
     const ring = Math.sqrt(1 - y * y);
     const dir = new THREE.Vector3(Math.cos(a) * ring, y, Math.sin(a) * ring);
-    clusters.push({ centre: shape.centre.clone().add(dir.multiply(shape.radii).multiplyScalar(0.92)), size: shape.radii.clone().multiplyScalar(0.26 + rng() * 0.08) });
+    clusters.push({ centre: shape.centre.clone().add(dir.multiply(shape.radii).multiplyScalar(0.72)), size: shape.radii.clone().multiplyScalar(0.3 + rng() * 0.08) });
   }
   const base = foliageBase(look, style.hue, rng, box ? look.boxCrownShade : 1);
-  for (const c of clusters) near.add(clusterGeometry(c, rng), crownColour(look, clumpTint(base, rng, 0.1), shape.centre, shape.radii), { jitter: look.faceJitter });
+  const woodVertices = near.triangles * 3, cards: THREE.BufferGeometry[] = [];
+  for (const c of clusters) {
+    const g = clusterGeometry(c, rng); cards.push(g);
+    near.add(g, crownColour(look, clumpTint(base, rng, 0.1), shape.centre, shape.radii), { jitter: look.faceJitter });
+  }
 
-  // Far version: trunk(s) up into the crown, dead wood as fins, then the oval crown in 2–3 lumps.
+  // Far version: existing trunk/dead wood and a crossed impostor of the whole oval mass.
   for (const t of tops.slice(0, 2)) {
     const into = new THREE.Vector3(t.x, Math.max(t.y, shape.centre.y - shape.radii.y * 0.3), t.z).lerp(shape.centre.clone().setY(Math.max(t.y, shape.centre.y - shape.radii.y * 0.3)), 0.5);
     far.add(tube([new THREE.Vector3(t.x * 0.2, -0.05, t.z * 0.2), into], [r0 * 1.3, r0 * 0.7], 3), farWood);
   }
   if (style.dead) addDeadFins(far, style, shape, tops, r0, dead);
-  const farParts = farCrownGeometry(shape, rng);
+  const farWoodVertices = far.triangles * 3;
+  const farParts = farCrownGeometry(crownEnvelope(cards), rng);
   const farColour = crownColour(look, base.clone().multiplyScalar(0.95), shape.centre, shape.radii);
   for (const g of farParts) {
     if (far.triangles + g.getAttribute('position').count / 3 > FAR_BUDGET) break;
@@ -200,7 +206,14 @@ export function buildGum(look: TreeLook, style: GumStyle, seed: number): GumResu
   const bb = g.boundingBox!;
   const k = H / bb.max.y;
   const radius = Math.max(-bb.min.x, bb.max.x, -bb.min.z, bb.max.z) * k;
-  return { near: g.scale(k, k, k), far: far.build().scale(k, k, k), height: H, radius };
+  const f = far.build().scale(k, k, k); g.scale(k, k, k);
+  decorateGumGeometry(g, woodVertices, cards, style.bark, H);
+  decorateGumGeometry(f, farWoodVertices, farParts, style.bark, H);
+  const envelope = crownEnvelope(cards);
+  const scaledEnvelope = { centre: envelope.centre.multiplyScalar(k), radii: envelope.radii.multiplyScalar(k) };
+  setCrownNormals(g, scaledEnvelope); setCrownNormals(f, scaledEnvelope);
+  for (const part of [...cards, ...farParts]) part.dispose();
+  return { near: g, far: f, height: H, radius };
 }
 
 /** Far-version dead wood: thin double-sided tapers (2 tris each). */
