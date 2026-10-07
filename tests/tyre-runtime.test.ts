@@ -52,7 +52,7 @@ describe('tyre runtime wiring without a renderer', () => {
     panel.update(state);
     const root = panel.el as unknown as MenuElement;
     expect(root.find('hud-chip--est')).toHaveProperty('hidden', true);
-    expect(root.attributes['aria-label']).toBe('Tyres and fuel');
+    expect(root.attributes['aria-label']).toBe('Tyres, brakes and fuel');
     expect(root.find('hud-tyre__t').textContent).toBe('108');
     expect(root.find('hud-tyre__life-fill').properties['--f']).toBe('0.7');
     expect(root.find('hud-tyre').dataset.band).toBe('ok');

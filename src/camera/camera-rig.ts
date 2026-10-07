@@ -12,6 +12,9 @@ export interface CameraTarget {
   quaternion: THREE.Quaternion;
   heading: number;
   speed: number;
+  /** Artificial body heave, so cockpit comfort can scale it independently. */
+  flatSpotHeave?: number;
+  headMotion?: number;
   /** World-space anchors from the car model. */
   cockpit: THREE.Object3D;
   bonnet: THREE.Object3D;
@@ -74,6 +77,10 @@ export class CameraRig {
     } else if (this.mode === 'cockpit' || this.mode === 'bonnet') {
       const anchor = this.mode === 'cockpit' ? t.cockpit : t.bonnet;
       anchor.getWorldPosition(cam.position);
+      if (this.mode === 'cockpit') {
+        const amount = Math.max(0, Math.min(1, t.headMotion ?? 1));
+        cam.position.add(new THREE.Vector3(0, -(t.flatSpotHeave ?? 0) * (1 - amount), 0).applyQuaternion(t.quaternion));
+      }
       // The model's anchors are pre-oriented like three.js cameras (they look along the car's +Z).
       anchor.getWorldQuaternion(cam.quaternion);
       cam.position.add(jitter);

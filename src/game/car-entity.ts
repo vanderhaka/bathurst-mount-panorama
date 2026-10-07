@@ -1,5 +1,7 @@
 import * as THREE from 'three';
 import type { CarKind, CarSpec } from '@/car/car-specs';
+import { getGraphics } from '@/config/graphics';
+import { brakeGlow } from '@/physics/brake-heat';
 import { impactLocal, impactSeverity } from '@/physics/damage';
 import type { ImpactReport, VehicleInput } from '@/physics/types';
 import { Vehicle } from '@/physics/vehicle';
@@ -19,12 +21,14 @@ const PHYS_DT = 1 / 360;
 export class CarEntity {
   readonly vehicle: Vehicle;
   readonly model: CarModel;
+  /** Local body heave from tyre damage, separated from physical suspension pose. */
+  flatSpotHeave = 0;
   /** False = impacts do not dent the body (damage setting "Off"). */
   visualDamage = true;
   private acc = 0;
   private prev: Pose = { x: 0, y: 0, z: 0, heading: 0, pitch: 0, roll: 0 };
   private cur: Pose = { x: 0, y: 0, z: 0, heading: 0, pitch: 0, roll: 0 };
-  private brakeHeat = 0;
+  private readonly spins = [0, 0, 0, 0];
   private readonly impacts: ImpactReport[] = [];
   private readonly q = new THREE.Quaternion();
   private readonly e = new THREE.Euler(0, 0, 0, 'YXZ');
@@ -69,7 +73,7 @@ export class CarEntity {
   }
 
   /** Updates the 3D model from the interpolated physics state. */
-  sync(dt: number): void {
+  sync(_dt: number): void {
     const a = this.acc / PHYS_DT;
     const p = this.prev, c = this.cur, m = this.model, v = this.vehicle;
     let dh = c.heading - p.heading;
@@ -88,13 +92,16 @@ export class CarEntity {
     m.root.quaternion.copy(this.q);
     m.root.position.set(x, y, z);
     m.root.position.add(new THREE.Vector3(0, 0, midOffset).applyQuaternion(this.q));
-    m.setBodyAttitude(0, 0, 0);
-    v.wheels.forEach((w, i) => m.setWheel(i as 0 | 1 | 2 | 3, w.spin, w.steer, Math.max(-0.06, Math.min(0.06, w.compression))));
+    v.wheels.forEach((w, i) => {
+      this.spins[i] = w.spin;
+      m.setWheel(i as 0 | 1 | 2 | 3, w.spin, w.steer, Math.max(-0.06, Math.min(0.06, w.compression)));
+    });
+    this.flatSpotHeave = v.flatSpots.vibration(this.spins, v.speed) * Math.max(0, Math.min(1, getGraphics().cameraShake));
+    m.setBodyAttitude(0, 0, this.flatSpotHeave);
     m.setSteeringWheel(v.steerAngle * 9);
     const braking = v.telemetry.brake > 0.05;
     m.setBrakeLights(braking);
-    this.brakeHeat = Math.max(0, Math.min(1, this.brakeHeat + (braking ? v.telemetry.brake * Math.abs(v.speed) / 60 : -0.25) * dt));
-    m.setBrakeGlow(this.brakeHeat);
+    m.setBrakeGlow(brakeGlow(Math.max(...v.brakes.discs.map((disc) => disc.tempC))));
   }
 
   private applyVisualDamage(imp: ImpactReport): void {

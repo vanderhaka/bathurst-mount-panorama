@@ -3,6 +3,7 @@ import type { LapRecord, SessionConfig, Settings } from '@/types/session';
 import type { PadStyle } from '@/input/pad-style';
 import type { TyreCompound } from '@/physics/tyre-state';
 import type { SessionTelemetry } from '@/types/telemetry';
+import type { BrakeReading } from '@/physics/brake-heat';
 
 export type SectorState = 'none' | 'personalBest' | 'overallBest' | 'slower';
 
@@ -73,6 +74,8 @@ export interface HudState {
   tyres?: ReadonlyArray<{ tempC: number; wear: number }>;
   /** Compound fitted for this session; controls the tyre temperature bands. */
   tyreCompound?: TyreCompound;
+  /** Actual disc temperatures and remaining brake-force multipliers, FL/FR/RL/RR. */
+  brakes?: readonly BrakeReading[];
   /** Real fuel values; when present they replace the HUD's display-only estimate. lapsLeft null = not known yet. */
   fuel?: { litres: number; lapsLeft: number | null };
 }

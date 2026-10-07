@@ -1,4 +1,6 @@
 import type { FuelReading } from '@/physics/fuel';
+import type { BrakeReading } from '@/physics/brake-heat';
+import type { FlatSpotReading } from '@/physics/flat-spots';
 import type { TyreReading } from '@/physics/tyre-state';
 import type { SurfaceKind } from '@/track/track-query';
 
@@ -39,6 +41,8 @@ export interface WheelTelemetry {
 export interface VehicleTelemetry {
   fuel: FuelReading;
   tyres: readonly TyreReading[];
+  brakes: readonly BrakeReading[];
+  flatSpots: readonly FlatSpotReading[];
   speed: number; // m/s, signed along heading
   rpm: number;
   gear: number; // -1 R, 0 N, 1..6

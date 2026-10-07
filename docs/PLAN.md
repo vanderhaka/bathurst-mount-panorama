@@ -199,14 +199,16 @@ Status: done (commit d6e59ed6bb497d99f378fa6fefc49fcbbe7c24b7; CI repair a1b463a
 - **Do:** after a lap, a screen with speed, throttle and brake traces against the best lap and the ghost; the time gained or lost per corner; open it from the pause menu and the results screen.
 - **Done when:** the screen shows real data for two laps and the corner deltas add up to the lap delta.
 ### 3.4 Setup screen and brake bias — M
-Status: done (commit recorded by next item; evidence `artifacts/review/item-3.4/`).
+Status: done (commit 5893e74860c17b96638cbb3f51557bc06dbfcda9; evidence `artifacts/review/item-3.4/`).
 - **Do:** a Setup tab (every build) with brake bias, front and rear anti-roll bars and tyre pressures, inside safe ranges; brake bias also on a button during the race; one setup per car.
 - **Done when:** each setting changes the car in a test (balance, stopping distance) and the defaults equal today's car.
 ### 3.5 Tyre load sensitivity — M
+Status: blocked — three focused curve/profile fixes fail the unchanged warm-lap and <1 m/s line-contact gates; isolated candidate discarded. See `artifacts/review/item-3.5/blocker.md`.
 - **Depends on:** 3.2.
 - **Do:** grip per unit of load falls as the load rises, so weight transfer changes the balance; retune the grip so that the lap time targets still hold.
 - **Done when:** a smooth turn-in is faster than an abrupt one in a test; the lap time targets hold.
 ### 3.6 Brake temperature, fade and flat spots — M
+Status: done (commit recorded by the next item; exact SHA and preview proof in HANDOFF.md).
 - **Do:** brake temperature from energy in and cooling; brake force falls above a temperature; a lock-up above a slip and speed makes a flat spot (vibration and less grip until the tyre changes).
 - **Done when:** repeated late braking at The Chase raises the brake temperature to the fade zone in a test; the HUD shows the brake temperature.
 ### 3.7 Track grip on and off the racing line — S

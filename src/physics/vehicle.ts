@@ -37,6 +37,8 @@ export class Vehicle {
   readonly wheels: WheelTelemetry[];
   readonly telemetry: VehicleTelemetry;
   readonly stint = new VehicleStint();
+  readonly brakes = this.stint.brakes;
+  readonly flatSpots = this.stint.flatSpots;
   /** Monotonic game seconds, advanced only by fixed physics steps. */
   simulationS = 0;
   assists: VehicleAssists = { abs: true, tc: true, autoGears: true, mechanicalDamage: true };
@@ -62,7 +64,7 @@ export class Vehicle {
     this.wheels = this.corners.map(() => ({ load: 0, slip: 0, surface: 'road' as const, spin: 0, compression: 0, steer: 0 }));
     this.telemetry = {
       speed: 0, rpm: spec.engine.idleRpm, gear: 1, throttle: 0, brake: 0, steer: 0, onLimiter: false,
-      fuel: this.stint.fuel, tyres: this.stint.tyres,
+      fuel: this.stint.fuel, tyres: this.stint.tyres, brakes: this.brakes.discs, flatSpots: this.flatSpots.tyres,
       tcActive: false, absActive: false, shifted: false, gLong: 0, gLat: 0, wheels: this.wheels, airborne: false, load: 0,
     };
   }
@@ -196,11 +198,12 @@ export class Vehicle {
       const wl = -uB * sn + wB * cs;
       const sideDamage = c.x > 0 ? this.damage.left : this.damage.right;
       const pressure = pressureGrip(front ? this.setup.frontPressureKpa : this.setup.rearPressureKpa);
-      const mu = spec.tyreMu * hc.grip * (front ? 1 : hc.rearGrip) * S.grip * pressure * this.stint.tyres[w].grip * (1 - 0.18 * sideDamage * this.damage.suspension);
+      const mu = spec.tyreMu * hc.grip * (front ? 1 : hc.rearGrip) * S.grip * pressure * this.stint.tyres[w].grip * this.flatSpots.tyres[w].gripMultiplier * (1 - 0.18 * sideDamage * this.damage.suspension);
       const bias = front ? this.setup.brakeBiasFront : 1 - this.setup.brakeBiasFront;
-      const brakeF = (brakePedal * spec.maxBrakeTorqueNm * (bias / spec.brakeBiasFront)) / R;
+      const brakeF = (brakePedal * spec.maxBrakeTorqueNm * (bias / spec.brakeBiasFront)) / R * this.brakes.discs[w].forceMultiplier;
       const driveF = front ? 0 : drive / 2;
       const r = tyreForces(fz, mu, u, wl, driveF, brakeF, this.assists.abs, this.assists.tc, fz / G, dt, this.tyre, curve);
+      const locked = this.stint.advanceContact(w, fz, mu, u, driveF, brakeF, r, surf, dt);
       absActive ||= r.absActive;
       tcActive ||= r.tcActive;
       // Surface drag (grass, gravel) and rolling resistance oppose wheel travel.
@@ -226,7 +229,7 @@ export class Vehicle {
       wt.load = fz;
       wt.slip = r.use;
       wt.surface = surf;
-      wt.spin += (u / R) * dt * (r.use > 1 && !front && input.throttle > 0.3 ? 1.6 : 1);
+      wt.spin += locked ? 0 : (u / R) * dt * (r.use > 1 && !front && input.throttle > 0.3 ? 1.6 : 1);
       wt.compression = comp - (c.h0 - spec.cgHeight);
       wt.steer = steer;
       if (!front) rearSlip = Math.max(rearSlip, r.use);

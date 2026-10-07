@@ -27,6 +27,11 @@ export class TyreFuelPanel {
   private readonly estimate = new TextSlot(h('span', 'hud-chip hud-chip--est', { title: 'Estimated values' }));
   private readonly heading = new TextSlot(h('span', 'hud-micro'));
   private readonly label: AttrSlot;
+  private readonly brakeFront = new TextSlot(h('span', 'hud-brakes__front'));
+  private readonly brakeRear = new TextSlot(h('span', 'hud-brakes__rear'));
+  private readonly brakeFade = new TextSlot(h('span', 'hud-brakes__fade'));
+  private readonly brakePanel: HTMLElement;
+  private readonly fading: AttrSlot;
 
   constructor() {
     const grid = h('div', 'hud-tyres__grid');
@@ -47,6 +52,13 @@ export class TyreFuelPanel {
       h('span', 'hud-fuel__laps', undefined, [this.laps.el, h('span', 'hud-micro', undefined, ['LAPS'])]),
     ]);
     this.low = new AttrSlot(fuel, 'data-low');
+    this.brakePanel = h('div', 'hud-brakes', { 'data-fade': 'false' }, [
+      h('span', 'hud-micro', undefined, ['BRAKES °C']),
+      h('span', 'hud-brakes__axle', undefined, ['F ', this.brakeFront.el]),
+      h('span', 'hud-brakes__axle', undefined, ['R ', this.brakeRear.el]),
+      this.brakeFade.el,
+    ]);
+    this.fading = new AttrSlot(this.brakePanel, 'data-fade');
     this.el = h('section', 'hud-panel hud-tyrefuel', { 'aria-label': 'Tyre and fuel estimates' }, [
       h('header', 'hud-panel__head', undefined, [
         h('span', 'hud-micro hud-micro--strong', undefined, ['TYRES · FUEL']),
@@ -57,16 +69,18 @@ export class TyreFuelPanel {
         h('i', 'hud-tyrefuel__rule'),
         fuel,
       ]),
+      this.brakePanel,
     ]);
     this.label = new AttrSlot(this.el, 'aria-label');
   }
 
   update(st: HudState): void {
     const actualTyres = st.tyres && st.tyres.length === 4 ? st.tyres : null;
+    const brakes = st.brakes && st.brakes.length === 4 ? st.brakes : null;
     if (!actualTyres || !st.fuel) this.model.update(st);
     (this.estimate.el as HTMLElement).hidden = !!actualTyres && !!st.fuel;
     this.estimate.set(st.fuel && !actualTyres ? 'TYRES EST' : 'EST');
-    this.label.set(actualTyres && st.fuel ? 'Tyres and fuel' : st.fuel ? 'Tyre estimates and fuel' : 'Tyre and fuel estimates');
+    this.label.set(actualTyres && st.fuel ? brakes ? 'Tyres, brakes and fuel' : 'Tyres and fuel' : st.fuel ? 'Tyre estimates and fuel' : 'Tyre and fuel estimates');
     this.heading.set(actualTyres && st.tyreCompound ? `${st.tyreCompound.toUpperCase()} °C` : 'TYRES °C');
     const tyres = actualTyres ?? this.model.tyres;
     for (let i = 0; i < 4; i++) {
@@ -82,5 +96,13 @@ export class TyreFuelPanel {
     this.laps.set(laps === null ? '--' : laps >= 99.5 ? '99+' : laps.toFixed(1));
     this.gauge.set(Math.max(0, Math.min(1, fuel.litres / (st.fuel ? FUEL_CAPACITY_L : FUEL_START_L))));
     this.low.set(laps !== null && laps < 2 ? 'true' : 'false');
+    this.brakePanel.hidden = !brakes;
+    if (brakes) {
+      this.brakeFront.set(String(Math.round((brakes[0].tempC + brakes[1].tempC) / 2)));
+      this.brakeRear.set(String(Math.round((brakes[2].tempC + brakes[3].tempC) / 2)));
+      const loss = Math.round(100 * (1 - Math.min(...brakes.map((disc) => disc.forceMultiplier))));
+      this.fading.set(loss > 0 ? 'true' : 'false');
+      this.brakeFade.set(loss > 0 ? `FADE ${loss}%` : '');
+    }
   }
 }

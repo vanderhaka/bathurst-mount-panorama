@@ -233,3 +233,14 @@
 .hud-fuel[data-low='true'] .hud-fuel__laps-v {
   color: var(--hud-fuel-low);
 }
+.hud-brakes {
+  display: flex;
+  align-items: baseline;
+  gap: 0.7em;
+  padding: 0.4em 0.85em;
+  border-top: 1px solid var(--hud-hairline);
+}
+.hud-brakes[hidden] { display: none; }
+.hud-brakes__axle { font-weight: 700; }
+.hud-brakes__fade { margin-left: auto; color: var(--hud-bad); font-size: var(--hud-fs-label); font-weight: 800; }
+.hud-brakes[data-fade='false'] .hud-brakes__fade { display: none; }

@@ -97,6 +97,7 @@ export function buildHudState(session: RaceSession, profile: SpeedProfile, setti
   state.wheels = t.wheels;
   state.fuel = t.fuel;
   state.tyres = t.tyres;
+  state.brakes = t.brakes;
   state.tyreCompound = v.stint.tyreModel.compound;
   if (!state.entry) {
     const lv = session.entity.livery;

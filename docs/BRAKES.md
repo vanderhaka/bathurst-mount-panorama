@@ -1,0 +1,23 @@
+# Brake heat and flat spots
+
+Each vehicle owns four stable brake readings and four flat-spot readings through its stint. Fixed-step wheel contacts supply the actual load, effective grip, forward speed, engine force and faded brake request. Delivered caliper force times wheel speed supplies thermal work. ABS reduction is included; standstill, unloaded contacts, engine-only braking and a fully locked stationary rotor supply no caliper work.
+
+The four discs use exact constant-power/airflow thermal decay. Effective capacities are 5500 J/°C front and 4300 J/°C rear. Cooling coefficients are 0.006 + 0.00016 × speed front and 0.007 + 0.00018 × speed rear. Ambient is 22°C. A smooth estimated fade curve starts at 700°C and reaches a 0.6 force multiplier at 1000°C. These capacities, cooling and fade values are gameplay estimates, not measured Gen3 component data.
+
+Flat spots use the existing solver's actual longitudinal braking-lock branch. They require demand at least 1.1, speed at least 12 m/s, load at least 500 N, a hard surface and 0.12 seconds of uninterrupted lock. Combined cornering slip alone cannot cause damage. Severity is bounded at one, grip loss at 18%, and tyre-phase heave at 2.4 mm per wheel. Visual wheel phase stops during the solver's true rotor-lock branch; it is not a separate angular-velocity simulation.
+
+Vehicle forces multiply current compound/temperature/wear grip by flat-spot grip exactly once. Owned session profiles include that effective grip in their existing once-per-simulation-second refresh, retaining their Float32Array references. Reverse driving keeps the existing automatic reverse-pedal fuel contract.
+
+Recovery and mechanical repair preserve heat, accumulated work, flat spots, fuel and the tyre set. The common `VehicleStint.fitTyres` path clears flat spots when fitting a set and preserves fuel and hot brakes. Starting a race or restarting resets the stint to 80 L, the selected fresh compound at 52°C, ambient discs and no flat spots. A paused session cannot advance these states.
+
+The HUD reads front/rear average °C and fade from physical readings. Disc glow uses the hottest actual disc through the existing shared disc material, so individual colours are not represented. Rendering never advances the models. Body heave uses actual severity and wheel phase with the existing camera-shake amount. In-car anchors inherit it. The separately forwarded `flatSpotHeave` lets cockpit Head movement scale only this artificial heave; Off retains visible body motion and the ordinary physical pitch/roll. Bonnet, chase and rear-roof behavior remain as before. The optional comfort amount defaults to full until the sensory setting is integrated.
+
+## Calibration evidence
+
+The frozen helper's original cooling caused ordinary third-lap temperatures near 935°C and three barrier contacts under the actual autopilot. One focused calibration doubled its estimated airflow coefficients. Capacities, fade thresholds, lock thresholds, handling defaults, car specifications and control bindings were unchanged.
+
+On the exact released 3.2 prerequisite, three actual ordinary flying laps then peaked at 504, 585 and 602°C, completed in 125.075, 124.283 and 124.797 seconds, and recorded zero impacts. There were 54,143 fixed steps of real high-speed non-braking cooling. Cumulative caliper work reached 41.648 MJ; ABS tyres remained undamaged and all discs retained full force.
+
+The direct owned-model Chase stress replay still peaks at 615, 746 and 848°C and produces fade, with zero impacts and each stop within its kinetic/potential energy budget. A separate digital full-brake rehearsal needs four pose/velocity-only approach placements to reach 877°C from fresh discs, again with zero impacts. Fresh ABS-off full braking at s=1300 and 50 m/s creates persistent flat spots in actual contacts.
+
+The integrated frozen preview passes 482 tests and native Chromium acceptance (`artifacts/review/item-3.6/chromium-brakes.json`). Three actual laps took 125.587, 124.281 and 124.742 seconds, peaked at 601.671°C and delivered 40.492 MJ, with zero impacts, fade or ABS flat spots. The subsequent native full-brake Chase approach reached 774.557°C and a 0.938 force multiplier without an impact. ABS-off braking created persistent flat spots; rendered HUD averages, fade and the four instanced discs’ shared glow match physical readings. Eleven native checkpoints cover pause, recovery, Restart, Soft/Hard selection and visible wheel-phase heave. Head movement Off receives its combined camera check in item 3.10. Pose/velocity-only fixtures shorten stress approaches; heat, damage, input, timer and telemetry are never injected.
