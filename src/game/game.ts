@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { RaceWakeLock } from '@/phone/wake-lock';
 import { createCarAudio } from '@/audio';
 import { CameraRig } from '@/camera/camera-rig';
 import { CAR_SPECS, type CarKind } from '@/car/car-specs';
@@ -33,6 +34,7 @@ type GameState = 'title' | 'carSelect' | 'race' | 'paused';
 
 export class Game {
   private state: GameState = 'title';
+  private readonly wakeLock = new RaceWakeLock();
   private settings: Settings = loadSettings();
   private readonly input = new InputManager();
   private readonly timer = new THREE.Timer();
@@ -222,6 +224,7 @@ export class Game {
   }
 
   private frame(time: number): void {
+    this.wakeLock.setRunning(this.state === 'race' && !this.menus.isOpen() && Boolean(this.race?.session.racing));
     this.timer.update(time);
     const dt = Math.min(this.timer.getDelta(), 1 / 20);
     this.fps += (1 / Math.max(dt, 1e-3) - this.fps) * 0.05;

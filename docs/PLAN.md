@@ -129,7 +129,7 @@ Status: done — awaiting the user's iPhone check (commit 5e61474d55e9cce0f7e3c2
   3. Measure on desktop High and on the user's iPhone on Medium and Low.
 - **Done when:** every tier meets Appendix B; the user's iPhone runs 3 laps on Medium with no graphics loss.
 ### 1.12 Scorecard round, user review and release — S
-Status: awaiting the user's review — index 51.92 / 100 against 72.05; no new tuner defaults (commit recorded in the next item).
+Status: awaiting the user's review — index 51.92 / 100 against 72.05; no new tuner defaults (commit a1ad8f215e1c01bd6a6cb2989c25b7dfe81a9fc2).
 - **Do:**
   1. Run the scorecard (same reviewers and sheet as 1.0).
   2. The user reviews the game with the graphics tuner and gives values; make them the defaults.
@@ -138,6 +138,7 @@ Status: awaiting the user's review — index 51.92 / 100 against 72.05; no new t
 ## Phase 2 — Phone strength
 **Goal.** The phone version is safe, fast and measurable.
 ### 2.1 Keep the screen awake — S
+Status: done — awaiting the user's iPhone check (commit recorded in the next item; evidence `artifacts/review/item-2.1/`).
 - **Do:** request a Screen Wake Lock while a race runs; release it on pause, results and page hide; request it again after the page shows.
 - **Done when:** the iPhone screen does not dim during a 3-minute lap.
 ### 2.2 Android full screen and landscape lock — S
