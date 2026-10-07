@@ -6,7 +6,18 @@ Ford Mustang GT and the Toyota GR Supra (new in 2026). Built with three.js, Type
 
 ## Plan
 
-The next work, in order, is in [`docs/PLAN.md`](docs/PLAN.md): graphics realism (toward about 75 % of the way to photoreal), phone strength, then racing realism.
+The work order and item status are in [`docs/PLAN.md`](docs/PLAN.md): graphics realism (toward about 75 % of the way to photoreal), phone strength, then racing realism.
+
+This run ships to the `codex/bathurst-plan` **preview branch**. Main and production
+stay at their existing revision. Phase 1 adds measured afternoon light, AgX tone
+mapping, cascaded shadows, generated asphalt and terrain detail, eucalyptus crowns,
+trackside detail and High-only AO, bloom, SMAA and camera effects. The fixed photo
+round is in [`docs/REALISM.md`](docs/REALISM.md); user review is pending. The rejected
+car-material and floor-spark candidates are recorded in the plan rather than shipped.
+
+High/Medium/Low pass the four frozen Mac evidence points. Real iPhone Medium
+(three laps, at least 50 fps) and Low remain pending. See [`docs/VERIFICATION.md`](docs/VERIFICATION.md)
+for the per-tier feature audit and the limits of phone emulation.
 
 ## Run
 

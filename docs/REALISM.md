@@ -157,3 +157,40 @@ fascia detail and wheel material response remain the gaps. The candidate stayed
 within 40,000 triangles and 27 draws per car, but failed the required visual gate,
 so all item 1.8 source changes were discarded. Reports, nine fix captures and
 rejected source are in `artifacts/review/item-1.8/`.
+
+## Phase 1 release round (item 1.12)
+
+Two-reviewer index: **51.92 / 100** (baseline 44.09; target 72.05).
+Player: 55.53; photographer: 48.31. User: **pending**.
+Status: **awaiting the user's review**. The target is not reached; no acceptance
+is inferred. No tuner values have been adopted as defaults.
+
+Fresh independent reviewers used the fixed briefs above and inspected all 15
+photo pairs at original resolution. Raw aspect scores, null exclusions, visible reasons
+and arithmetic: `artifacts/review/item-1.12/{player,photographer}-review.json`.
+Frozen environment captures: `artifacts/review/item-1.11/after/`; car close-ups:
+`artifacts/review/item-1.12/after/`. Stills do not establish temporal stability.
+
+| Viewpoint | Player (0–10) | Photographer (0–10) |
+|---|---:|---:|
+| 10-hell-corner | 5.53 | 4.75 |
+| 11-mountain-straight | 5.53 | 4.75 |
+| 12-griffins-bend | 5.50 | 4.50 |
+| 13-the-cutting | 5.47 | 4.62 |
+| 14-reid-park | 5.30 | 4.50 |
+| 15-mcphillamy-park | 5.48 | 4.58 |
+| 16-skyline | 5.38 | 4.58 |
+| 17-the-dipper | 5.58 | 4.58 |
+| 18-forrests-elbow | 5.33 | 4.67 |
+| 19-conrod-straight | 5.17 | 4.33 |
+| 20-the-chase | 5.46 | 4.67 |
+| 21-murrays-corner | 5.64 | 4.58 |
+| car-camaro | 5.93 | 5.67 |
+| car-mustang | 6.03 | 5.67 |
+| car-supra | 5.93 | 6.00 |
+
+Both reviewers identify organic vegetation, ground/distant landscape variation
+and light/material response as the largest gaps. Photo camera position and cockpit
+obstruction remain limitations. Car geometry and materials stay at the shipped
+baseline after item 1.8 was rejected. The user can accept this result or request a
+focused follow-up; lower measured performance tiers and physics work proceed.

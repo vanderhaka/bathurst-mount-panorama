@@ -87,3 +87,11 @@ Capture before and after from a frozen preview, including the 15 Realism Index
 viewpoints and the four performance points. Inspect close-ups and game-distance
 screenshots. Keep photo-pair limitations visible. Generated maps must tile, effects
 must respect the quality table, and real-device checks stay pending until observed.
+
+## Phase 1 review
+
+The release uses the same fixed 15 photo pairs and independent player/photographer
+briefs as the baseline. The user's score and acceptance remain pending; no tuner
+values become project defaults without the user's review. Car-material and floor
+spark candidates that failed their checks stay outside this release. The target,
+individual viewpoint scores and remaining visible gaps are recorded in `REALISM.md`.

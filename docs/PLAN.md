@@ -121,7 +121,7 @@ Status: blocked — three full-speed Conrod checks found no physical floor conta
 - **Do:** exhaust flames on overrun and downshifts; better tyre smoke and off-track dust; floor sparks on the Conrod humps at full speed; rubber marbles off the racing line.
 - **Done when:** each effect shows in a capture at its real place and costs less than 0.5 ms on High.
 ### 1.11 Quality tiers and performance — M
-Status: done — awaiting the user's iPhone check (commit recorded in the next item; evidence `artifacts/review/item-1.11/`).
+Status: done — awaiting the user's iPhone check (commit 5e61474d55e9cce0f7e3c28f89aeec948eca7c9d; evidence `artifacts/review/item-1.11/`).
 - **Depends on:** D3.
 - **Do:**
   1. Put every Phase 1 feature in the tier table (`QUALITY` in `src/config/graphics.ts`).
@@ -129,6 +129,7 @@ Status: done — awaiting the user's iPhone check (commit recorded in the next i
   3. Measure on desktop High and on the user's iPhone on Medium and Low.
 - **Done when:** every tier meets Appendix B; the user's iPhone runs 3 laps on Medium with no graphics loss.
 ### 1.12 Scorecard round, user review and release — S
+Status: awaiting the user's review — index 51.92 / 100 against 72.05; no new tuner defaults (commit recorded in the next item).
 - **Do:**
   1. Run the scorecard (same reviewers and sheet as 1.0).
   2. The user reviews the game with the graphics tuner and gives values; make them the defaults.
