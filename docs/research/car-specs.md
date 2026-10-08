@@ -326,6 +326,42 @@ Toyota joined the championship in 2026 with the GR Supra. Walkinshaw TWG Racing 
 
 In the game, `CAR_SPECS.supra` uses the shared Gen3 mass, balance, driveline and aero values. With the same power, the test AI laps in the same time as the Mustang.
 
+## 12. Holden Torana A9X (1979 Group C, a tribute car)
+
+The 2026 Bathurst 1000 marks 20 years since Peter Brock's death. The game adds his most famous car: the Holden Dealer Team LX Torana SS A9X hatchback #05, winner of the 1979 Hardie-Ferodo 1000 (Brock and Jim Richards). It won by six laps, led every lap, and Brock set the lap record on the final lap. The car runs period-correct 1979 Group C physics, so it is much slower than a Gen3 car. Sources are inline below; "Estimate" rows give the reasoning. The visual reference is docs/references/cars-torana.md.
+
+| Item | Real value | Game value | Status and source |
+|---|---|---|---|
+| Length, width, height (road car) | 4,509 x 1,704 x 1,321 mm | length 4.51 m | Confirmed ([CarsGuide](https://www.carsguide.com.au/holden/torana/price/1977/ss-a9x)) |
+| Width with bolt-on flares | not published | 1.80 m | Estimate: 10-inch rims against 6-inch road rims, plus flares |
+| Race height | not published | 1.30 m | Estimate: about 100 mm ride height against 127 mm on the road car |
+| Wheelbase | 2,586 mm | 2.586 m | Confirmed (CarsGuide) |
+| Track front / rear | road 1,400 / 1,372 mm; A9X books give 1,453-1,486 / 1,425-1,450 mm | 1.54 / 1.52 m | Estimate for the race car with 10-inch rims |
+| Front overhang | not published | 0.92 m | Estimate: total overhang 1.923 m split by the side-view photos |
+| Race weight with driver | not published (road car 1,213-1,242 kg) | 1,300 kg | Estimate: light shell and stripped trim, plus cage and a large drop tank ([Shannons](https://club.shannons.com.au/club/news/racing-garage/lx-torana-a9x-too-good-for-its-own-good/)) |
+| Weight split | not published | 52 % front | Estimate: front V8, low rear tank |
+| CG height | not published | 0.44 m | Estimate: higher than Gen3 (0.38 m), but kept under the tip-over limit track / (2 x CG height) against the tuned tyre friction |
+| Engine | Holden 308 V8, 5,044 cc, 101.6 x 77.8 mm, pushrod, two valves per cylinder; L34-based Group C build at 10.5:1 | 5.0 L pushrod V8 | Confirmed ([Wikipedia: Holden V8](https://en.wikipedia.org/wiki/Holden_V8_engine), [Street Machine](https://www.streetmachine.com.au/features/peter-brock-holden-torana-a9x-engine-bathurst)) |
+| Induction | twin Weber 48IDF on the 1979 winner (a Holley on the sister #76 car) | audio: carburettor voice | Confirmed (Street Machine; [CarExpert](https://www.carexpert.com.au/car-news/the-time-i-drove-a-bathurst-legend-and-almost-put-it-into-the-wall)) |
+| Power, torque | 285-290 kW, about 475 Nm (Wheels 1980); builders claim 380-400 hp | peak 289 kW at about 6,100 rpm, 475 Nm at about 5,000 rpm | Confirmed range; rpm of the peaks estimated |
+| Rev limit | rules limit 6,800 rpm; engine builders used 6,500-6,800 | redline 6,500, limiter 6,800 rpm | Confirmed (Street Machine) |
+| Firing order | 1-2-7-8-4-5-6-3 (odd cylinders on the driver's bank) | the same | Weak secondary sources ([CarsCounsel](https://carscounsel.com/holden-308-firing-order/)); check a workshop manual |
+| Gearbox | Borg-Warner Super T10 4-speed | 2.43 / 1.61 / 1.23 / 1.00, reverse 2.6 | Box confirmed ([Wikipedia: Holden Torana](https://en.wikipedia.org/wiki/Holden_Torana)); ratios are one of the period Super T10 sets (estimate) |
+| Final drive | 2.60:1 Salisbury with a Detroit Locker at Bathurst | 2.60 | Confirmed (CarExpert, #76 sister car) |
+| Tyres | Bridgestone slicks ([Motor Sport, Dec 1979](https://www.motorsportmagazine.com/archive/article/december-1979/55/the-great-race-2/)) | 0.31 m radius, 0.27 m wide | Radius calibrated from 44.8 km/h per 1,000 rpm in top on the 2.60 axle; width estimated for 10-inch rims |
+| Wheels | about 15 x 10 in, five studs, dark face, polished deep-dish lip | 15 in classic rim | Estimate from photos and the 10-inch rim limit |
+| Brakes | four-wheel discs, 276 mm vented front | disc radius 0.138 m | Front disc confirmed (parts listing); race data not found |
+| Aero | no published Cd; a fibreglass air dam, a tailgate spoiler and a rear-facing bonnet scoop | CdA 1.10 m², no downforce | Estimate: calibrated so 260 kW at the wheels gives the 249-269 km/h Conrod trap speed |
+| Steering | manual rack, large wheel, 10.97 m turning circle (road car) | 0.40 rad max road-wheel angle | Estimate |
+| 1979 pole | 2:20.500, Brock | — | Confirmed ([Wikipedia: 1979 Hardie-Ferodo 1000](https://en.wikipedia.org/wiki/1979_Hardie-Ferodo_1000)) |
+| 1979 lap record | 2:21.1, Brock, lap 163 (the final lap) | — | Confirmed (Wikipedia) |
+| Conrod trap speed | 249-269 km/h (155-167 mph) for the V8 Toranas | — | Confirmed (Motor Sport) |
+| Effect of the Chase (added 1987) | about 3-5 s per lap | about +5 s for this car | [Supercars: evolution of the lap record](https://www.supercars.com/news/championship/faster-and-faster-evolution-of-bathursts-best-lap-time/) |
+
+Lap target in the game: 2:25-2:27 at Bathurst with the measured handling (MEASURED_HANDLING in src/config/handling.ts). The game's default handling adds grip to every car, so the player's laps are faster than that.
+
+Least certain: race weight, CG height, flared track, tyre sizes, gear set, Cd, steering lock. A copy of Dr Terry's A9X book or the 1979 CAMS Group C regulations would close most of these gaps.
+
 ## Source key
 
 URLs were opened or returned content during this research unless noted. Direct fetch failed for whichcar.com.au (403); [S2] was read through a Wayback Machine copy of the same page.
