@@ -63,8 +63,8 @@ export interface HudState {
   startLights?: number;
   /** Camera view: in 'cockpit' the timing tower moves below the interior mirror. */
   view?: 'outside' | 'cockpit';
-  /** The player's line in the broadcast tower: race number, 3-letter code, livery colour (CSS). */
-  entry?: { number: number; code: string; colour: string };
+  /** The player's line in the broadcast tower: race number as shown (e.g. '05'), 3-letter code, livery colour (CSS). */
+  entry?: { number: string; code: string; colour: string };
   /** Lateral acceleration in g, + = towards the left (VehicleTelemetry.gLat). Feeds the tyre estimate. */
   gLat?: number;
   /** Longitudinal acceleration in g, + = accelerating (VehicleTelemetry.gLong). Feeds the tyre estimate. */

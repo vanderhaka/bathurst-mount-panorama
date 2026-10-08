@@ -1,7 +1,7 @@
 // Car select: car and livery pickers over the live 3D preview, spec sheet, RACE.
 import type { CarKind } from '@/car/car-specs';
 import type { TyreCompound } from '@/physics/tyre-state';
-import { LIVERY_PRESETS } from '@/car/liveries';
+import { LIVERY_PRESETS, liveryNumber } from '@/car/liveries';
 import { h } from '@/hud/dom';
 import { ACTIVE_CIRCUIT } from '@/track/circuits';
 import { CAR_ORDER, carSheet, hexColour, LIVERY_COUNT } from '@/ui/car-data';
@@ -86,11 +86,11 @@ export class CarSelectScreen implements Screen {
       h('span', 'mn-swatches', { 'aria-hidden': 'true' }, [l.primary, l.secondary, l.accent].map((c) => h('i', undefined, { style: `background:${hexColour(c)}` }))),
       h('span', 'mn-livery__text', undefined, [
         h('span', 'mn-livery__name', undefined, [preset.name]),
-        h('span', 'mn-livery__meta', undefined, [`#${l.number} · ${PATTERN_LABEL[l.pattern] ?? l.pattern}`]),
+        h('span', 'mn-livery__meta', undefined, [`#${liveryNumber(l)} · ${PATTERN_LABEL[l.pattern] ?? l.pattern}`]),
       ]),
       dots(LIVERY_COUNT, this.livery),
     );
-    this.liveryRow.el.setAttribute('aria-label', `Livery: ${preset.name}, number ${l.number}. Left and right to change.`);
+    this.liveryRow.el.setAttribute('aria-label', `Livery: ${preset.name}, number ${liveryNumber(l)}. Left and right to change.`);
   }
 
   private renderTyres(): void {

@@ -51,7 +51,7 @@ export class PositionTower {
 
   update(st: HudState): void {
     const entry = st.entry;
-    this.num.set(entry ? String(entry.number) : '');
+    this.num.set(entry ? entry.number : '');
     this.code.set(entry?.code ?? 'YOU');
     const colour = entry?.colour ?? '';
     if (colour !== this.colour) {
