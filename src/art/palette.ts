@@ -56,8 +56,8 @@ export const FOLIAGE = {
 } as const;
 
 export const ROAD = {
-  asphalt: 0x4a4c4f,
-  asphaltWorn: 0x55575a,
+  asphalt: 0x3b3c3e,
+  asphaltWorn: 0x4b4c4e,
   groove: 0x333436,
   lineWhite: 0xf0f0ec,
   kerbRed: 0xb3352f,

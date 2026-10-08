@@ -1,5 +1,5 @@
 // Look-check capture for graphics work: title, then famous corners in several camera modes.
-// Usage: [VIEWS=hell,skyline] [GFX=<graphics json>] node scripts/look-shots.mjs <outdir> [url]
+// Usage: [VIEWS=hell,skyline] [GFX=<graphics json>] [TIER=high|medium|low] node scripts/look-shots.mjs <outdir> [url]
 import { mkdirSync } from 'node:fs';
 import { chromium } from 'playwright';
 import { answerSteerQuestion } from './steer-question.mjs';
@@ -10,14 +10,17 @@ const page = await browser.newPage({ viewport: { width: 1920, height: 1080 } });
 const errors = [];
 page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
 page.on('pageerror', (e) => errors.push(e.message));
+process.on('uncaughtException', (e) => { console.log(JSON.stringify({ failed: e.message.split('\n')[0], errors: errors.slice(0, 10) })); process.exit(1); });
 await page.goto(url, { waitUntil: 'load' });
 await page.waitForFunction(() => window.__shotReady === true, null, { timeout: 120000 });
 if (process.env.GFX) {
-  await page.evaluate((j) => { localStorage.setItem('bathurst.graphics.v1', j); localStorage.setItem('bathurst.quality.v3', JSON.stringify({ tier: 'high', auto: false })); }, process.env.GFX);
+  await page.evaluate((j) => { localStorage.setItem('bathurst.graphics.v1', j); }, process.env.GFX);
   await page.reload({ waitUntil: 'load' });
   await page.waitForFunction(() => window.__shotReady === true, null, { timeout: 120000 });
 }
-await page.evaluate(() => { try { localStorage.setItem('bathurst.quality.v3', JSON.stringify({ tier: 'high', auto: false })); } catch {} });
+const tier = process.env.TIER ?? 'high';
+await page.evaluate((q) => { localStorage.setItem('bathurst.quality.v3', JSON.stringify({ quality: q, pixelRatio: null, automatic: false })); }, tier);
+if (!process.env.GFX) { await page.reload({ waitUntil: 'load' }); await page.waitForFunction(() => window.__shotReady === true, null, { timeout: 120000 }); }
 await page.waitForTimeout(2500);
 const shot = (n) => page.screenshot({ path: `${out}/${n}.png` });
 await shot('01-title');
