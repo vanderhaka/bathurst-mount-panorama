@@ -22,7 +22,9 @@ export class RaceSession {
   records: CarRecords | null;
   ghost: GhostPlayer | null = null;
   private readonly recorder = new GhostRecorder();
+  /** Saved lap history followed by the laps driven in this session (saved together). */
   readonly laps: LapRecord[] = [];
+  private readonly savedLapCount: number;
   private readonly telemetryRecorder: TelemetryRecorder;
   private readonly telemetryLaps: LapTelemetry[] = [];
   private bestTelemetry: LapTelemetry | null = null;
@@ -45,6 +47,12 @@ export class RaceSession {
     this.timer = new LapTimer(track.length, sectorStarts, saved ? { bestS: saved.bestS, bestSectors: saved.bestSectors, trace: saved.trace } : null);
     if (this.records?.ghost) this.ghost = new GhostPlayer(this.records.ghost);
     if (this.records?.laps) this.laps.push(...this.records.laps);
+    this.savedLapCount = this.laps.length;
+  }
+
+  /** Laps driven since this session started (Restart keeps them). */
+  get sessionLaps(): LapRecord[] {
+    return this.laps.slice(this.savedLapCount);
   }
 
   /** Puts the car on pole position behind the standing-start line and arms the lights. */

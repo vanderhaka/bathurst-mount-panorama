@@ -34,8 +34,9 @@ describe('records stay with their circuit', () => {
   it('does not mix the other cars’ Bathurst history into Adelaide results', () => {
     saveRecords('mustang', record('mustang', 124));
     saveRecords('mustang', record('mustang', 81), 'adelaide');
-    const [laps, best] = sessionResults({ car: 'camaro', laps: record('camaro', 80).laps, track: { id: 'adelaide' } });
-    expect(laps.map(l => l.timeS)).toEqual([80, 81]);
+    const camaro = record('camaro', 80).laps;
+    const [laps, best] = sessionResults({ car: 'camaro', laps: camaro, sessionLaps: camaro, track: { id: 'adelaide' } });
+    expect(laps.map(l => l.timeS)).toEqual([80]);
     expect(best.mustang?.timeS).toBe(81);
   });
 });

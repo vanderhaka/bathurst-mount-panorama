@@ -1,4 +1,5 @@
-// Session results: best lap per car, lap table with purple / green bests.
+// Session results: each car's best lap (cards; the fastest is tagged) and the laps
+// driven in this session, with purple / green bests.
 import { CAR_SPECS, type CarKind } from '@/car/car-specs';
 import { h } from '@/hud/dom';
 import { formatLapTime, formatSectorTime } from '@/hud/format';
@@ -68,8 +69,9 @@ export class ResultsScreen implements Screen {
     const valid = laps.filter((l) => l.valid);
     const overall = valid.reduce<LapRecord | null>((a, l) => (a === null || l.timeS < a.timeS ? l : a), null);
     const sectorBest = [0, 1, 2].map((i) => Math.min(...valid.map((l) => l.sectorsS[i] ?? Infinity)));
+    const fastest = Object.values(bestByCar).reduce<LapRecord | null>((a, l) => (l && (a === null || l.timeS < a.timeS) ? l : a), null);
     this.summary.textContent = `${laps.length} ${laps.length === 1 ? 'lap' : 'laps'} · ${valid.length} valid`;
-    this.cards.replaceChildren(...CAR_ORDER.map((car) => bestCard(car, bestByCar[car], !!overall && bestByCar[car] === overall)));
+    this.cards.replaceChildren(...CAR_ORDER.map((car) => bestCard(car, bestByCar[car], !!fastest && bestByCar[car] === fastest)));
     const start = Math.max(0, laps.length - MAX_ROWS);
     const rows = laps.slice(start).map((lap, k) => {
       const isOverall = lap === overall;

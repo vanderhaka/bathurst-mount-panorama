@@ -79,6 +79,20 @@ describe('session telemetry and its ghost', () => {
     expect(best.camaro?.timeS).toBe(data.best?.timeS);
   });
 
+  it('starts Results empty for a new session even with saved laps, then lists only the laps driven', () => {
+    const first = fixture();
+    completeLap(first.session, first.vehicle, 50, 1, 0);
+    completeLap(first.session, first.vehicle, 50, 1, 0);
+    vi.runAllTimers();
+    const { session, vehicle } = fixture();
+    expect(session.laps).toHaveLength(2); // saved history, kept for the next save
+    expect(sessionResults(session)[0]).toEqual([]);
+    completeLap(session, vehicle, 50, 1, 0);
+    const [laps, best] = sessionResults(session);
+    expect(laps).toEqual([session.laps[2]]);
+    expect(best.camaro).toBe(session.laps[1]); // the saved flying lap is still the car's best
+  });
+
   it('keeps an invalid lap available for analysis without promoting it to best or ghost', () => {
     const { session, vehicle } = fixture();
     completeLap(session, vehicle, 50, 1, 0);
