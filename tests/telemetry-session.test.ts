@@ -99,6 +99,22 @@ describe('session telemetry and its ghost', () => {
     expect(seen.slice(0, -1)).toEqual(['Best lap', 'Lap 3']);
   });
 
+  it('hides the ghost and the delta on the standing lap after Restart, as on the first standing lap', () => {
+    const { session, vehicle } = fixture();
+    expect(session.ghostVisible).toBe(false);
+    completeLap(session, vehicle, 50, 1, 0); // standing
+    completeLap(session, vehicle, 50, 1, 0); // best: the ghost runs from here
+    expect(session.ghostVisible).toBe(true);
+    session.placeOnGrid(); // Restart
+    session.lights = -1;
+    session.timer.startStandingLap();
+    for (let i = 0; i < 30; i++) session.update(0.1); // lights out, car still on the grid
+    expect(session.ghostVisible).toBe(false);
+    expect(session.timer.snapshot(session.lapDist()).deltaS).toBeNull();
+    completeLap(session, vehicle, 50, 1, 0); // standing lap done: ghost and delta return
+    expect(session.ghostVisible).toBe(true);
+  });
+
   it('starts Results empty for a new session even with saved laps, then lists only the laps driven', () => {
     const first = fixture();
     completeLap(first.session, first.vehicle, 50, 1, 0);

@@ -92,6 +92,22 @@ describe('LapTimer', () => {
     expect(timer.bestS).toBeCloseTo(b.results[0].timeS, 3);
   });
 
+  it('shows no live delta on the standing-start lap, even with a saved best', () => {
+    const t1 = new LapTimer(L, [2453, 3973]);
+    t1.startOutLap(L - 50);
+    run(t1, L - 50, L / 120, 125);
+    const timer = new LapTimer(L, [2453, 3973], t1.saveData());
+    timer.startOutLap(150);
+    timer.startStandingLap(); // lights out on the grid, 150 m past the line, car still stationary
+    for (let k = 0; k < 60; k++) timer.update(1 / 60, 150);
+    expect(timer.snapshot(150).deltaS).toBeNull();
+    const a = run(timer, 150, L / 120, 60);
+    expect(timer.snapshot(a.dist).deltaS).toBeNull();
+    const b = run(timer, a.dist, L / 120, 70); // over the line: a flying lap against the best
+    expect(b.results[0].standing).toBe(true);
+    expect(timer.snapshot(b.dist).deltaS).not.toBeNull();
+  });
+
   it('does not count a lap shortened by a teleport', () => {
     const timer = new LapTimer(L, [2453, 3973]);
     timer.startOutLap(L - 50);

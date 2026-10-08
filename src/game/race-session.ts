@@ -69,6 +69,8 @@ export class RaceSession {
     this.timer.startOutLap(this.lapDist());
     this.recorder.reset();
     this.telemetryRecorder.reset();
+    // The ghost replays a flying lap: like the delta, it returns at the first crossing.
+    this.ghostVisible = false;
   }
 
   lapDist(): number {

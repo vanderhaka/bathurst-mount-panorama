@@ -158,9 +158,9 @@ export class LapTimer {
     return res;
   }
 
-  /** Live delta to the best lap at this distance (s, + = slower). */
+  /** Live delta to the best lap at this distance (s, + = slower); none on the out lap or the standing-start lap. */
   delta(lapDist: number): number | null {
-    if (!this.bestTrace || this.lapNumber === 0) return null;
+    if (!this.bestTrace || this.lapNumber === 0 || this.standing) return null;
     const f = lapDist / DELTA_STEP;
     const k = Math.floor(f);
     if (k + 1 >= this.bestTrace.length) return null;
