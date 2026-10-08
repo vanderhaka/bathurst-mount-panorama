@@ -2,6 +2,7 @@
 import { bestFitRotation, fitTransform, project } from '@/hud/map-geometry';
 import trackData from '@/track/data/mount-panorama.json';
 import adelaideData from '@/track/data/adelaide.json';
+import goldCoastData from '@/track/data/gold-coast.json';
 import { ACTIVE_CIRCUIT, type CircuitId } from '@/track/circuits';
 
 export const OUTLINE_VIEWBOX = { w: 1000, h: 640 } as const;
@@ -9,6 +10,7 @@ export const OUTLINE_VIEWBOX = { w: 1000, h: 640 } as const;
 const OUTLINES: Record<CircuitId, () => Array<[number, number]>> = {
   bathurst: () => (trackData.points as number[][]).map((p) => [p[0], p[2]] as [number, number]),
   adelaide: () => adelaideData.points.map((p) => [p[0], p[1]] as [number, number]),
+  'gold-coast': () => goldCoastData.points.map((p) => [p[0], p[1]] as [number, number]),
 };
 
 let cached: string | null = null;

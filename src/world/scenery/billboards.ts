@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { TRACKSIDE } from '@/art/palette';
 import { FONT_STACK as HUD_FONT_STACK } from '@/car/models/livery-canvas';
-import { ADELAIDE_SPONSORS, SPONSORS, type Sponsor } from '@/art/sponsors';
+import { ADELAIDE_SPONSORS, GOLD_COAST_SPONSORS, SPONSORS, type Sponsor } from '@/art/sponsors';
 import type { CircuitId } from '@/track/circuits';
 
 const COLS = 4, ROWS = 2, CELL_W = 512, CELL_H = 128;
@@ -17,11 +17,12 @@ function signSet(sponsors: readonly Sponsor[], home: SignSet['home']): SignSet {
 /**
  * Track sections (lap distance, m) where a corner-named brand belongs: a fan expects
  * "Skyline Radio" at Skyline, not at Hell Corner. Brands not listed go anywhere. Adelaide's
- * generated brands name no corner, so they go anywhere.
+ * and the Gold Coast's generated brands name no corner, so they go anywhere.
  */
 const SIGN_SETS: Record<CircuitId, SignSet> = {
   bathurst: signSet(SPONSORS, { SKYLINE: [[3000, 3700]], CONROD: [[4000, 5400]], ESSES: [[3300, 3900]], 'HELL CORNER': [[150, 750]] }),
   adelaide: signSet(ADELAIDE_SPONSORS, {}),
+  'gold-coast': signSet(GOLD_COAST_SPONSORS, {}),
 };
 
 const cachedAtlas = new Map<CircuitId, THREE.CanvasTexture>();

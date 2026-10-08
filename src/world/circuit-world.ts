@@ -26,4 +26,11 @@ export const CIRCUIT_WORLDS: Record<CircuitId, CircuitWorld> = {
     terrain: async (track, quality) => (await import('@/world/adelaide-terrain')).buildAdelaideTerrain(track, quality),
     scenery: async (track, terrain, profile, quality) => (await import('@/world/adelaide-scenery')).buildAdelaideScenery(track, terrain, profile, quality),
   },
+  // Temporary: reuses the Adelaide builders until the Gold Coast world exists.
+  'gold-coast': {
+    terrainLabel: 'Laying out the Surfers Paradise streets',
+    sceneryLabel: 'Building the beachfront skyline',
+    terrain: async (track, quality) => (await import('@/world/adelaide-terrain')).buildAdelaideTerrain(track, quality),
+    scenery: async (track, terrain, profile, quality) => (await import('@/world/adelaide-scenery')).buildAdelaideScenery(track, terrain, profile, quality),
+  },
 };
