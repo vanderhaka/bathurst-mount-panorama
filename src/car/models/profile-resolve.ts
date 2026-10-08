@@ -108,13 +108,16 @@ export function resolveProfile(p: BodyProfile, d: CarDimensions): BodyProfile {
     headlight: light(p.headlight, m),
     taillight: light(p.taillight, m),
     art: art(p.art, m),
-    wing: wing(p.wing, m),
+    ...(p.wing ? { wing: wing(p.wing, m) } : {}),
     // The seat does not move when the greenhouse grows: the eye keeps its design height
     // (the extra height becomes headroom and taller glass).
     eye: [m.x(p.eye[0]), p.eye[1], m.z(p.eye[2])],
     mirror: { z: m.z(p.mirror.z), y: m.y(p.mirror.y) },
     exhaustZ: m.z(p.exhaustZ),
-    splitter: { reach: p.splitter.reach * m.sz, thickness: p.splitter.thickness },
+    ...(p.splitter ? { splitter: { reach: p.splitter.reach * m.sz, thickness: p.splitter.thickness } } : {}),
+    ...(p.sideSkirts !== undefined ? { sideSkirts: p.sideSkirts } : {}),
+    ...(p.diffuser !== undefined ? { diffuser: p.diffuser } : {}),
+    ...(p.wheel ? { wheel: p.wheel } : {}),
     canards: p.canards.map(([y, reach]) => [m.y(y), m.x(reach)] as const),
   };
 }

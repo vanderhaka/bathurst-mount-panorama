@@ -111,6 +111,17 @@ export interface WingSpec {
   uprightZ: readonly [number, number];
 }
 
+export interface WheelStyle {
+  /** 'gen3': dished tapered spokes and a centre-lock nut. 'classic': a flat dark face with slim spokes in V pairs, a polished deep-dish outer lip and five wheel nuts. */
+  kind: 'gen3' | 'classic';
+  /** Rim bead-seat radius (m). */
+  rimRadius: number;
+  /** Rim half width (m). */
+  rimHalfWidth: number;
+  /** Brake disc outer radius (m). */
+  discRadius: number;
+}
+
 export interface BodyProfile {
   curves: BodyCurves;
   z: GreenhouseZ;
@@ -124,13 +135,20 @@ export interface BodyProfile {
   headlight: LightSpec;
   taillight: LightSpec;
   art: FasciaArt;
-  wing: WingSpec;
+  /** Rear wing; absent = no wing. */
+  wing?: WingSpec;
   /** Driver eye (right-hand drive: x < 0). */
   eye: readonly [number, number, number];
   mirror: { z: number; y: number };
   exhaustZ: number;
-  /** Front splitter: how far its lip reaches ahead of the nose face (m) and its thickness (m). */
-  splitter: { reach: number; thickness: number };
+  /** Front splitter (absent = none): how far its lip reaches ahead of the nose face (m) and its thickness (m). */
+  splitter?: { reach: number; thickness: number };
+  /** Gen3 side skirts (default true). */
+  sideSkirts?: boolean;
+  /** Rear diffuser (default true). */
+  diffuser?: boolean;
+  /** Wheel style; absent = the Gen3 wheel. */
+  wheel?: WheelStyle;
   /** Dive planes on each front bumper corner: [height y, outward reach] per plane. */
   canards: ReadonlyArray<readonly [number, number]>;
 }

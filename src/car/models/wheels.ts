@@ -5,7 +5,9 @@ import type { CarDimensions } from '@/car/car-specs';
 import type { WheelIndex } from '@/types/car-model';
 import type { CarLook, CarMaterialSet, SegmentLook } from '@/car/models/look';
 import { merge, tint } from '@/car/models/geo-utils';
-import { caliperGeometry, discGeometry, nutGeometry, rimGeometry, tyreGeometry } from '@/car/models/wheel-geometry';
+import { GEN3_WHEEL, caliperGeometry, discGeometry, nutGeometry, rimGeometry, tyreGeometry } from '@/car/models/wheel-geometry';
+import { classicRimGeometry } from '@/car/models/wheel-classic';
+import type { WheelStyle } from '@/car/models/profile-types';
 
 export interface WheelSet {
   group: THREE.Group;
@@ -29,7 +31,16 @@ function ratioTint(g: THREE.BufferGeometry, colour: number, base: number): THREE
   return g;
 }
 
-export function createWheels(dims: CarDimensions, mats: CarMaterialSet, seg: SegmentLook, high: boolean, look: CarLook): WheelSet {
+/** Turns absolute vertex colours into ratios against a material colour that multiplies them. */
+function colourRatios(g: THREE.BufferGeometry, base: number): THREE.BufferGeometry {
+  const b = new THREE.Color(base);
+  const k = [Math.max(0.01, b.r), Math.max(0.01, b.g), Math.max(0.01, b.b)];
+  const col = g.getAttribute('color') as THREE.BufferAttribute;
+  for (let i = 0; i < col.count; i++) col.setXYZ(i, col.getX(i) / k[0], col.getY(i) / k[1], col.getZ(i) / k[2]);
+  return g;
+}
+
+export function createWheels(dims: CarDimensions, mats: CarMaterialSet, seg: SegmentLook, high: boolean, look: CarLook, style: WheelStyle = GEN3_WHEEL): WheelSet {
   const group = new THREE.Group();
   group.name = 'wheels';
   const R = dims.wheelRadius;
@@ -48,17 +59,20 @@ export function createWheels(dims: CarDimensions, mats: CarMaterialSet, seg: Seg
     group.add(mesh);
     return mesh;
   };
-  const tyre = tyreGeometry(R, dims.tyreWidth, seg.tyreRadial, high);
+  const classic = style.kind === 'classic';
+  const tyre = tyreGeometry(R, dims.tyreWidth, seg.tyreRadial, high, style.rimRadius);
   // High detail: the centre-lock nut rides in the rim mesh (one draw call less). The
   // rim material multiplies vertex colours, so the nut's colours are nut / rim.
-  const rim = high ? merge([tint(rimGeometry(seg.tyreRadial, seg.spokes, high), 0xffffff), ratioTint(nutGeometry(), look.nut.colour, look.rim.colour)]) : rimGeometry(seg.tyreRadial, seg.spokes, high);
+  const rim = classic
+    ? (high ? colourRatios(classicRimGeometry(style, seg.tyreRadial, seg.spokes, high), look.rim.colour) : classicRimGeometry(style, seg.tyreRadial, seg.spokes, high))
+    : high ? merge([tint(rimGeometry(seg.tyreRadial, seg.spokes, high), 0xffffff), ratioTint(nutGeometry(), look.nut.colour, look.rim.colour)]) : rimGeometry(seg.tyreRadial, seg.spokes, high);
   // Low detail: tyre and rim share one draw call (colours baked; rebuild to retune).
   const meshes = high
     ? [make(tyre, mats.tyre, 'tyre', true), make(rim, mats.rim, 'rim', true)]
-    : [make(merge([tint(tyre, look.tyre.colour), tint(rim, look.rim.colour)]), mats.trim, 'wheel', true)];
+    : [make(merge([tint(tyre, look.tyre.colour), classic ? rim : tint(rim, look.rim.colour)]), mats.trim, 'wheel', true)];
   if (high) {
-    meshes.push(make(discGeometry(seg.discRadial, 0.183), mats.disc ?? mats.rim, 'disc', true));
-    meshes.push(make(caliperGeometry(0.183), mats.caliper ?? mats.rim, 'caliper', false));
+    meshes.push(make(discGeometry(seg.discRadial, style.discRadius), mats.disc ?? mats.rim, 'disc', true));
+    meshes.push(make(caliperGeometry(style.discRadius, style.rimRadius), mats.caliper ?? mats.rim, 'caliper', false));
   }
   const spinM = new THREE.Matrix4();
   const steerM = new THREE.Matrix4();

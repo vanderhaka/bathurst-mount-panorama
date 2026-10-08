@@ -12,15 +12,17 @@ import { extrude, loft, merge, ringSection, tint } from '@/car/models/geo-utils'
 export interface FrontAero {
   plastic: THREE.BufferGeometry[];
   trim: THREE.BufferGeometry[];
-  splitter: THREE.BufferGeometry;
-  splitterHinge: THREE.Vector3;
+  splitter: THREE.BufferGeometry | null;
+  splitterHinge: THREE.Vector3 | null;
 }
 
 const X = new THREE.Vector3(1, 0, 0), Y = new THREE.Vector3(0, 1, 0), Z = new THREE.Vector3(0, 0, 1);
 
-function splitter(p: BodyProfile, dims: CarDimensions): { geo: THREE.BufferGeometry; hinge: THREE.Vector3 } {
+function splitter(p: BodyProfile, dims: CarDimensions): { geo: THREE.BufferGeometry; hinge: THREE.Vector3 } | null {
+  const sp = p.splitter;
+  if (!sp) return null;
   const face = makeCurve(p.nose.face);
-  const zTip = face(0.1) + p.splitter.reach;
+  const zTip = face(0.1) + sp.reach;
   const sweep = (x: number) => p.nose.sweep * Math.pow(Math.min(1, Math.abs(x)), p.nose.sweepPow);
   const zBack = dims.wheelbase / 2 + 0.36;
   const half = 0.93;
@@ -30,7 +32,7 @@ function splitter(p: BodyProfile, dims: CarDimensions): { geo: THREE.BufferGeome
     pts.push([x, zTip - sweep(x) - (Math.abs(x) > 0.86 ? (Math.abs(x) - 0.86) * 0.8 : 0)]);
   }
   pts.push([half - 0.02, zBack], [-half + 0.02, zBack]);
-  const t = p.splitter.thickness;
+  const t = sp.thickness;
   const plate = extrude(pts, t, (a, b, d) => [a, 0.062 + d, b]);
   // Upright fences at the splitter ends, so the lip reads from the side.
   const zEnd = zTip - sweep(half) - 0.07;
@@ -109,14 +111,14 @@ function wiper(grid: BodyGrid, p: BodyProfile): THREE.BufferGeometry | null {
 }
 
 export function buildFrontAero(grid: BodyGrid, p: BodyProfile, cv: CurveSet, dims: CarDimensions, housing: number): FrontAero {
-  const sp = splitter(p, dims);
+  const spl = splitter(p, dims);
   const m = mirrors(p, cv, housing);
   const w = wiper(grid, p);
   return {
-    plastic: [...skirts(p, cv, dims), ...m.plastic, ...(w ? [w] : [])],
+    plastic: [...(p.sideSkirts === false ? [] : skirts(p, cv, dims)), ...m.plastic, ...(w ? [w] : [])],
     trim: [...exhausts(p, cv), ...m.trim],
-    splitter: sp.geo,
-    splitterHinge: sp.hinge,
+    splitter: spl?.geo ?? null,
+    splitterHinge: spl?.hinge ?? null,
   };
 }
 

@@ -108,21 +108,27 @@ export function buildCarParts(kind: CarKind, options: CarModelOptions): CarParts
 
   const front = buildFrontAero(grid, profile, cv, dims, l.secondary);
   const rear = buildRearAero(grid, profile, zRear, -dims.wheelbase / 2 - 0.32);
-  const plates = tint(rear.wingPlates, l.accent);
+  const plates = rear.wingPlates ? tint(rear.wingPlates, l.accent) : null;
   let splitter: HingedPart | null = null;
   let wing: HingedPart | null = null;
   const plasticParts = [...front.plastic, ...rear.plastic, ...buildBodyDetails(grid, profile, high)];
   if (fasciaGeo?.strut) plasticParts.push(fasciaGeo.strut);
   const trimParts = [...front.trim];
   if (high) {
-    splitter = hinged('splitter', front.splitterHinge, [mesh(front.splitter, mats.carbon, 'splitter')]);
-    wing = hinged('wing', rear.wingHinge, [mesh(rear.wingCarbon, mats.carbon, 'wing'), mesh(plates, mats.trim, 'wing-endplates')]);
-    wing.pivot.userData.uprightX = profile.wing.uprightX;
-    wing.pivot.userData.wingY = profile.wing.y;
-    body.add(splitter.pivot, wing.pivot);
+    if (front.splitter && front.splitterHinge) {
+      splitter = hinged('splitter', front.splitterHinge, [mesh(front.splitter, mats.carbon, 'splitter')]);
+      body.add(splitter.pivot);
+    }
+    if (rear.wingCarbon && rear.wingHinge && plates && profile.wing) {
+      wing = hinged('wing', rear.wingHinge, [mesh(rear.wingCarbon, mats.carbon, 'wing'), mesh(plates, mats.trim, 'wing-endplates')]);
+      wing.pivot.userData.uprightX = profile.wing.uprightX;
+      wing.pivot.userData.wingY = profile.wing.y;
+      body.add(wing.pivot);
+    }
   } else {
-    plasticParts.push(front.splitter, rear.wingCarbon);
-    trimParts.push(plates);
+    if (front.splitter) plasticParts.push(front.splitter);
+    if (rear.wingCarbon) plasticParts.push(rear.wingCarbon);
+    if (plates) trimParts.push(plates);
   }
   const plastic = mesh(merge(plasticParts), mats.plastic, 'aero');
   const trim = mesh(merge(trimParts), mats.trim, 'trim');
@@ -137,7 +143,7 @@ export function buildCarParts(kind: CarKind, options: CarModelOptions): CarParts
     mats.tyre.userData.bakedColour = look.tyre.colour;
     writeMaterials(mats, look, false, 0);
   }
-  const wheels = createWheels(dims, mats, seg, high, look);
+  const wheels = createWheels(dims, mats, seg, high, look, profile.wheel);
   root.add(wheels.group);
 
   let interior: Interior | null = null;
