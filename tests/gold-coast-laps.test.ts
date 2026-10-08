@@ -10,7 +10,7 @@ import { computeRacingLine } from '@/track/racing-line';
 const track = createGoldCoastTrack(), line = computeRacingLine(track), kerbs = placeKerbs(track, line);
 
 describe('Gold Coast is drivable with the unchanged cars', () => {
-  for (const kind of ['camaro', 'mustang', 'supra'] as CarKind[]) {
+  for (const kind of ['camaro', 'mustang', 'supra', 'torana'] as CarKind[]) {
     it(`completes three laps in the ${kind} without a wall impact`, () => {
       const v = new Vehicle(circuitCarSpec(kind, 'gold-coast'), track, kerbs);
       const profiles = new SessionProfiles(v, line);
