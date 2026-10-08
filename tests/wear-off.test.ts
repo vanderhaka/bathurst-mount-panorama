@@ -43,17 +43,29 @@ const snapshot = (v: Vehicle) => [
   v.flatSpots.tyres.map((t) => t.severity),
 ];
 
+/**
+ * Matches the recorded numbers to 1e-9 relative. They were recorded on macOS arm64; Linux x64 CI
+ * differs in the last bit of some Math functions. A real physics change grows far beyond 1e-9
+ * over thousands of steps.
+ */
+function expectRecorded(actual: unknown, recorded: unknown): void {
+  const flat = (x: unknown): number[] => (Array.isArray(x) ? x.flatMap(flat) : [x as number]);
+  const a = flat(actual), r = flat(recorded);
+  expect(a).toHaveLength(r.length);
+  a.forEach((n, i) => expect(Math.abs(n - r[i]), `value ${i}: ${n} vs ${r[i]}`).toBeLessThanOrEqual(1e-9 * Math.max(1, Math.abs(r[i]))));
+}
+
 describe('wear on: physics unchanged', () => {
   // Recorded from the code before the wear switch existed.
-  it('a drive with hard braking gives the exact original numbers', () => {
-    expect(snapshot(drive())).toEqual([355.2494805066508, -1258.0984027148722, 10.413262324984373,
+  it('a drive with hard braking gives the original numbers', () => {
+    expectRecorded(snapshot(drive()), [355.2494805066508, -1258.0984027148722, 10.413262324984373,
       [[97.75400287801622, 0.00026453036959966827, 0.999982174624353], [98.03572053599287, 0.00027867837314701034, 0.9999810245552293],
         [97.21885631792496, 0.0002968726428775676, 0.9999795283777658], [97.5553959689781, 0.00032041768080400684, 0.9999775649102346]],
       [[65.78547218065751, 1], [109.8227307277457, 1], [39.364821839295246, 1], [58.433522066646674, 1]], [0, 0, 0, 0]]);
   });
 
-  it('a lock-up gives the exact original numbers, flat spots and tyre wear included', () => {
-    expect(snapshot(lockup())).toEqual([42.81295810145214, -390.8941946935391, 0.07485457054009981,
+  it('a lock-up gives the original numbers, flat spots and tyre wear included', () => {
+    expectRecorded(snapshot(lockup()), [42.81295810145214, -390.8941946935391, 0.07485457054009981,
       [[150, 0.007314633879663903, 0.7992340698891462], [137.07549599273509, 0.002620078834291352, 0.8037312050497748],
         [114.29330775510776, 0.0009068259598758284, 0.9651110552354981], [148.15950548359, 0.004554989527522221, 0.7995661467144224]],
       [[22, 1], [130.01368710283754, 1], [22, 1], [22.00265790047993, 1]],
