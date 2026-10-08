@@ -3,7 +3,7 @@
 import type { HudState, HudTrackInfo, SectorState } from '@/types/hud';
 import { AttrSlot, h, s, TextSlot } from '@/hud/dom';
 import { sectorColourVar } from '@/hud/indicators';
-import { bestFitRotation, fitTransform, headingToCssDeg, type MapTransform, nextCornerAfter, outlineIndex, project } from '@/hud/map-geometry';
+import { bestFitRotation, fitTransform, headingToCssDeg, type MapTransform, nextCornerAfter, outlineIndex, project, turnForPlace } from '@/hud/map-geometry';
 
 /** The map is rotated once for this aspect so the layout is stable at every size. */
 const MAP_ASPECT = 1.5;
@@ -22,7 +22,6 @@ export class TrackMap {
   private readonly cornerKind: AttrSlot;
   private readonly alt = new TextSlot(h('b', 'hud-map__alt-v'));
   private readonly rotation: number;
-  private readonly turnByName = new Map<string, number>();
   private t: MapTransform | null = null;
   private sig = '';
   private states: SectorState[] = [];
@@ -33,7 +32,6 @@ export class TrackMap {
 
   constructor(private readonly track: HudTrackInfo) {
     this.rotation = bestFitRotation(track.outline, MAP_ASPECT);
-    for (const c of track.corners) if (!this.turnByName.has(c.name)) this.turnByName.set(c.name, c.turn);
     this.carArrow.append(
       s('svg', { viewBox: '-10 -10 20 20', 'aria-hidden': 'true' }, [s('path', { d: 'M0,-9 L6.5,6 L0,2.6 L-6.5,6 Z' })]),
     );
@@ -167,23 +165,10 @@ export class TrackMap {
     this.updateCorner(st);
   }
 
-  /** Turn number for a name; several turns can share one (The Esses), so take the latest one reached. */
-  private turnFor(name: string, progress: number): number {
-    let turn = this.turnByName.get(name) ?? 0;
-    let at = -1;
-    for (const c of this.track.corners) {
-      if (c.name === name && c.progress <= progress + 0.002 && c.progress > at) {
-        at = c.progress;
-        turn = c.turn;
-      }
-    }
-    return turn;
-  }
-
   private updateCorner(st: HudState): void {
     const next = st.cornerName ? null : nextCornerAfter(this.track.corners, st.progress);
     const name = st.cornerName ?? next?.name ?? '';
-    const turn = next ? next.turn : this.turnFor(name, st.progress);
+    const turn = next ? next.turn : turnForPlace(this.track.corners, name, st.progress);
     this.cornerKind.set(st.cornerName ? 'corner' : 'next');
     this.corner.set(name.toUpperCase());
     this.turn.set(turn > 0 ? `T${turn}` : '');

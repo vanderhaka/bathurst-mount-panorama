@@ -21,7 +21,7 @@ export function hudTrackInfo(track: Track): HudTrackInfo {
     name: track.name, city: CIRCUITS[track.id].city, elevationEstimated: track.id === 'adelaide',
     outline,
     sectorStarts: track.sectorStarts.map((s) => track.lapFraction(s)),
-    corners: track.corners.map((c) => ({ progress: track.lapFraction(c.s), name: c.name, turn: c.turn })),
+    corners: track.corners.map((c) => ({ progress: track.lapFraction(c.s), name: c.name, place: track.placeAt(c.s), turn: c.turn })),
     lengthM: track.length,
   };
 }

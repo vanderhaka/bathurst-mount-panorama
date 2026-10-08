@@ -86,6 +86,23 @@ export function nextCornerAfter(corners: HudTrackInfo['corners'], progress: numb
   return corners.reduce((a, c) => (c.progress < a.progress ? c : a), corners[0]);
 }
 
+/**
+ * Turn number shown while the car is in the named place: the latest corner of that place already
+ * reached, else its first corner, else 0 (a straight). A corner belongs to the place that holds its
+ * apex (`place`), so a descriptive corner name can never break the match.
+ */
+export function turnForPlace(corners: HudTrackInfo['corners'], place: string, progress: number): number {
+  let turn = 0;
+  let seen = false;
+  let at = -1;
+  for (const c of corners) {
+    if ((c.place ?? c.name) !== place) continue;
+    if (!seen) { seen = true; turn = c.turn; }
+    if (c.progress <= progress + 0.002 && c.progress > at) { at = c.progress; turn = c.turn; }
+  }
+  return turn;
+}
+
 /** Index range of the outline for a lap-fraction interval. */
 export function outlineIndex(progress: number, n: number): number {
   const p = ((progress % 1) + 1) % 1;

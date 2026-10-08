@@ -89,8 +89,11 @@ export interface HudTrackInfo {
   outline: Array<[number, number]>;
   /** Lap fractions (0..1) where sectors 2 and 3 start. Sector 1 starts at 0 (start/finish). */
   sectorStarts: number[];
-  /** Named corners for map labels: lap fraction + name + turn number. */
-  corners: Array<{ progress: number; name: string; turn: number }>;
+  /**
+   * Named corners for map labels: lap fraction + name + turn number. `place` is the named stretch
+   * (HudState.cornerName) that holds the apex; the turn is shown while the car is in that place.
+   */
+  corners: Array<{ progress: number; name: string; place?: string; turn: number }>;
   lengthM: number;
 }
 
