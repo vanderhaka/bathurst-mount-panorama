@@ -63,11 +63,11 @@ try {
   const popup = await popupPromise; await popup.waitForLoadState('domcontentloaded');
   assert.ok(popup.url().endsWith(circuit.creditPath)); await popup.close();
   report.keyboardAttributionLink = true;
-  for (const [i, car] of ['camaro', 'mustang', 'supra'].entries()) {
+  for (const [i, car] of ['camaro', 'mustang', 'supra', 'torana'].entries()) {
     await activate(button('title', 'Time trial'));
     if (i) await activate(page.locator('.mn-screen--car [aria-label="Next car"]'));
     await shot(`car-${car}`); await activate(button('car', 'Start time trial'));
-    if (mobile) await answerSteerQuestion(page);
+    await answerSteerQuestion(page); // accepts the first race setup on every device, then the touch steering question
     await page.waitForFunction(() => window.__game.state === 'race' && window.__game.race.session.lights < 0, null, { timeout: 30000 });
     const grid = await page.evaluate(() => { const g = window.__game, v = g.race.player.vehicle;
       return { car: g.race.session.car, circuit: g.world.track.id, s: v.tp.s, offset: v.tp.d, y: v.y, speed: v.speed,
