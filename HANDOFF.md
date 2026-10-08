@@ -1,119 +1,266 @@
-## Done
+# Bathurst handoff — 8 October 2026
 
-Morning handoff — 8 October 2026. **27 items are implemented and delivered to preview (26 Bathurst plus Adelaide), six are blocked, and item 1.12 awaits your review.** Ten implemented items also await physical-device acceptance: nine Bathurst phone items and Adelaide. Every scoped item was processed; the rejected candidates remain outside the released build.
+## Start here
 
-The user's 2026-10-08 delivery override is **preview only**: Conventional Commits on `codex/bathurst-plan`, pushed to Vercel Preview. **Main and origin/main remain at `3f157e94f4053893c766601a658d02df4dd824dc`**. Production remains Ready on the original main commit; final public desktop/mobile title, race-start and driving checks passed. [Provider read-back](/Users/jamesvanderhaak/Bathurst/artifacts/review/overnight/production-unchanged.json), [desktop smoke](/Users/jamesvanderhaak/Bathurst/artifacts/review/overnight/production-desktop.log), [phone smoke](/Users/jamesvanderhaak/Bathurst/artifacts/review/overnight/production-mobile.log).
+**Play on your phone, no login:** [Bathurst](https://bathurst-mount-panorama-playtest.vercel.app/) or [Adelaide](https://bathurst-mount-panorama-playtest.vercel.app/?track=adelaide). Use **Circuit** on the title screen to switch.
 
-Play without signing in: [Bathurst](https://bathurst-mount-panorama-playtest.vercel.app/) or [Adelaide](https://bathurst-mount-panorama-playtest.vercel.app/?track=adelaide). Use **Circuit** on the title screen to switch. This is a hosted public playtest, accessible on other devices over HTTPS.
+That link is a frozen copy of the reviewed build (game code at `d0e6f89`). A push to the branch does not update it. Redeploy it after any change (see [Delivery](#delivery)).
 
-**Public playtest follow-up:** the existing-account project `bathurst-mount-panorama-playtest` serves an exact static copy of the verified preview build from commit `57c0d606ece3d721ac6404ebd6b1d62a98b84f36`, deployment `dpl_9MduBzjeomyxDtesn4CuuZbEpG6z` (Ready). This deployment uses the separate playtest project's public production domain; it does not publish to the live Bathurst project or main. All 54 copied files matched the frozen build. Anonymous Bathurst/Adelaide requests returned 200 with no redirects and byte-identical HTML. [Public access proof](/Users/jamesvanderhaak/Bathurst/artifacts/review/public-playtest/public-access-proof.json), [asset proof](/Users/jamesvanderhaak/Bathurst/artifacts/review/public-playtest/asset-proof.json), and [browser smoke evidence](/Users/jamesvanderhaak/Bathurst/artifacts/review/public-playtest/). This playtest is a snapshot: later code changes require a fresh playtest deployment; branch pushes still generate the original project's protected Preview. Earlier final-report Preview, CI and live read-back remain in [final-handoff evidence](/Users/jamesvanderhaak/Bathurst/artifacts/review/overnight/final-handoff).
+**Where things stand**
 
-Sources: [docs/PLAN.md](/Users/jamesvanderhaak/Bathurst/docs/PLAN.md), [docs/REALISM.md](/Users/jamesvanderhaak/Bathurst/docs/REALISM.md), [artifacts/review/overnight/releases.json](/Users/jamesvanderhaak/Bathurst/artifacts/review/overnight/releases.json), [artifacts/review/item-3.11/blocker.md](/Users/jamesvanderhaak/Bathurst/artifacts/review/item-3.11/blocker.md) and [Adelaide evidence](/Users/jamesvanderhaak/Bathurst/artifacts/review/adelaide). The historical ledger records exact previews, CI and clean desktop/mobile live smokes. Final local measurements and native checks are linked below. Source and dist hashes identify the frozen build used for evidence.
+- Branch `codex/bathurst-plan` holds Codex's overnight work plus this review's 51 commits. It is pushed, and Vercel builds a protected Preview for each push (Vercel login needed).
+- `main` and production are unchanged at `3f157e9`. Nothing was merged.
+- All 750 tests pass. Types are clean. Desktop, phone-emulation and WebKit smokes pass on both circuits ([Verification](#verification-of-this-build)).
 
-Implementation delivery covers graphics 1.0–1.7, 1.9 and 1.11; scorecard publication 1.12; phone items 2.1–2.5 and 2.7–2.9; fuel, tyres, telemetry, setup, brakes, track grip, kerb types and sensory behavior 3.1–3.4, 3.6–3.8 and 3.10. Physical phone checks, human audio listening and 1.12 visual acceptance are still open, as listed next. The six blocked items are 1.8, 1.10, 2.6, 3.5, 3.9 and 3.11.
+**Your next steps**
+
+1. Run the iPhone checks below. Emulation cannot prove them.
+2. Decide on item 1.12. The graphics scorecard is 51.92/100 against the 72.05 target. Accept it or ask for a focused follow-up ([below](#awaiting-your-decision-112-scorecard)).
+3. When the phone checks pass, merge `codex/bathurst-plan` to `main`. A push to `main` deploys production.
+
+### Real-device checklist
+
+For each check, record the device, the iOS or browser version, the quality shown in Settings and what you saw.
+
+| # | Check | It passes when |
+|---|---|---|
+| 1 | **Steering question.** Use a private Safari tab (no saved settings), then tap **Start time trial**. | "Choose how to steer" appears with Finger and Tilt. After you answer, it does not appear again, even after a reload. |
+| 2 | **Tilt.** Choose **Tilt**. | iOS shows its motion-access prompt. If you allow it, the race starts in tilt mode, and the pose you hold at the lights is straight ahead. If you refuse, the screen says "Motion access is off — using Finger" and waits for **Start**. |
+| 3 | **Change later.** Go to Settings > Steering > Touch steering mode. | Drag, Tilt and Buttons all work. Test real left/right tilt, partial and full analog throttle, auto-throttle and left-handed controls (2.7). iOS may not ask for motion access again after a refusal until the tab is closed. |
+| 4 | **Graphics.** Phones now start on **High** with automatic quality. Drive three laps. | Note the fps at Pit Straight, Mountain Straight, Skyline and Conrod (target ≥ 50). If quality steps down, a notice shows, and the result survives a reload. Then choose Medium by hand and check that it survives a reload too (1.0, 1.11, 2.4). |
+| 5 | **Wheel lift.** Take Forrest's Elbow, The Chase and Murray's flat out. | The car stays on four wheels. Only a kerb strike or a crest may unload one wheel. |
+| 6 | **Fuel.** Run a long stint. | When the tank cannot finish the next lap, crossing the line refills it and shows **REFUELLED**. |
+| 7 | **Screen awake (2.1).** Race for three minutes without touching the screen to keep it awake. | The screen does not dim. After a lock and return, the race pauses and the screen stays awake again on Resume. |
+| 8 | **Touch handling (2.5).** Steer and accelerate with two thumbs, release both, pinch, then rotate to portrait and back. | The controls release, portrait pauses the race and Resume works. Check normal Safari and the Home Screen app. |
+| 9 | **Minimal HUD (2.8).** Choose Display > Minimal. | Speed, gear, lap time and map are readable, clear of the notch, and cover under 10% of the screen. |
+| 10 | **Assets (2.3).** | Shadows, liveries and HUD text look right. |
+| 11 | **Audio (3.10).** Wear headphones, in Cockpit and Chase. | Tyre scrub, kerb rumble, gear whine and downshifts sound convincing. After a phone call or Siri, Resume brings the engine sound back. |
+| 12 | **Adelaide.** Drive Senna, Turn 8 and Turn 14 in each car. Complete a valid lap, reload, then switch to Bathurst. | The best lap and ghost come back after the reload, and the two circuits keep separate records. |
+| 13 | **Menu text size.** | The menu text (9–11 CSS px on a phone, the same scale as every menu) is readable. |
+| Android | Fullscreen on Start, Resume and Restart (2.2). Vibration On over the Chase kerb, then Off and reload (2.9). | Fullscreen landscape each time. It vibrates when On and stays silent when Off. |
+
+## What the review changed
+
+The review added 51 commits on top of Codex's handoff commit `57c0d60`. Each fix has a test that fails without it. `DEFAULT_HANDLING`, the controls and the `DEV_TOOLS` gates are unchanged.
+
+**Car physics**
+
+- **Two-wheel lift in fast, sharp corners** (your report) (`8be7f5c`).
+  - **Cause:** the tuned tyre friction (1.94 front) was above the car's tip-over limit (1.86 g at a 0.44 m centre of gravity). The inside wheels lost all their load, and the body rolled onto two wheels. `main` has the same defect.
+  - **Fix:** a 0.38 m centre of gravity, plus roll-centre load transfer (front 0.05 m, rear 0.08 m). Both are estimates, because no Gen3 figure is published.
+  - **Result:** before the fix, two Bathurst laps had 40 two-wheel episodes with gaps up to 189 mm. Now no lift is visible (largest gap 4 mm). A kerb strike still unloads a wheel. AI lap times change by 0.4 s or less.
+- **Tyre slide heat had no limit** (`5599753`). Tyres reached 221 °C over 12 laps, and lap times climbed to 84 s. Heat now comes from friction work, temperature has a cap of 150 °C, and the overheat wear multiplier has a cap of 3×. Lap times hold between 79.4 and 80.9 s.
+- **Fuel refills at the line** when the tank cannot finish the next lap, and shows REFUELLED (`0608a04`).
+- **Stint laps counted at Adelaide**, where the timing line is at distance 0 (`705c2a9`).
+- **Altitude derate at Bathurst only** (`9bc3df6`).
+- **The AI no longer clips Adelaide's hairpin** (`faf45df`).
+
+**Racing-line guidance**
+
+- **The line colours and HUD corner speed promised too much on warm tyres.** A driver who obeyed only the colours hit the wall at Forrest's Elbow and at Adelaide's Final Hairpin.
+- **Fix:** each corner now uses its weaker axle and each tyre's own grip (`89034b8`, `a59616a`).
+- **Result:** two-lap warm-tyre tests on both circuits pass, and guided laps are about 0.2 s slower. The AI's laps do not change.
+
+**Phone**
+
+- **Steering question, asked once** (new) (`8a7e133`, `d0e6f89`).
+- **Phones start on High** with automatic quality, not Medium (`ad620bc`).
+- **Automatic quality** ignores start-up hitches and steps down only after two slow windows. A saved choice survives browser updates and zoom, and old automatic results are learned again (`300fbaa`, `969ea25`).
+- **Centring the tilt keeps held pedals** (`01aee0c`).
+- **Android fullscreen** comes back on Start, Resume and Restart (`45d627f`).
+- **Minimal HUD** is sized to the phone and keeps the lights, messages and FPS (`73885e7`).
+- **The race pauses** when the graphics context is lost (`e30021f`).
+
+**Audio**
+
+- **iOS interruptions** keep the engine paused (`4c94ede`).
+- **The gear-whine dip** starts at the shift (`71c194c`).
+- **Fixed one leaked audio context per race** (`e817c27`).
+
+**Records, timing and results**
+
+- **A best lap is never lost** to a pending save or full storage (`0ddc9d2`).
+- **The standing-start lap** shows no live delta or ghost (`1ca2753`).
+- **Results** label that lap and list this session's laps (`0503f92`, `89f0390`, `2adf03c`).
+- **Telemetry** offers each lap once as a reference, and the D-pad reaches every corner row (`41e4099`, `7e87580`).
+- **The circuit choice** is remembered (`7cdc997`).
+
+**Adelaide**
+
+- Every corner is labelled (`c0f1eb3`).
+- The wall signs use a generated sponsor set (`a98ea31`).
+- The grid boxes sit where the cars stand (`3cc60e5`).
+- The map shows a sourced altitude (`35035ad`).
+
+**Graphics**
+
+- **Shadows near the car on Low and Medium are back** (`3a5432c`). On Low, shadow pixels near the car shrank from 80.8 cm to 10.9 cm.
+- **The black slivers on dead tree branches are gone** (`e43c5cd`).
+- **Haze** now covers objects first seen while hidden (`c9d9f00`).
+- **Faster frames:** less terrain, grass, haze, flare and HUD work each frame (`e950176`, `d010247`, `421ae14`, `82a1e6c`).
+- **The © sign** is in the font subset (`e8fa23b`).
+
+**Camera, tests and CI**
+
+- **Head movement Off** removes the flat-spot shake from the whole cockpit (`96d9a20`).
+- **CI** now runs the verify-script tests (`3c152d1`).
+- **The props test coverage** is restored (`12d23d8`).
+- **Slow tests** have explicit timeouts (`67f9650`).
+
+### Test changes to know about
+
+**One threshold changed:** `tests/track-stint.test.ts` (`40a1a72`).
+
+- **Why:** the old 0.15–0.25 m band measured a landing bounce. The car started in the air on the Conrod downhill.
+- **Now:** the stop starts planted in Murray's braking zone at 200 km/h. The lower bound (> 0.15 m) stays.
+- **The ceiling:** the absolute 0.25 m ceiling is gone. In its place, the gain from more front bias with native rubber must be within ±25% of the same stop with rubber mocked, and a loose < 0.6 m cap remains.
+- **Measured:** 0.424 m against 0.458 m.
+
+**Fixtures changed, assertions unchanged**
+
+- `tests/setup-physics.test.ts` (`93ed154`): the brake-bias stop starts planted on the road, and the > 0.2 m limit stays.
+- `tests/wheel-lift.test.ts`: the test starts on race-warm tyres (95 °C).
+- `tests/records-durability.test.ts` (`e22ddd8`): the circuit switch now calls `location.replace`, so the test stubs that.
+- `tests/hud.test.ts`: "covers every Settings field" skips `steerOnboarded`. It records whether the question was answered and has no Settings row.
+- **Touch scripts:** nine verify scripts answer the steering question with Finger.
+
+## Watch-outs
+
+- **The wheel-lift margin is thin on warm tyres:** 1.77 g against the 1.75 g gate, and 27 N lowest wheel load at 250 km/h. Any future grip increase could bring the lift back.
+- **The autopilot winds on full lock past the tyre's best slip angle** when it understeers, and this overheats the front tyre. I left it, because a change would change AI lap times.
+- **The line colours follow each tyre's temperature** and refresh once a second, so a corner target can move a few per cent mid-lap. Nobody has checked this by eye in the game.
+- **Item 2.3 no longer meets its target.** The first download is 21.80% smaller than before 2.3, against the 25% target. Later items grew it again.
+- **Desktop High peaks at 321 draw calls** at Pit Straight, over the soft target of 250. The M3 Max still holds 60 fps.
+- **Shadows on Low reach 40 m,** so they visibly pop in at that distance. The 300 m shadow gate in PLAN 1.3 is met only on High.
+- **Fonts:** only four faces ship (Barlow Condensed 700 and 800, Barlow 400, JetBrains Mono 500).
+  - About 22 rules ask for weight 600 and get 700.
+  - Barlow 500 renders as 400.
+  - `.mn-arrow` at 600 is faux-bold.
+- **The debug hooks ship in production.** `__game`, autopilot, teleport and time scale are all on `window`. This is not new.
+- **`src/game/profile-cache.ts` is used only by tests.**
+- **Steering question:** a Tilt choice made with a game controller on iOS falls back to Finger, because a controller press does not count as a tap for the motion prompt.
+
+## Blocked
+
+These are the same six items as in Codex's report.
+
+| Item | Blocker and next step | Evidence |
+|---|---|---|
+| 1.8 Cars | **Blocker:** three glazing, paint/metal and arch/wheel fixes missed the 7.205/10 car target. The best player mean was 5.67. Codex discarded the source changes. **Next:** rework body sculpture, fascia and wheel materials, using the same scoring gate. | [item-1.8/](artifacts/review/item-1.8) |
+| 1.10 Effects | **Blocker:** three full-speed Conrod runs found no real floor contact. Ride height stayed between 9.97 and 10.72 mm, above the 4 mm spark trigger. **Next:** prove real floor contact before adding sparks. The candidate source is archived at [item-1.10/candidate-source/](artifacts/review/item-1.10/candidate-source). | [blocker.md](artifacts/review/item-1.10/blocker.md) |
+| 2.6 Offline play | **Blocker:** the local offline and update checks passed, but the protected Preview blocked the service worker's authentication, so no live cache was ever established. Codex reverted the candidate (`a85152a`). **Next:** verify with your normal Vercel login, then restore it. | [blocker.md](artifacts/review/item-2.6/blocker.md) |
+| 3.5 Tyre load sensitivity | **Blocker:** three attempts failed the warm-lap gate (124.54 s against 124.5 s) and the line-contact gate. **Next:** reconcile load capacity with the guidance. | [blocker.md](artifacts/review/item-3.5/blocker.md) |
+| 3.9 Pole ghost | **Blocker:** no official sector times exist for the 124.0413 s Q9 lap. **Next:** get the official Q9 timing export or a readable graphic for that exact lap. | [pole-reference.md](docs/research/pole-reference.md) |
+| 3.11 Weather | **Blocker:** the wet scorecard reached 4.61/10 against the 7.20 gate, and Codex discarded the candidate. **Next:** improve terrain, foliage, pit structures and the wet-road look against a closer rain reference. | [blocker.md](artifacts/review/item-3.11/blocker.md) |
+
+## Awaiting your decision: 1.12 scorecard
+
+| | Score |
+|---|---|
+| Baseline | 44.09/100 |
+| Now | 51.92/100 (player 55.53, photographer 48.31) |
+| Target | 72.05 |
+
+Review the 15 matched pairs and the preview. Send any graphics-tuner values you want adopted. No tuner defaults were changed for you. The table is in the [Overnight record](#overnight-record-codex).
+
+## Decisions
+
+| Decision | Choice |
+|---|---|
+| D1 | About 75% of the way to photoreal, with generated assets only (decided 7 October). |
+| D2 | Race-day afternoon, about 15:00 AEDT on 11 October, with AgX tone mapping. |
+| D3 | At least 50 fps on your iPhone. The physical check is still open (checklist row 4). |
+| D4 | Playwright WebKit for Safari-engine checks. Real iPhone checks are still open. |
+| Review, 8 October | Fuel refills at the line, and the altitude derate applies at Bathurst only. The kerb's outer step stays. Phones start on High. Touch players are asked once how to steer. |
+
+## Delivery
+
+- **Preview only.** The work lives on `codex/bathurst-plan`, and `main` and production stay at `3f157e94f4053893c766601a658d02df4dd824dc`.
+- **Public playtest.** The Vercel project `bathurst-mount-panorama-playtest` serves a static copy of a frozen preview build. It is a separate project, so it never publishes to the live Bathurst project or `main`. It does not update when the branch gets a push.
+- **To redeploy the playtest:**
+  1. Build with `VERCEL_ENV=preview npx vite build --outDir <dir>`.
+  2. Copy the output into a folder with `{"version":2}` as `vercel.json` and the playtest project's `.vercel/project.json`. That file is in `artifacts/review/public-playtest/site-L2SIap/.vercel/`.
+  3. Run `vercel deploy --prod` there.
+  4. Check that both URLs return 200 with no redirects and serve the new `index.html`.
+- **Codex's first playtest** (commit `57c0d60`) is recorded in [public-playtest/](artifacts/review/public-playtest/).
+
+## Verification of this build
+
+The build checked here is commit `d0e6f89`.
+
+- **Unit tests:** 750 tests in 111 files pass, and `tsc --noEmit` is clean.
+- **File size:** no changed source file has more than 300 lines.
+- **Smokes:** `play.mjs` smokes pass on the frozen build with `errors: []`:
+  - desktop Bathurst
+  - desktop Adelaide
+  - Chrome phone emulation
+  - WebKit phone on Bathurst
+  - WebKit phone on Adelaide
+- **Steering question:** the full verifier (`scripts/verify-steer-onboarding.mjs`) passes on WebKit and Chromium at 844×390 and 568×320. It covers:
+  - Finger
+  - Tilt granted
+  - Tilt refused
+  - the keyboard
+  - Back
+  - rotating mid-question
+  - reloading
+  - desktop
+  - players who already changed the mode
+
+  The `steer-onboarding-mobile` and `steer-onboarding-desktop` scenarios also pass.
+- **Not covered by emulation:** the native iOS motion prompt, a physical sensor, real safe areas, sustained GPU heat and Android vibration. These need the checklist above.
+
+---
+
+## Overnight record (Codex)
+
+This section keeps Codex's per-item evidence, unchanged apart from its layout. Codex delivered 27 items to preview overnight: 26 for Bathurst plus Adelaide.
 
 | Item / preview | Exact deployed SHA | Deployment ID | Evidence and CI |
 | --- | --- | --- | --- |
-| [1.0](https://bathurst-mount-panorama-ccpl88g4d-vanderhakas-projects.vercel.app) | `896f619e794d5268659ba8cb964b878d5a955b8b` | `dpl_BCpBrJgDBL6yofeNwXesm7SXudyz` | [artifacts/review/realism-baseline/](/Users/jamesvanderhaak/Bathurst/artifacts/review/realism-baseline) · [CI](https://github.com/vanderhaka/bathurst-mount-panorama/actions/runs/37633503969) |
-| [1.1](https://bathurst-mount-panorama-mecwqn2jq-vanderhakas-projects.vercel.app) | `c4cfd33c090bd5da41ab3fa1361ec78ef9bae9fd` | `dpl_6xJTzefgGx34zi2HS4617KDqoMcQ` | [artifacts/review/item-1.1/](/Users/jamesvanderhaak/Bathurst/artifacts/review/item-1.1) · [CI](https://github.com/vanderhaka/bathurst-mount-panorama/actions/runs/37633915495) |
-| [1.2](https://bathurst-mount-panorama-uoxackfhg-vanderhakas-projects.vercel.app) | `d8ae91fb4ef4e6173023352c14ea701525a622b3` | `dpl_GmaGfKMhJipZ6rX1WV3V8vqgnfgP` | [artifacts/review/item-1.2/](/Users/jamesvanderhaak/Bathurst/artifacts/review/item-1.2) · [CI](https://github.com/vanderhaka/bathurst-mount-panorama/actions/runs/37637574881) |
-| [1.3](https://bathurst-mount-panorama-8wl0i3ze1-vanderhakas-projects.vercel.app) | `6b64646c40908224bbe7fc797960e34619f8927c` | `dpl_GRypw5rFxQ4vNTaJK9pLyq321uz8` | [artifacts/review/item-1.3/](/Users/jamesvanderhaak/Bathurst/artifacts/review/item-1.3) · [CI](https://github.com/vanderhaka/bathurst-mount-panorama/actions/runs/37655728990) |
-| [1.4](https://bathurst-mount-panorama-h8w9bf67k-vanderhakas-projects.vercel.app) | `bf74e230b47a894628cd54e7b36c079fa5ec136f` | `dpl_ErkXUyHmUiQ4v7UKPL8cVdW1cpuS` | [artifacts/review/item-1.4/](/Users/jamesvanderhaak/Bathurst/artifacts/review/item-1.4) · [CI](https://github.com/vanderhaka/bathurst-mount-panorama/actions/runs/37657762834) |
-| [1.5](https://bathurst-mount-panorama-hq2by9q3n-vanderhakas-projects.vercel.app) | `d29d20ac5ae27e26b481d55b9db827f5cb584926` | `dpl_AHRSbWcLoW92mpwvrRtgx91JfemL` | [artifacts/review/item-1.5/](/Users/jamesvanderhaak/Bathurst/artifacts/review/item-1.5) · [CI](https://github.com/vanderhaka/bathurst-mount-panorama/actions/runs/37659547865) |
-| [1.6](https://bathurst-mount-panorama-dzyfcq7ih-vanderhakas-projects.vercel.app) | `1d70a513315dd7b68e0cf1b267ef8ec7c4084acd` | `dpl_3YdAuNAt9DZoKzYDaqHw7Xcbi9ma` | [artifacts/review/item-1.6/](/Users/jamesvanderhaak/Bathurst/artifacts/review/item-1.6) · [CI](https://github.com/vanderhaka/bathurst-mount-panorama/actions/runs/37667593567) |
-| [1.7](https://bathurst-mount-panorama-154e78102-vanderhakas-projects.vercel.app) | `7cc2a3bc4c46c960ad72bb10f2e89ce643e183a1` | `dpl_FvTD7RTfdEhWHUsojkkDkc5JbphK` | [artifacts/review/item-1.7/](/Users/jamesvanderhaak/Bathurst/artifacts/review/item-1.7) · [CI](https://github.com/vanderhaka/bathurst-mount-panorama/actions/runs/37669110736) |
-| [1.9](https://bathurst-mount-panorama-6oab0bnru-vanderhakas-projects.vercel.app) | `1cdabfc66e6c2bd4f0f7a20c52a1cf5ae89d296f` | `dpl_7hyh3URNuhkUD1EkkWcmHqmUaTg9` | [artifacts/review/item-1.9/](/Users/jamesvanderhaak/Bathurst/artifacts/review/item-1.9) · [CI](https://github.com/vanderhaka/bathurst-mount-panorama/actions/runs/37674925737) |
-| [1.11](https://bathurst-mount-panorama-hspfuglq0-vanderhakas-projects.vercel.app) | `5e61474d55e9cce0f7e3c28f89aeec948eca7c9d` | `dpl_EJ3kTPFrXL3y2zJPGE1tDVcKnBse` | [artifacts/review/item-1.11/](/Users/jamesvanderhaak/Bathurst/artifacts/review/item-1.11) · [CI](https://github.com/vanderhaka/bathurst-mount-panorama/actions/runs/37677454336) |
-| [1.12](https://bathurst-mount-panorama-ot2abtvls-vanderhakas-projects.vercel.app) | `a1ad8f215e1c01bd6a6cb2989c25b7dfe81a9fc2` | `dpl_8WWYvrt9dDs4N7CxqtN8zjSfXKTB` | [artifacts/review/item-1.12/](/Users/jamesvanderhaak/Bathurst/artifacts/review/item-1.12) · [CI](https://github.com/vanderhaka/bathurst-mount-panorama/actions/runs/37678053413) |
-| [2.1](https://bathurst-mount-panorama-eacb7xsnc-vanderhakas-projects.vercel.app) | `332524bfb04fdddd54e7faaac0b236dbfd94dc2e` | `dpl_2S7qgyuLB1Kw9WmCuwCgsfcpQNRT` | [artifacts/review/item-2.1/](/Users/jamesvanderhaak/Bathurst/artifacts/review/item-2.1) · [CI](https://github.com/vanderhaka/bathurst-mount-panorama/actions/runs/37678910462) |
-| [2.2](https://bathurst-mount-panorama-5dg9kcnen-vanderhakas-projects.vercel.app) | `214dbf865d775039b4d338842e6933666bf71096` | `dpl_JBaTvybAxcJWrYkRpUG71mPdt4jf` | [artifacts/review/item-2.2/](/Users/jamesvanderhaak/Bathurst/artifacts/review/item-2.2) · [CI](https://github.com/vanderhaka/bathurst-mount-panorama/actions/runs/37680220484) |
-| [2.3](https://bathurst-mount-panorama-b6js7d061-vanderhakas-projects.vercel.app) | `10b63d3f26906000803c4afa74d219f33a087415` | `dpl_HU6wgaaDZDBbydExCsiNLcbk7Avj` | [artifacts/review/item-2.3/](/Users/jamesvanderhaak/Bathurst/artifacts/review/item-2.3) · [CI](https://github.com/vanderhaka/bathurst-mount-panorama/actions/runs/37682898706) |
-| [2.4](https://bathurst-mount-panorama-9u1441m3k-vanderhakas-projects.vercel.app) | `486017aed92e06b84b030937023fdda6b2bee159` | `dpl_JANdePuBCcPJxMUpKvPnaeENDMdr` | [artifacts/review/item-2.4/](/Users/jamesvanderhaak/Bathurst/artifacts/review/item-2.4) · [CI](https://github.com/vanderhaka/bathurst-mount-panorama/actions/runs/37684565976) |
-| [2.5](https://bathurst-mount-panorama-avmpu42wb-vanderhakas-projects.vercel.app) | `d04b66132dd93346c09b08456c44ec04e9b3a4e6` | `dpl_AGXQ9q8R3Lj8MyuDyDuSLVzQXPVr` | [artifacts/review/item-2.5/](/Users/jamesvanderhaak/Bathurst/artifacts/review/item-2.5) · [CI](https://github.com/vanderhaka/bathurst-mount-panorama/actions/runs/37686351757) |
-| [2.7](https://bathurst-mount-panorama-6sq0z48ys-vanderhakas-projects.vercel.app) | `f6747bf3564a64882c8e8acd3927f526b96d1f20` | `dpl_C9u2hgvGjkSoEog5hZRQRMKjmrnb` | [artifacts/review/item-2.7/](/Users/jamesvanderhaak/Bathurst/artifacts/review/item-2.7) · [CI](https://github.com/vanderhaka/bathurst-mount-panorama/actions/runs/37690380898) |
-| [2.8](https://bathurst-mount-panorama-cwf6l25n6-vanderhakas-projects.vercel.app) | `174212056fa35810378d7692ec10eb08945ac66e` | `dpl_DXQJYoxPWZKUHkBQPrLML5UjHPwq` | [artifacts/review/item-2.8/](/Users/jamesvanderhaak/Bathurst/artifacts/review/item-2.8) · [CI](https://github.com/vanderhaka/bathurst-mount-panorama/actions/runs/37691580927) |
-| [2.9](https://bathurst-mount-panorama-9w7wilqj0-vanderhakas-projects.vercel.app) | `3daa49a787995ab490ccac73180249186bf63852` | `dpl_GpaZ7n5igP7hRDhLpyvF2ye56zhG` | [artifacts/review/item-2.9/](/Users/jamesvanderhaak/Bathurst/artifacts/review/item-2.9) · [CI](https://github.com/vanderhaka/bathurst-mount-panorama/actions/runs/37696358787) |
-| [3.1](https://bathurst-mount-panorama-in69e87t6-vanderhakas-projects.vercel.app) | `e2d24102565f41fe47508bfabbb067d30c52e050` | `dpl_BtGJdDKGCu8zNfzGKDrh2so12wrS` | [artifacts/review/item-3.1/](/Users/jamesvanderhaak/Bathurst/artifacts/review/item-3.1) · [CI](https://github.com/vanderhaka/bathurst-mount-panorama/actions/runs/37698386880) |
-| [3.2](https://bathurst-mount-panorama-gob19y8h7-vanderhakas-projects.vercel.app) | `09ef32914d0f95876e7c44564f2d3f9c92a6284c` | `dpl_DfFWNDED71bAnYDaJH86tUJpyFUd` | [artifacts/review/item-3.2/](/Users/jamesvanderhaak/Bathurst/artifacts/review/item-3.2) · [CI](https://github.com/vanderhaka/bathurst-mount-panorama/actions/runs/37700015007) |
-| [3.3](https://bathurst-mount-panorama-9l94b9kz8-vanderhakas-projects.vercel.app) | `a1b463a9d1e67cf25b88e459bc5f5a944d6182bb` | `dpl_DjBNe4hcXHzmaAoxTLZ6tUrsY7xN` | [artifacts/review/item-3.3/](/Users/jamesvanderhaak/Bathurst/artifacts/review/item-3.3) · [CI](https://github.com/vanderhaka/bathurst-mount-panorama/actions/runs/37701313471) |
-| [3.4](https://bathurst-mount-panorama-41vh5x3l3-vanderhakas-projects.vercel.app) | `5893e74860c17b96638cbb3f51557bc06dbfcda9` | `dpl_C2pxUTR3iktEtDXwW8SXHim6guXT` | [artifacts/review/item-3.4/](/Users/jamesvanderhaak/Bathurst/artifacts/review/item-3.4) · [CI](https://github.com/vanderhaka/bathurst-mount-panorama/actions/runs/37702442421) |
-| [3.6](https://bathurst-mount-panorama-jy7yd50te-vanderhakas-projects.vercel.app) | `a3fafe064cc410f9114d24503d5ff624a3a48c8d` | `dpl_9P9HZgCupmX4KfAEPSErGB9xeAAR` | [artifacts/review/item-3.6/](/Users/jamesvanderhaak/Bathurst/artifacts/review/item-3.6) · [CI](https://github.com/vanderhaka/bathurst-mount-panorama/actions/runs/37704692480) |
-| [3.7](https://bathurst-mount-panorama-ogs6c45sh-vanderhakas-projects.vercel.app) | `98ea49201928ff8455a6acda13864736eb3779fa` | `dpl_B7eAxL6gxtVLdvD77ZtpNwXAeoGN` | [artifacts/review/item-3.7/](/Users/jamesvanderhaak/Bathurst/artifacts/review/item-3.7) · [CI](https://github.com/vanderhaka/bathurst-mount-panorama/actions/runs/37705337033) |
-| [3.8](https://bathurst-mount-panorama-nwf1wufls-vanderhakas-projects.vercel.app) | `3a48538c0900b1da4eaf9886a3007a41db97699c` | `dpl_GycE2k9eDwqzV6SasUcqNQf8YuyL` | [artifacts/review/item-3.8/](/Users/jamesvanderhaak/Bathurst/artifacts/review/item-3.8) · [CI](https://github.com/vanderhaka/bathurst-mount-panorama/actions/runs/37706264846) |
-| [3.10](https://bathurst-mount-panorama-hyqr79aeu-vanderhakas-projects.vercel.app) | `07acd21562bbf8c5e0477f9e88a8ead9954e4284` | `dpl_FGnvg2gBqJ5Es9xj8UY5iyHNBzbJ` | [artifacts/review/item-3.10/](/Users/jamesvanderhaak/Bathurst/artifacts/review/item-3.10) · [CI](https://github.com/vanderhaka/bathurst-mount-panorama/actions/runs/37707914746) |
-| [Adelaide](https://bathurst-mount-panorama-e1ez5n8vw-vanderhakas-projects.vercel.app/?track=adelaide) | `b9b25e359c07a4cf7f793bc7b0b3bb902ec5c164` | `dpl_DoKnxgZucAo2V3S7P9SspTwP1k6L` | [artifacts/review/adelaide/](/Users/jamesvanderhaak/Bathurst/artifacts/review/adelaide) · [CI](https://github.com/vanderhaka/bathurst-mount-panorama/actions/runs/37715095991) |
+| [1.0](https://bathurst-mount-panorama-ccpl88g4d-vanderhakas-projects.vercel.app) | `896f619e794d5268659ba8cb964b878d5a955b8b` | `dpl_BCpBrJgDBL6yofeNwXesm7SXudyz` | [realism-baseline/](artifacts/review/realism-baseline) · [CI](https://github.com/vanderhaka/bathurst-mount-panorama/actions/runs/37633503969) |
+| [1.1](https://bathurst-mount-panorama-mecwqn2jq-vanderhakas-projects.vercel.app) | `c4cfd33c090bd5da41ab3fa1361ec78ef9bae9fd` | `dpl_6xJTzefgGx34zi2HS4617KDqoMcQ` | [item-1.1/](artifacts/review/item-1.1) · [CI](https://github.com/vanderhaka/bathurst-mount-panorama/actions/runs/37633915495) |
+| [1.2](https://bathurst-mount-panorama-uoxackfhg-vanderhakas-projects.vercel.app) | `d8ae91fb4ef4e6173023352c14ea701525a622b3` | `dpl_GmaGfKMhJipZ6rX1WV3V8vqgnfgP` | [item-1.2/](artifacts/review/item-1.2) · [CI](https://github.com/vanderhaka/bathurst-mount-panorama/actions/runs/37637574881) |
+| [1.3](https://bathurst-mount-panorama-8wl0i3ze1-vanderhakas-projects.vercel.app) | `6b64646c40908224bbe7fc797960e34619f8927c` | `dpl_GRypw5rFxQ4vNTaJK9pLyq321uz8` | [item-1.3/](artifacts/review/item-1.3) · [CI](https://github.com/vanderhaka/bathurst-mount-panorama/actions/runs/37655728990) |
+| [1.4](https://bathurst-mount-panorama-h8w9bf67k-vanderhakas-projects.vercel.app) | `bf74e230b47a894628cd54e7b36c079fa5ec136f` | `dpl_ErkXUyHmUiQ4v7UKPL8cVdW1cpuS` | [item-1.4/](artifacts/review/item-1.4) · [CI](https://github.com/vanderhaka/bathurst-mount-panorama/actions/runs/37657762834) |
+| [1.5](https://bathurst-mount-panorama-hq2by9q3n-vanderhakas-projects.vercel.app) | `d29d20ac5ae27e26b481d55b9db827f5cb584926` | `dpl_AHRSbWcLoW92mpwvrRtgx91JfemL` | [item-1.5/](artifacts/review/item-1.5) · [CI](https://github.com/vanderhaka/bathurst-mount-panorama/actions/runs/37659547865) |
+| [1.6](https://bathurst-mount-panorama-dzyfcq7ih-vanderhakas-projects.vercel.app) | `1d70a513315dd7b68e0cf1b267ef8ec7c4084acd` | `dpl_3YdAuNAt9DZoKzYDaqHw7Xcbi9ma` | [item-1.6/](artifacts/review/item-1.6) · [CI](https://github.com/vanderhaka/bathurst-mount-panorama/actions/runs/37667593567) |
+| [1.7](https://bathurst-mount-panorama-154e78102-vanderhakas-projects.vercel.app) | `7cc2a3bc4c46c960ad72bb10f2e89ce643e183a1` | `dpl_FvTD7RTfdEhWHUsojkkDkc5JbphK` | [item-1.7/](artifacts/review/item-1.7) · [CI](https://github.com/vanderhaka/bathurst-mount-panorama/actions/runs/37669110736) |
+| [1.9](https://bathurst-mount-panorama-6oab0bnru-vanderhakas-projects.vercel.app) | `1cdabfc66e6c2bd4f0f7a20c52a1cf5ae89d296f` | `dpl_7hyh3URNuhkUD1EkkWcmHqmUaTg9` | [item-1.9/](artifacts/review/item-1.9) · [CI](https://github.com/vanderhaka/bathurst-mount-panorama/actions/runs/37674925737) |
+| [1.11](https://bathurst-mount-panorama-hspfuglq0-vanderhakas-projects.vercel.app) | `5e61474d55e9cce0f7e3c28f89aeec948eca7c9d` | `dpl_EJ3kTPFrXL3y2zJPGE1tDVcKnBse` | [item-1.11/](artifacts/review/item-1.11) · [CI](https://github.com/vanderhaka/bathurst-mount-panorama/actions/runs/37677454336) |
+| [1.12](https://bathurst-mount-panorama-ot2abtvls-vanderhakas-projects.vercel.app) | `a1ad8f215e1c01bd6a6cb2989c25b7dfe81a9fc2` | `dpl_8WWYvrt9dDs4N7CxqtN8zjSfXKTB` | [item-1.12/](artifacts/review/item-1.12) · [CI](https://github.com/vanderhaka/bathurst-mount-panorama/actions/runs/37678053413) |
+| [2.1](https://bathurst-mount-panorama-eacb7xsnc-vanderhakas-projects.vercel.app) | `332524bfb04fdddd54e7faaac0b236dbfd94dc2e` | `dpl_2S7qgyuLB1Kw9WmCuwCgsfcpQNRT` | [item-2.1/](artifacts/review/item-2.1) · [CI](https://github.com/vanderhaka/bathurst-mount-panorama/actions/runs/37678910462) |
+| [2.2](https://bathurst-mount-panorama-5dg9kcnen-vanderhakas-projects.vercel.app) | `214dbf865d775039b4d338842e6933666bf71096` | `dpl_JBaTvybAxcJWrYkRpUG71mPdt4jf` | [item-2.2/](artifacts/review/item-2.2) · [CI](https://github.com/vanderhaka/bathurst-mount-panorama/actions/runs/37680220484) |
+| [2.3](https://bathurst-mount-panorama-b6js7d061-vanderhakas-projects.vercel.app) | `10b63d3f26906000803c4afa74d219f33a087415` | `dpl_HU6wgaaDZDBbydExCsiNLcbk7Avj` | [item-2.3/](artifacts/review/item-2.3) · [CI](https://github.com/vanderhaka/bathurst-mount-panorama/actions/runs/37682898706) |
+| [2.4](https://bathurst-mount-panorama-9u1441m3k-vanderhakas-projects.vercel.app) | `486017aed92e06b84b030937023fdda6b2bee159` | `dpl_JANdePuBCcPJxMUpKvPnaeENDMdr` | [item-2.4/](artifacts/review/item-2.4) · [CI](https://github.com/vanderhaka/bathurst-mount-panorama/actions/runs/37684565976) |
+| [2.5](https://bathurst-mount-panorama-avmpu42wb-vanderhakas-projects.vercel.app) | `d04b66132dd93346c09b08456c44ec04e9b3a4e6` | `dpl_AGXQ9q8R3Lj8MyuDyDuSLVzQXPVr` | [item-2.5/](artifacts/review/item-2.5) · [CI](https://github.com/vanderhaka/bathurst-mount-panorama/actions/runs/37686351757) |
+| [2.7](https://bathurst-mount-panorama-6sq0z48ys-vanderhakas-projects.vercel.app) | `f6747bf3564a64882c8e8acd3927f526b96d1f20` | `dpl_C9u2hgvGjkSoEog5hZRQRMKjmrnb` | [item-2.7/](artifacts/review/item-2.7) · [CI](https://github.com/vanderhaka/bathurst-mount-panorama/actions/runs/37690380898) |
+| [2.8](https://bathurst-mount-panorama-cwf6l25n6-vanderhakas-projects.vercel.app) | `174212056fa35810378d7692ec10eb08945ac66e` | `dpl_DXQJYoxPWZKUHkBQPrLML5UjHPwq` | [item-2.8/](artifacts/review/item-2.8) · [CI](https://github.com/vanderhaka/bathurst-mount-panorama/actions/runs/37691580927) |
+| [2.9](https://bathurst-mount-panorama-9w7wilqj0-vanderhakas-projects.vercel.app) | `3daa49a787995ab490ccac73180249186bf63852` | `dpl_GpaZ7n5igP7hRDhLpyvF2ye56zhG` | [item-2.9/](artifacts/review/item-2.9) · [CI](https://github.com/vanderhaka/bathurst-mount-panorama/actions/runs/37696358787) |
+| [3.1](https://bathurst-mount-panorama-in69e87t6-vanderhakas-projects.vercel.app) | `e2d24102565f41fe47508bfabbb067d30c52e050` | `dpl_BtGJdDKGCu8zNfzGKDrh2so12wrS` | [item-3.1/](artifacts/review/item-3.1) · [CI](https://github.com/vanderhaka/bathurst-mount-panorama/actions/runs/37698386880) |
+| [3.2](https://bathurst-mount-panorama-gob19y8h7-vanderhakas-projects.vercel.app) | `09ef32914d0f95876e7c44564f2d3f9c92a6284c` | `dpl_DfFWNDED71bAnYDaJH86tUJpyFUd` | [item-3.2/](artifacts/review/item-3.2) · [CI](https://github.com/vanderhaka/bathurst-mount-panorama/actions/runs/37700015007) |
+| [3.3](https://bathurst-mount-panorama-9l94b9kz8-vanderhakas-projects.vercel.app) | `a1b463a9d1e67cf25b88e459bc5f5a944d6182bb` | `dpl_DjBNe4hcXHzmaAoxTLZ6tUrsY7xN` | [item-3.3/](artifacts/review/item-3.3) · [CI](https://github.com/vanderhaka/bathurst-mount-panorama/actions/runs/37701313471) |
+| [3.4](https://bathurst-mount-panorama-41vh5x3l3-vanderhakas-projects.vercel.app) | `5893e74860c17b96638cbb3f51557bc06dbfcda9` | `dpl_C2pxUTR3iktEtDXwW8SXHim6guXT` | [item-3.4/](artifacts/review/item-3.4) · [CI](https://github.com/vanderhaka/bathurst-mount-panorama/actions/runs/37702442421) |
+| [3.6](https://bathurst-mount-panorama-jy7yd50te-vanderhakas-projects.vercel.app) | `a3fafe064cc410f9114d24503d5ff624a3a48c8d` | `dpl_9P9HZgCupmX4KfAEPSErGB9xeAAR` | [item-3.6/](artifacts/review/item-3.6) · [CI](https://github.com/vanderhaka/bathurst-mount-panorama/actions/runs/37704692480) |
+| [3.7](https://bathurst-mount-panorama-ogs6c45sh-vanderhakas-projects.vercel.app) | `98ea49201928ff8455a6acda13864736eb3779fa` | `dpl_B7eAxL6gxtVLdvD77ZtpNwXAeoGN` | [item-3.7/](artifacts/review/item-3.7) · [CI](https://github.com/vanderhaka/bathurst-mount-panorama/actions/runs/37705337033) |
+| [3.8](https://bathurst-mount-panorama-nwf1wufls-vanderhakas-projects.vercel.app) | `3a48538c0900b1da4eaf9886a3007a41db97699c` | `dpl_GycE2k9eDwqzV6SasUcqNQf8YuyL` | [item-3.8/](artifacts/review/item-3.8) · [CI](https://github.com/vanderhaka/bathurst-mount-panorama/actions/runs/37706264846) |
+| [3.10](https://bathurst-mount-panorama-hyqr79aeu-vanderhakas-projects.vercel.app) | `07acd21562bbf8c5e0477f9e88a8ead9954e4284` | `dpl_FGnvg2gBqJ5Es9xj8UY5iyHNBzbJ` | [item-3.10/](artifacts/review/item-3.10) · [CI](https://github.com/vanderhaka/bathurst-mount-panorama/actions/runs/37707914746) |
+| [Adelaide](https://bathurst-mount-panorama-e1ez5n8vw-vanderhakas-projects.vercel.app/?track=adelaide) | `b9b25e359c07a4cf7f793bc7b0b3bb902ec5c164` | `dpl_DoKnxgZucAo2V3S7P9SspTwP1k6L` | [adelaide/](artifacts/review/adelaide) · [CI](https://github.com/vanderhaka/bathurst-mount-panorama/actions/runs/37715095991) |
 
-Item 3.3's work commit is `d6e59ed6bb497d99f378fa6fefc49fcbbe7c24b7`; the deployed SHA above includes the CI-only repair `a1b463a9d1e67cf25b88e459bc5f5a944d6182bb`. That repair limits CI to two workers; assertions and timeouts stay unchanged.
+**Notes on these rows**
 
-Latest historical Bathurst preview: [item 3.10](https://bathurst-mount-panorama-hyqr79aeu-vanderhakas-projects.vercel.app). Exact Ready records: [artifacts/review/item-3.8/deployment-proof.json](/Users/jamesvanderhaak/Bathurst/artifacts/review/item-3.8/deployment-proof.json) and [artifacts/review/item-3.10/deployment-proof.json](/Users/jamesvanderhaak/Bathurst/artifacts/review/item-3.10/deployment-proof.json); exact CI and both clean deployed smoke results are in the ledger and their evidence directories. Track-grip proof remains [artifacts/review/item-3.7/track-runtime.json](/Users/jamesvanderhaak/Bathurst/artifacts/review/item-3.7/track-runtime.json). The latest verified preview includes Adelaide and is recorded separately below.
+- **3.3:** the deployed SHA includes a CI-only repair (two workers).
+- **3.8 and 3.10:** their native kerb, sensory and brake evidence is in each item's folder.
+- **Adelaide:**
+  - 3,219 m, clockwise, 14 turns.
+  - The timing origin, grid, sectors, widths and scenery positions are estimates.
+  - Sources are in [docs/research/adelaide.md](docs/research/adelaide.md).
 
-**3.8 native agreement:** Hell Corner, Griffins Bend, McPhillamy Park, The Chase and Murray's passed the actual Three.js kerb mesh versus native surface/contact check across 35 apex samples. Maximum height discrepancy was 7.87 µm; maximum native contact error was 2.22×10⁻¹⁶ m. The live road/rubber check sampled 546 points with maximum grip/Gaussian error 5.67×10⁻⁷. Ten rendered viewpoints were captured. Proof: [artifacts/review/item-3.8/after-corners.log](/Users/jamesvanderhaak/Bathurst/artifacts/review/item-3.8/after-corners.log); before/after crops are in [artifacts/review/item-3.8/](/Users/jamesvanderhaak/Bathurst/artifacts/review/item-3.8). Aerial placement does not establish surveyed kerb heights or modern sausage dimensions.
+### Graphics scorecard (1.12)
 
-**3.10 native sensory/brake agreement:** the actual running 48 kHz AudioContext showed generated, routed and started scrub, kerb rumble and gear-whine sources plus two downshift one-shots, with zero console errors; native Settings/Cockpit/Off persisted zero head motion. The damaged flat-spot camera test observed **110 frames with compensation error 0 in every frame**, while body heave remained physical. Three completed native normal brake laps peaked at **602.29°C**, with zero impacts, brake force multiplier 1 and no flat spots in those normal laps. Proof: [artifacts/review/item-3.10/sensory-runtime.json](/Users/jamesvanderhaak/Bathurst/artifacts/review/item-3.10/sensory-runtime.json), [artifacts/review/item-3.10/sensory-runtime.log](/Users/jamesvanderhaak/Bathurst/artifacts/review/item-3.10/sensory-runtime.log), [artifacts/review/item-3.10/brakes-combined/chromium-brakes.json](/Users/jamesvanderhaak/Bathurst/artifacts/review/item-3.10/brakes-combined/chromium-brakes.json) and [artifacts/review/item-3.10/brakes-combined.log](/Users/jamesvanderhaak/Bathurst/artifacts/review/item-3.10/brakes-combined.log). Human listening judgment remains pending.
+All 15 views have equal weight. Different photo angles limit the comparison, and still images cannot show shimmer.
 
-**Adelaide implementation delivered:** the current 2026 Supercars circuit is 3,219 m, clockwise and 14 turns, with generated city facades, pit/grandstand structures and Victoria Park surroundings. The OSM-derived route, attribution, official layout cross-check and pace references are documented in [docs/research/adelaide.md](/Users/jamesvanderhaak/Bathurst/docs/research/adelaide.md). Timing origin, the grid line 100 m later, sectors, flat elevation, widths and scenery positions are estimates. Bathurst remains the default circuit; car handling and controls retain their existing gates.
-
-Adelaide delivery is Ready for the exact SHA in the table: [deployment proof](/Users/jamesvanderhaak/Bathurst/artifacts/review/adelaide/deployment-proof.json) and [successful CI proof](/Users/jamesvanderhaak/Bathurst/artifacts/review/adelaide/ci-proof.json).
-
-All five deployed smoke checks passed with `errors: []` and race driving: Bathurst [desktop](/Users/jamesvanderhaak/Bathurst/artifacts/review/adelaide/preview-desktop.log) / [mobile](/Users/jamesvanderhaak/Bathurst/artifacts/review/adelaide/preview-mobile.log), Adelaide [desktop](/Users/jamesvanderhaak/Bathurst/artifacts/review/adelaide/preview-adelaide-desktop.log) / [mobile](/Users/jamesvanderhaak/Bathurst/artifacts/review/adelaide/preview-adelaide-mobile.log) / [WebKit](/Users/jamesvanderhaak/Bathurst/artifacts/review/adelaide/preview-adelaide-webkit.log). These deployed results are registered in the release ledger; physical phone acceptance remains separate.
-
-**Final local verification:** [Strict types](/Users/jamesvanderhaak/Bathurst/artifacts/review/adelaide/types.log) passed. [tests-final.log](/Users/jamesvanderhaak/Bathurst/artifacts/review/adelaide/tests-final.log) records **548 passing tests in 86 files**; [preview](/Users/jamesvanderhaak/Bathurst/artifacts/review/adelaide/build-preview.log) and [production](/Users/jamesvanderhaak/Bathurst/artifacts/review/adelaide/build-production.log) builds completed. Focused lap checks completed three laps for each unchanged car with zero wall impacts ([lap log](/Users/jamesvanderhaak/Bathurst/artifacts/review/adelaide/laps-attempt-0.log)). Final native desktop/phone-emulation checks started Camaro, Mustang and Supra, exercised all five cameras, keyboard driving and reset invalidation, captured all 14 turns, and verified title/attribution access plus Bathurst's default launch ([desktop](/Users/jamesvanderhaak/Bathurst/artifacts/review/adelaide/final-browser/chromium-desktop.json), [phone emulation](/Users/jamesvanderhaak/Bathurst/artifacts/review/adelaide/final-browser/chromium-phone.json)). Preview teleports served render captures and invalidated those laps; they did not supply lap/record proof.
-
-Native Chromium and WebKit telemetry each captured three valid laps from actual simulation updates, including two flying traces. Best flying laps were **78.8295 s / 78.9024 s**. Pause/results comparisons matched six graph paths and 14 corner deltas; narrow scrolling and same-session resumes passed. Reload restored Adelaide's best/ghost, and switching to Bathurst kept its records separate while Adelaide stayed saved. Proof: [Chromium telemetry](/Users/jamesvanderhaak/Bathurst/artifacts/review/adelaide/telemetry/chromium-telemetry.json), [WebKit telemetry](/Users/jamesvanderhaak/Bathurst/artifacts/review/adelaide/telemetry/webkit-telemetry.json) and [frozen-build manifest](/Users/jamesvanderhaak/Bathurst/artifacts/review/adelaide/frozen-build.json). Native engine and phone-emulation checks do not replace physical phone checks or independent visual acceptance.
-
-## Awaiting the user
-
-The Phase 1 scorecard is **51.92/100 against 72.05**, so item 1.12 is awaiting acceptance or a focused follow-up. The user's baseline/latest score is pending. Review the 15 matched pairs and the preview, then provide any graphics-tuner values to adopt; no new tuner defaults or acceptance have been inferred.
-
-The nine overlapping Bathurst physical phone checks are **1.11, 2.1–2.5 and 2.7–2.9**. Adelaide adds one further check, making **ten done items with device acceptance pending**. The 1.0 real-iPhone baseline shares the 1.11 performance check below. Item 1.12 is the one separate awaiting-review item; conditional offline acceptance for blocked 2.6 and human audio listening for 3.10 are separate follow-ups.
-
-Perform these checks on actual devices using the final registered preview, recording device model, OS/browser, selected quality, observed result and any faults. Repeat the Medium baseline on the 1.0 preview from the release table if a physical baseline comparison is needed. Chrome phone emulation and Playwright WebKit do not prove these checks.
-
-| Items | Physical check steps |
-|---|---|
-| 1.0, 1.11 / D3 | On James's iPhone in landscape Safari, select Medium and drive three laps. Record sustained fps at Pit Straight, Mountain Straight, Skyline and Conrod; target ≥50 fps with no graphics loss. Then check Low. Record any automatic step-down separately from a Medium result. |
-| 2.1 | Race continuously for at least three minutes without tapping the screen solely to keep it awake. Confirm no dimming; pause/hide and return, then verify the wake lock resumes during play. |
-| 2.2 | On Android, use the first start tap and confirm fullscreen landscape. On iPhone, check normal Safari and Home Screen presentation separately. |
-| 2.3 | Start a race on iPhone and inspect shadows, liveries and HUD text for missing or degraded assets. |
-| 2.4 | Drive past the first ten seconds, inspect any quality-change notice, reload and confirm the chosen result persists. Select a manual quality override in Settings and check it persists too. |
-| 2.5 | Steer and accelerate with two thumbs, release both, pinch, rotate to portrait and back, then Resume. Confirm controls release and Safari toolbar/Home Screen layouts remain usable. |
-| 2.7 | In Settings > Steering, try drag, tilt after the tap permission prompt, and left/right buttons. Test real left/right sensor movement, partial/full analog throttle, auto-throttle/brake and mirrored left-handed controls. |
-| 2.8 | Select Display > Minimal. Check speed, gear, lap time and map position remain readable, with safe areas clear and HUD coverage below 10% of the screen. |
-| 2.9 | On physical Android in Chase view with vibration On, cross the Chase kerb and check a controlled impact; turn it Off, reload and verify silence. Confirm iPhone remains quiet. |
-| Adelaide | Select Adelaide, then drive Senna, Turn 8 and Turn 14 in each car. Check all five cameras and touch controls. Complete a valid lap, reload and confirm the saved lap/ghost returns; switch to Bathurst and confirm records remain separate. Record landscape layout, observed fps and any faults on the actual phone. |
-| 2.6, after unblock | Only after the candidate is restored and live checks pass, install/open the Home Screen app, switch the network off, restart and drive; reconnect and verify an update on the next start. |
-| 3.10 | Listen on headphones in Cockpit and Chase while cornering, crossing a kerb and downshifting. Judge scrub, rumble, gear whine/backfire levels and whether the mix feels convincing. In Settings, compare head movement On/half/Off during braking/cornering; reload and confirm Off persists. Graph/event proof passed; no human listening verdict is recorded. |
-
-## Blocked or skipped
-
-| Item | Observed blocker and next step | Evidence |
-|---|---|---|
-| 1.8 Cars | Three glazing, paint/metal and arch/wheel fixes missed the fixed 7.205/10 car target. Final player means 5.50/5.63/5.67 and photographer means 5.07/5.17/5.30; the candidate stayed within 40,000 triangles / 27 draws per car. All owned source changes were discarded. Revisit body sculpture, fascia and wheel materials with the same scoring gate. | [artifacts/review/item-1.8/](/Users/jamesvanderhaak/Bathurst/artifacts/review/item-1.8) and [docs/REALISM.md](/Users/jamesvanderhaak/Bathurst/docs/REALISM.md) |
-| 1.10 Effects | Three stock full-speed Conrod checks found no eligible physical floor contact. Actual-model minima were Camaro 9.973 mm, Mustang 10.560 mm and Supra 10.719 mm, above the ≤4 mm spark trigger; the brake-dab check also found none. Candidate stays isolated. Establish real contact without fabricating sparks or altering accepted handling; other effects still need real-place captures, shader checks and <0.5 ms High cost. | [artifacts/review/item-1.10/blocker.md](/Users/jamesvanderhaak/Bathurst/artifacts/review/item-1.10/blocker.md) |
-| 2.6 Offline play | Local offline/update checks passed, but three protected-preview worker authentication attempts failed the clean live gate; no deployed cache was established. Candidate `607396a88d0bfee9984974f4aa7704312c543a8b` was reverted by `a85152a542844c51b09e017c1cf0e740c7708872`. Verify with James's ordinary Vercel login cookie, keeping protection settings, before restoring and repeating offline/update plus both live smokes. | [artifacts/review/item-2.6/blocker.md](/Users/jamesvanderhaak/Bathurst/artifacts/review/item-2.6/blocker.md) |
-| 3.5 Tyre load sensitivity | Three curve/profile attempts failed unchanged warm-lap/contact gates. Final Camaro warm lap 124.5389 s exceeded 124.5 s; line contacts 4.74–5.45 m/s exceeded <1 m/s. The isolated candidate ended with 268 tests passing and four failing, and was discarded from release. Reconcile physical load capacity with profile guidance while preserving assertions and DEFAULT_HANDLING. | [artifacts/review/item-3.5/blocker.md](/Users/jamesvanderhaak/Bathurst/artifacts/review/item-3.5/blocker.md) |
-| 3.11 Weather and time of day | Three focused wet-film, reflection and cloud/ground fixes ended at **4.608333/10 against the unchanged 7.204583 gate**. All 41 owned paths were hash-snapshotted and restored/removed; no weather feature was pushed. Native wet laps/lifecycle passed in the discarded candidate, with wet laps 18.30–18.48 s slower than warm dry laps. Improve terrain, foliage, pit structures and irregular wet-road response against a closer-angle ordinary-rain reference, then repeat the fixed scorecard and lifecycle/performance checks. | [artifacts/review/item-3.11/blocker.md](/Users/jamesvanderhaak/Bathurst/artifacts/review/item-3.11/blocker.md), [wet-scorecard.json](/Users/jamesvanderhaak/Bathurst/artifacts/review/item-3.11/wet-scorecard.json) and [discarded-candidate/](/Users/jamesvanderhaak/Bathurst/artifacts/review/item-3.11/discarded-candidate) |
-
-**3.9 blocked after three retrieval methods:** [docs/research/pole-reference.md](/Users/jamesvanderhaak/Bathurst/docs/research/pole-reference.md) and [artifacts/review/item-3.9/research-report.json](/Users/jamesvanderhaak/Bathurst/artifacts/review/item-3.9/research-report.json) distinguish Saturday Q9 car 38, lap 1 (**124.0413 s**) from Friday qualifying (**124.0307 s**). Official Q9 results/shootout reports expose the total but no sectors; Natsoft endpoint/client/archive leads failed to produce the sheet (the archive UI was not operated); official pole video/YouTube inspection found no readable sector graphic. S2/S3 remain null, and the supplied 50.847 s S1 still needs its original source attached. The 69-file hash manifest is [artifacts/review/item-3.9/evidence-manifest.json](/Users/jamesvanderhaak/Bathurst/artifacts/review/item-3.9/evidence-manifest.json). Obtain the detailed official Q9 timing export or a readable graphic for this exact lap before implementing the ghost. No remaining-total split, Friday substitution or edited-video timing is accepted.
-
-## Decisions taken
-
-| Decision | Choice and remaining acceptance |
-|---|---|
-| D1 | Decided 2026-10-07: about 75% of the way to photoreal. Real light/material/detail with medium-poly geometry visible close up; generated assets only, no photo textures or real logos. |
-| D2 | Used the recommended race-day afternoon, about 15:00 AEDT on the second Sunday of October. The 2026 setting is 11 October; computed sun elevation 49.50°, bearing 303.79°. AgX won the two independent tone-mapping comparisons and was selected. |
-| D3 | Used the recommended ≥50 fps on James's real iPhone at Medium. The physical three-lap check remains pending; Appendix B retains ≥60 fps laptop High and ≥30 fps older-phone Low. |
-| D4 | Accepted the recommended Playwright WebKit download, about 100 MB, for Safari-engine checks. Item 2.5 shipped those checks; real iPhone/Safari/Home Screen checks remain pending. |
-
-The user's preview-only delivery override supersedes main/production delivery. Fixed visual, AI lap and contact gates were preserved; failed candidates were withheld rather than weakening acceptance thresholds. Rejected car work did not become the defaults, and no unprovided user tuner values were adopted.
-
-## Measurements
-
-**Latest complete 15-view scorecard: item 1.12.** Baseline index 44.09/100 (player 42.11, photographer 46.07); latest scored index 51.92/100 (player 55.53, photographer 48.31). Increase: 7.83 points; gap to the fixed 72.05 target: 20.13 points. Both user scores are pending. The rejected single wet-view scores below do not replace this complete index.
-
-All 15 views have equal weight; each reviewer uses the same aspect sheet and fixed brief. Different photograph angles/cockpit obstruction limit comparison, and stills do not establish temporal shimmer.
-
-| Viewpoint | Baseline player | Baseline photographer | Latest scored player (1.12) | Latest scored photographer (1.12) |
+| Viewpoint | Baseline player | Baseline photographer | Latest player (1.12) | Latest photographer (1.12) |
 | --- | ---: | ---: | ---: | ---: |
 | 10-hell-corner | 4.25 | 4.58 | 5.53 | 4.75 |
 | 11-mountain-straight | 4.25 | 4.67 | 5.53 | 4.75 |
@@ -131,20 +278,18 @@ All 15 views have equal weight; each reviewer uses the same aspect sheet and fix
 | car-mustang | 4.67 | 4.83 | 6.03 | 5.67 |
 | car-supra | 4.50 | 5.00 | 5.93 | 6.00 |
 
-Raw baseline scores: [artifacts/review/realism-baseline/player-review.json](/Users/jamesvanderhaak/Bathurst/artifacts/review/realism-baseline/player-review.json) and [artifacts/review/realism-baseline/photographer-review.json](/Users/jamesvanderhaak/Bathurst/artifacts/review/realism-baseline/photographer-review.json). Latest scored reports: [artifacts/review/item-1.12/player-review.json](/Users/jamesvanderhaak/Bathurst/artifacts/review/item-1.12/player-review.json) and [artifacts/review/item-1.12/photographer-review.json](/Users/jamesvanderhaak/Bathurst/artifacts/review/item-1.12/photographer-review.json). Reference pairs: [artifacts/review/realism-baseline/references/matched-manifest.json](/Users/jamesvanderhaak/Bathurst/artifacts/review/realism-baseline/references/matched-manifest.json); latest scored captures: [artifacts/review/item-1.11/after/](/Users/jamesvanderhaak/Bathurst/artifacts/review/item-1.11/after) and [artifacts/review/item-1.12/after/](/Users/jamesvanderhaak/Bathurst/artifacts/review/item-1.12/after).
+**Sources:**
 
-**3.11 discarded weather candidate:** four fixed-fixture wet Hell/pit review rounds used fresh player/photographer reviewers and the same six Appendix A environment aspects. User score remains pending. View directions and the 2022 photograph's extreme flood sediment differ; those comparison limits earned no points.
+- Raw scores: [baseline](artifacts/review/realism-baseline) and [1.12](artifacts/review/item-1.12).
+- Reference pairs: [matched-manifest.json](artifacts/review/realism-baseline/references/matched-manifest.json).
 
-| Round / focused fix | Player mean | Photographer mean | Combined mean | Gate |
-|---|---:|---:|---:|---:|
-| 1 / original | 4.250 | 3.417 | 3.833 | 7.205 |
-| 2 / wet film and ambient light | 4.000 | 4.083 | 4.042 | 7.205 |
-| 3 / High screen-space reflections | 4.600 | 4.583 | 4.592 | 7.205 |
-| 4 / cloud layers and moist ground | 4.750 | 4.467 | 4.608 | 7.205 |
+### Performance (Codex's final frozen build, before this review)
 
-Native Chromium and WebKit each completed three wet laps with no impacts or console errors; pause/recovery/restart, compound/time selection, drying line, wipers, spray and quality restoration passed. Candidate tests, strict types, builds and focused SSR/ground regressions passed. These are discarded-candidate results, not a shipped weather feature. The first black SSR image remains separately labelled failed evidence; wet coefficients and drying/wiper parameters are game estimates. Scores, briefs and stills: [wet-scorecard.json](/Users/jamesvanderhaak/Bathurst/artifacts/review/item-3.11/wet-scorecard.json) and [item-3.11/](/Users/jamesvanderhaak/Bathurst/artifacts/review/item-3.11).
+- **Points sampled:** Pit Straight, Mountain Straight, Skyline and Conrod.
+- **Machines:** an Apple M3 Max at 1920×1080, and Chrome phone emulation at 844×390.
+- **Sampling:** 211 frames and 35 GPU queries at each point.
 
-**Bathurst five-tier baseline versus final frozen-build measurements:** each range spans Pit Straight s=200, Mountain Straight 1200, Skyline 3330 and Conrod 4600. Desktop is Apple M3 Max at 1920×1080; phone is Chrome emulation at 844×390 on that Mac. These local rendered-frame/native GPU-query measurements count all scene/post passes. Each final point sampled 211 frames over about 3.5 seconds and 35 GPU queries; fps below is the probe's rounded value. Live deployment smokes are separate evidence; short emulated samples do not establish real iPhone GPU or sustained thermal performance.
+These short local samples do not establish real iPhone performance.
 
 | Tier | fps baseline → final | GPU ms baseline → final | Calls baseline → final | Triangles baseline → final |
 | --- | ---: | ---: | ---: | ---: |
@@ -154,43 +299,22 @@ Native Chromium and WebKit each completed three wet laps with no impacts or cons
 | Phone emulation Medium | 60–60 → 60–60 | 2.49–3.84 → 3.45–4.50 | 114–176 → 161–254 | 903,617–1,011,374 → 1,172,778–1,538,061 |
 | Phone emulation Low | 60–60 → 60–60 | 2.01–2.77 → 2.12–3.04 | 113–175 → 117–170 | 821,963–975,904 → 982,884–1,311,110 |
 
-Evidence: baseline [desktop](/Users/jamesvanderhaak/Bathurst/artifacts/review/realism-baseline/performance-desktop.json) / [phone emulation](/Users/jamesvanderhaak/Bathurst/artifacts/review/realism-baseline/performance-phone.json); final [desktop](/Users/jamesvanderhaak/Bathurst/artifacts/review/overnight/final-desktop.json) / [phone emulation](/Users/jamesvanderhaak/Bathurst/artifacts/review/overnight/final-phone.json). All five Bathurst tiers reported rounded 60 fps at all four points. Final real-iPhone Medium and older-phone Low remain unmeasured; discarded weather benchmarks are excluded.
+Adelaide is a new track, so it has no "before" figures. It holds 60 fps on every tier. High peaks at 228 calls and 10.07 ms of GPU time. Evidence: [desktop](artifacts/review/adelaide/after-desktop.json) and [phone emulation](artifacts/review/adelaide/after-phone.json).
 
-**Adelaide is a new track: before = N/A.** Ranges span Pit Straight, Senna Chicane, Staircase and Turn 8 on the same Mac, viewports and sampling method. There is no earlier Adelaide release baseline, so this table makes no improvement claim.
+### Download and memory (Bathurst, Medium phone emulation)
 
-| Tier | Before | Final fps | Final GPU ms | Final calls | Final triangles |
-|---|---|---:|---:|---:|---:|
-| Desktop High | N/A — new track | 60–60 | 7.62–10.07 | 168–228 | 920,757–1,098,279 |
-| Desktop Medium | N/A — new track | 60–60 | 3.47–3.93 | 125–174 | 696,454–844,878 |
-| Desktop Low | N/A — new track | 60–60 | 2.17–2.44 | 86–120 | 353,054–405,636 |
-| Phone emulation Medium | N/A — new track | 60–60 | 2.00–3.05 | 125–175 | 707,884–845,968 |
-| Phone emulation Low | N/A — new track | 60–60 | 1.00–1.51 | 90–119 | 363,930–405,714 |
-
-Evidence: Adelaide [desktop](/Users/jamesvanderhaak/Bathurst/artifacts/review/adelaide/after-desktop.json) / [phone emulation](/Users/jamesvanderhaak/Bathurst/artifacts/review/adelaide/after-phone.json). All five tiers reported rounded 60 fps at all four points; the lowest unrounded sample was **59.9449 fps**, Desktop Medium at Staircase. All final Bathurst/Adelaide performance files record zero console errors. Frozen runtime/dist hashes and the corrected verification-harness note are in [frozen-build.json](/Users/jamesvanderhaak/Bathurst/artifacts/review/adelaide/frozen-build.json).
-
-**Final Bathurst download/memory measurements:** Medium phone emulation, pixel ratio 1.5, local frozen preview build. Resource lists sum to the reported totals. These are local first-load payload/allocation results, separate from live deployment smoke evidence.
-
-| Bathurst snapshot | First-load encoded bytes | Transferred bytes | Estimated live GPU bytes |
+| Snapshot | First-load encoded bytes | Transferred bytes | Estimated live GPU bytes |
 |---|---:|---:|---:|
 | Pre-Phase-1 baseline | 594,963 | 602,163 | 114,520,660 |
 | Immediately before 2.3 | 638,116 | 645,916 | 95,369,913 |
 | After 2.3 | 476,650 | 483,250 | 57,148,041 |
 | Final Bathurst (31 resources) | 499,020 | 508,320 | 57,148,041 |
 
-Final Bathurst encoded/transferred bytes are **16.13% / 15.58% lower than pre-Phase-1** and **21.80% / 21.30% lower than immediately before 2.3**. Against the after-2.3 snapshot, payload grew **4.69% / 5.19%**, while rounded GPU allocation stayed equal. Final estimated GPU allocation is **50.10% lower than pre-Phase-1**, or 40.08% below immediately before 2.3.
+Against these snapshots:
 
-| Adelaide resource baseline | Final first-load encoded bytes | Final transferred bytes | Final estimated live GPU bytes |
-|---|---:|---:|---:|
-| N/A — new track; 34 final resources | 506,014 | 516,214 | 55,818,893 |
+- **Pre-Phase-1:** the final first download is 16.13% smaller.
+- **Before 2.3:** it is 21.80% smaller, short of 2.3's 25% target.
+- **GPU memory:** 50.10% below pre-Phase-1.
+- **Adelaide:** 506,014 encoded bytes and 55,818,893 GPU bytes.
 
-Adelaide uses the same Medium/pixel-ratio-1.5 emulation probe. GPU bytes are rounded live texture/renderbuffer allocation estimates, including generated mip chains and deletion; they exclude driver overhead/default framebuffer and do not measure physical phone VRAM. Both final resource files record zero console errors. Evidence: [baseline](/Users/jamesvanderhaak/Bathurst/artifacts/review/realism-baseline/resources-phone.json), [before 2.3](/Users/jamesvanderhaak/Bathurst/artifacts/review/item-2.3/before-resources.json), [after 2.3](/Users/jamesvanderhaak/Bathurst/artifacts/review/item-2.3/after-resources.json), [final Bathurst](/Users/jamesvanderhaak/Bathurst/artifacts/review/overnight/final-resources.json) and [final Adelaide](/Users/jamesvanderhaak/Bathurst/artifacts/review/adelaide/resource-phone.json).
-
-## Risks and follow-ups
-
-- PLAN, the 34-item local to-do list and the 28-release ledger agree. All release rows were checked against the ledger and every linked local evidence path exists. Main stays at the unchanged baseline under the preview-only override.
-- Phase 1 remains below target and awaits the user's decision. The 1.8 rejected candidate index 49.16 is not the release index; later physics features do not demonstrate visual improvement. Weather's final 4.608333/10 single-view score failed the unchanged gate and its candidate was discarded. Any future complete scorecard still needs independent inspection with the fixed briefs.
-- Final Bathurst High reached 321 calls at Pit Straight (8.55 ms GPU), exceeding the soft 250-call target; its maximum GPU sample mean was 8.84 ms at Skyline. Adelaide High peaked at 228 calls and 10.07 ms GPU at different points. Both reported rounded 60 fps across their four High points; short local samples leave sustained-device headroom open. Multi-pass triangle counts are not per-car geometry counts.
-- Physical iPhone performance, gestures, sensor permission, safe areas, wake lock and Android vibration/fullscreen still need the user's checks. Protected-preview offline restoration also needs its native authenticated worker path and clean deployed console proof.
-- Preserve one SessionProfiles owner with fixed-simulation-time refreshes and arrays updated in place. Compose setup pressure, actual stint tyre grip, flat spots, TrackGrip and later wet grip once; fuel mass is 0.75 kg/L once. Recovery preserves the stint; fresh Restart resets it. Keep DEFAULT_HANDLING, controls and DEV_TOOLS gates unchanged.
-- Sensory native graph/events and Head movement Off with damaged flat spots passed; human audio realism/level judgment is still pending. Weather native wet-lap/lifecycle and repaired shader evidence belong to the recoverable discarded candidate. No weather release or user acceptance is recorded. Adelaide's local native and deployed checks passed; its generated scenery has no new independent 15-view acceptance score.
-- Final local resource measurements and Adelaide preview delivery are complete; the six blockers remain open. The count is 27 done including Adelaide (26 Bathurst), six blocked and 1.12 awaiting review, with nine overlapping Bathurst physical phone checks plus one Adelaide check. The full graphics target is still unmet; the six blockers and physical acceptance checks require follow-up. This report records verified implementation delivery without claiming those gates passed.
+Evidence: [final Bathurst](artifacts/review/overnight/final-resources.json) and [final Adelaide](artifacts/review/adelaide/resource-phone.json).
