@@ -94,4 +94,21 @@ describe('touch overlay event wiring', () => {
     expect(touch.update(0.2, true).steer).toBe(0);
     expect(request).toHaveBeenCalledTimes(1);
   });
+
+  it('keeps a held pedal while the other thumb enables or centres tilt', async () => {
+    configure({ mode: 'tilt' });
+    touch.update(0.01, true);
+    const button = root.find('tc-tilt-enable');
+    pointer('pointerdown', 2, root.find('tc-pedal--throttle'), 740);
+    expect(touch.update(1, true).throttle).toBe(1);
+    pointer('pointerdown', 3, button, 200);
+    button.dispatch('click');
+    await Promise.resolve();
+    expect(touch.update(1, true).throttle).toBe(1);
+    pointer('pointerdown', 4, button, 200);
+    button.dispatch('click'); // Centre tilt
+    expect(touch.update(1, true).throttle).toBe(1);
+    pointer('pointerup', 2, root, 740);
+    expect(touch.update(1, true).throttle).toBe(0);
+  });
 });

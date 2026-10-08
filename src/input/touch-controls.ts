@@ -32,7 +32,8 @@ export class TouchControls {
       h('div', 'tc-arrows', undefined, [arrow('left', '←'), arrow('right', '→')]),
       h('div', 'tc-sensor', undefined, [this.tiltButton, this.tiltNote]));
     this.tiltButton.addEventListener('click', () => {
-      this.model.reset();
+      // Recentres only the tilt: the tap itself registers no finger (onDown skips .tc-sensor),
+      // so a pedal the other thumb holds stays held.
       // requestPermission is invoked synchronously here, before any promise continuation.
       void this.tilt.enableFromTap();
     });
