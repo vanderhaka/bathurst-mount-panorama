@@ -51,6 +51,17 @@ export class AttrSlot {
   }
 }
 
+/** `hidden` writer that skips identical writes. */
+export class HiddenSlot {
+  private value: boolean | null = null;
+  constructor(readonly el: HTMLElement) {}
+  set(hidden: boolean): void {
+    if (hidden === this.value) return;
+    this.value = hidden;
+    this.el.hidden = hidden;
+  }
+}
+
 /** Writes a numeric CSS custom property, quantised to `steps` per unit. */
 export class VarSlot {
   private value = NaN;
