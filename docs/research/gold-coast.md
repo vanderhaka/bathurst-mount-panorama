@@ -138,3 +138,13 @@ Final geometry hashes:
 - `src/track/data/gold-coast.json` and `public/data/gold-coast-centerline.json`: `61d3f44367fe8edca7c8e1de842d57e40d1218035563e84000427a02e7206e32`
 
 Validation: exact closure by shared node, 584 points including closure, **anticlockwise** projected signed area **-276071.391 m²** (negative in the x-east, z-south frame, where Adelaide's clockwise route is positive), zero zero-length edges and zero proper self-intersections. This research does not prove runtime rendering, handling or deployment.
+
+## Runtime world (implemented 2026-10-08)
+
+The game uses this research as follows. Each item is an estimate unless it says otherwise.
+
+- **Environment data.** `src/track/data/gold-coast-environment.json` (ODbL, about 20 KB) holds the ocean coastline, the Nerang River ring, Macintosh Island as a hole in that ring, the island pond (relation 6067956) and 131 OSM buildings with 8 or more levels or 25 m or more height. `artifacts/review/gold-coast/references/derive-environment.mjs` rebuilds it from the cached extracts without network access.
+- **Macintosh Island.** OSM maps the island at about 0.6 km². The pit straight runs on it, and the lap crosses the channel near s 400 and s 2620. The road corridor stays at ground height at both crossings, so they read as causeways. The game has no bridge models.
+- **Sea and beach.** The sea surface starts at the OSM coastline. The 55 m before the coastline is sand. The infield channel at z = 0 is about 67 m wide.
+- **Skyline.** 124 OSM towers fit on the High tier, Q1 among them at 323 m (OSM height tag). Footprints are size-class estimates; OSM gives only the building centres. Mid-rise street blocks (27 on High) are generated and kept off the island, the lap's infield and the 120 m before the coast.
+- **Trackside.** Palms (coconut and foxtail) are generated; the species is not verified. 12 of the 13 mapped stands fit; S22 does not fit beside S22A. Two of the three pit garage rows fit. Widths, runoff and tyre-stack positions are gameplay estimates.

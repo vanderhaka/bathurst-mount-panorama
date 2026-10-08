@@ -1,5 +1,6 @@
 #!/usr/bin/env node
-// Native menus, all car/camera modes and a frozen scene capture for the new circuit.
+// Native menus, all car/camera modes and a frozen scene capture for a non-default circuit.
+// Usage: node scripts/verify-circuit.mjs [outDir] --track <adelaide|gold-coast> [--url URL] [--engine webkit] [--mobile]
 import { strict as assert } from 'node:assert';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
@@ -7,9 +8,19 @@ import { chromium, webkit } from 'playwright';
 import { authenticatePreview } from './browser-auth.mjs';
 import { answerSteerQuestion } from './steer-question.mjs';
 
-const args = process.argv.slice(2), out = resolve(args[0] ?? 'artifacts/review/adelaide/browser');
+const CIRCUITS = {
+  adelaide: { lengthM: 3219, turns: 14, titleIncludes: 'Adelaide', timingIncludes: 'ADELAIDE', mapIncludes: 'ADELAIDE PARKLANDS',
+    creditPath: '/data/adelaide-centerline.json', toBathurst: 'Previous circuit' },
+  'gold-coast': { lengthM: 2960, turns: 15, titleIncludes: 'Paradise', timingIncludes: 'GOLD COAST', mapIncludes: 'SURFERS PARADISE',
+    creditPath: '/data/gold-coast-centerline.json', toBathurst: 'Next circuit' },
+};
+const args = process.argv.slice(2);
 const option = (name, fallback) => { const i = args.indexOf(name); return i < 0 ? fallback : args[i + 1]; };
-const url = option('--url', 'http://127.0.0.1:5181/?track=adelaide');
+const track = option('--track', undefined);
+assert.ok(Object.hasOwn(CIRCUITS, track ?? ''), `--track must be one of ${Object.keys(CIRCUITS).join(', ')}`);
+const circuit = CIRCUITS[track];
+const out = resolve(args[0] && !args[0].startsWith('--') ? args[0] : `artifacts/review/${track}/browser`);
+const url = option('--url', `http://127.0.0.1:5181/?track=${track}`);
 const engine = option('--engine', 'chromium'), mobile = args.includes('--mobile');
 assert.ok(['chromium', 'webkit'].includes(engine));
 await mkdir(out, { recursive: true });
@@ -42,15 +53,15 @@ try {
         return { text: e.textContent, left: b.left, right: b.right, top: b.top, bottom: b.bottom,
           fits: b.top >= rect.top - 1 && b.bottom <= rect.bottom + 1 && b.right <= rect.right + 1 }; }) };
   });
-  assert.equal(title.trackId, 'adelaide'); assert.equal(title.lengthM, 3219);
-  assert.ok(title.title.includes('Adelaide') && title.facts.includes('14'));
+  assert.equal(title.trackId, track); assert.equal(title.lengthM, circuit.lengthM);
+  assert.ok(title.title.includes(circuit.titleIncludes) && title.facts.includes(String(circuit.turns)));
   assert.ok(title.bounds.every(b => b.fits), 'Title, menu and attribution must fit the viewport');
   report.title = title; await shot('title');
   const credit = page.getByRole('link', { name: 'Circuit data (ODbL)', exact: true });
   await credit.focus();
   const popupPromise = page.waitForEvent('popup'); await page.keyboard.press('Enter');
   const popup = await popupPromise; await popup.waitForLoadState('domcontentloaded');
-  assert.ok(popup.url().endsWith('/data/adelaide-centerline.json')); await popup.close();
+  assert.ok(popup.url().endsWith(circuit.creditPath)); await popup.close();
   report.keyboardAttributionLink = true;
   for (const [i, car] of ['camaro', 'mustang', 'supra'].entries()) {
     await activate(button('title', 'Time trial'));
@@ -61,9 +72,9 @@ try {
     const grid = await page.evaluate(() => { const g = window.__game, v = g.race.player.vehicle;
       return { car: g.race.session.car, circuit: g.world.track.id, s: v.tp.s, offset: v.tp.d, y: v.y, speed: v.speed,
         corners: g.race.session.telemetrySnapshot().corners.length, lights: g.race.session.lights }; });
-    assert.equal(grid.car, car); assert.equal(grid.circuit, 'adelaide'); assert.equal(grid.corners, 14);
-    assert.ok((await page.locator('.hud-timing__title').textContent()).includes('ADELAIDE'));
-    assert.ok((await page.locator('.hud-map .hud-panel__head').textContent()).includes('ADELAIDE PARKLANDS'));
+    assert.equal(grid.car, car); assert.equal(grid.circuit, track); assert.equal(grid.corners, circuit.turns);
+    assert.ok((await page.locator('.hud-timing__title').textContent()).includes(circuit.timingIncludes));
+    assert.ok((await page.locator('.hud-map .hud-panel__head').textContent()).includes(circuit.mapIncludes));
     assert.ok((await page.locator('.hud-map__alt').textContent()).includes('M (EST)'));
     assert.ok(grid.s > 80 && grid.s < 110 && Object.values(grid).filter(v => typeof v === 'number').every(Number.isFinite));
     await shot(`${car}-grid`);
@@ -97,9 +108,9 @@ try {
     }
     await pause(); await activate(button('pause', 'Quit to menu')); await waitReady();
   }
-  const nextCircuit = page.locator('.mn-screen--title [aria-label="Next circuit"]');
+  const toBathurst = page.locator(`.mn-screen--title [aria-label="${circuit.toBathurst}"]`);
   await Promise.all([page.waitForURL(next => !next.searchParams.has('track')),
-    mobile ? nextCircuit.tap() : nextCircuit.click()]);
+    mobile ? toBathurst.tap() : toBathurst.click()]);
   await waitReady();
   const bathurst = await page.evaluate(() => ({ id: window.__game.world.track.id, length: window.__game.world.track.length, title: document.title }));
   assert.equal(bathurst.id, 'bathurst'); assert.equal(bathurst.length, 6213); assert.ok(bathurst.title.includes('Panorama'));

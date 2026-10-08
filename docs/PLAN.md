@@ -239,6 +239,12 @@ Status: done — awaiting the user's physical phone check (commit b9b25e359c07a4
 - **Do:** add the current 2026 Supercars 3.219 km clockwise, 14-turn circuit with generated street/parkland scenery; retain the three cars, handling, controls and default Bathurst circuit.
 - **Done when:** all cars complete valid laps; native desktop/phone/WebKit flows, all five cameras, records/ghost/telemetry isolation, generated scenery and all measurable tier budgets pass; exact Preview revision is Ready with clean live checks. Physical phone behavior remains a user check.
 - **Sources and estimates:** `docs/research/adelaide.md`; OSM geometry retained and attributed. Elevation, widths, sectors, timing loops and surroundings are preview estimates.
+## Follow-up — Surfers Paradise (Gold Coast) circuit
+Status: verified locally on branch `claude/gold-coast-track-0a035b` — Chromium and WebKit desktop, Chrome phone emulation, telemetry/records isolation, smoke scenarios and 60 fps on every measured tier (evidence `artifacts/review/gold-coast/`). A Preview deployment and the user's physical phone check are still open. High-tier GPU time peaks at 12.8 ms (Hill Parade), against 9.6 ms on Adelaide.
+- **Depends on:** the Adelaide follow-up.
+- **Do:** add the 2025 Gold Coast 500 2.960 km anticlockwise, 15-turn circuit with the beach, sea, Broadwater, OSM high-rise skyline and palms; make circuit choice N-way; retain the three cars, handling, controls and default Bathurst circuit.
+- **Done when:** all cars complete valid laps; native desktop/phone/WebKit flows, all five cameras, records/ghost/telemetry isolation and the tier budgets pass; a Preview revision is Ready with clean live checks. Physical phone behavior remains a user check.
+- **Sources and estimates:** `docs/research/gold-coast.md`; OSM road ways plus the organiser's 2025 numbered map for the chicanes and hairpins. Elevation, widths, sectors, timing loops and scenery positions are estimates.
 ## Appendix A — Realism Index
 - **Viewpoints:** 12 corner viewpoints (as `scripts/capture-evidence.mjs`) and 3 car close-ups. Each viewpoint has one real reference photo from `docs/references/` taken from a similar place and angle.
 - **Aspects (0–10 each):** light and atmosphere; road surface and kerbs; terrain and grass; trees and bush; trackside structures and distance; cars (close-ups only); image quality (aliasing, shimmer, artefacts).

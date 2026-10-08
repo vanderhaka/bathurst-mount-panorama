@@ -32,9 +32,14 @@ if (mobile) await answerSteerQuestion(page);
 await page.waitForFunction(() => window.__game?.race?.session.lights < 0, null, { timeout: 30000 });
 
 const result = { url, device: mobile ? 'Chrome phone emulation (not an iPhone)' : 'desktop Chrome', tiers: {}, errors };
-const evidencePoints = await page.evaluate(() => window.__game.world.track.id === 'adelaide'
-  ? [['pitStraight', 60], ['sennaChicane', 240], ['staircase', 840], ['turn8', 1790]]
-  : [['pitStraight', 200], ['mountain', 1200], ['skyline', 3330], ['conrod', 4600]]);
+const EVIDENCE_POINTS = {
+  bathurst: [['pitStraight', 200], ['mountain', 1200], ['skyline', 3330], ['conrod', 4600]],
+  adelaide: [['pitStraight', 60], ['sennaChicane', 240], ['staircase', 840], ['turn8', 1790]],
+  'gold-coast': [['pitStraight', 60], ['frontChicane', 540], ['beachChicane', 1420], ['hillParade', 2300]],
+};
+const trackId = await page.evaluate(() => window.__game.world.track.id);
+const evidencePoints = EVIDENCE_POINTS[trackId];
+if (!evidencePoints) throw new Error(`No evidence points for track "${trackId}"`);
 for (const tier of mobile ? ['medium', 'low'] : ['high', 'medium', 'low']) {
   await page.evaluate(async tier => {
     const g = window.__game;
