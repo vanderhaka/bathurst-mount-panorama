@@ -1,3 +1,4 @@
+import { tyreCurve } from '@/physics/tyre';
 import type { Vehicle } from '@/physics/vehicle';
 import type { VehicleInput } from '@/physics/types';
 import type { RacingLine } from '@/track/racing-line';
@@ -9,6 +10,42 @@ import type { Track } from '@/track/track-model';
  * 96 % in the full-lap sweep) and straight-line-biased braking.
  */
 export const AI_PROFILE: Partial<ProfileOptions> = { gripFactor: 0.9, trailBrakeExp: 2 };
+
+/**
+ * Steady-state body slip, in rad per m/s^2 of the line's lateral acceleration: the rear tyres run at
+ * a slip angle, so the body points into the corner and the heading error alone steers out. Capped at
+ * 2 m x curvature, the heading preview the controller used to get from its nearest 4 m sample.
+ */
+const BODY_SLIP_PER_ACC = 0.0005;
+const BODY_SLIP_MAX_M = 2;
+const G = 9.81;
+const RHO = 1.2;
+const tangent: [number, number] = [0, 0];
+
+/** Unit tangent of the line at sample i (central difference), written into `tangent`. */
+function lineTangent(line: RacingLine, i: number, n: number): [number, number] {
+  const dx = line.x[(i + 1) % n] - line.x[(i - 1 + n) % n], dz = line.z[(i + 1) % n] - line.z[(i - 1 + n) % n];
+  const len = Math.hypot(dx, dz) || 1;
+  tangent[0] = dx / len;
+  tangent[1] = dz / len;
+  return tangent;
+}
+
+/**
+ * Steering feed-forward for the line curvature `kappa` at speed `v1`. The heading error, measured at the
+ * front axle against the body, already carries the kinematic wheelbase x curvature steer, so the
+ * curvature term may add at most the front slip angle the corner's lateral grip use needs; on a 13 m
+ * hairpin the uncapped term asked for twice that and held the car 1 m inside its line.
+ */
+function feedForward(v: Vehicle, kappa: number, v1: number): number {
+  const h = v.handling, curve = tyreCurve((h.peakSlipDeg * Math.PI) / 180, h.slideGrip);
+  const latMax = v.spec.tyreMu * h.grip * (G + (0.5 * RHO * v.spec.clA * h.downforce * v1 * v1) / v.massKg);
+  const use = Math.min(1, (v1 * v1 * Math.abs(kappa)) / latMax);
+  const frontSlip = Math.tan(Math.asin(use) / curve.c) / curve.b;
+  const curvature = Math.abs(kappa) * v.spec.dimensions.wheelbase * (1 + 0.15 * Math.min(1, v1 / 50));
+  const bodySlip = Math.abs(kappa) * Math.min(BODY_SLIP_MAX_M, BODY_SLIP_PER_ACC * v1 * v1);
+  return Math.sign(kappa) * (Math.min(curvature, frontSlip) + bodySlip);
+}
 
 /**
  * A driver that follows the racing line with pure-pursuit steering and tracks
@@ -39,18 +76,26 @@ export class Autopilot {
       const d = (line.x[i] - fx) ** 2 + (line.z[i] - fz) ** 2;
       if (d < bestD) { bestD = d; best = i; }
     }
-    const nx = line.x[(best + 1) % n] - line.x[best], nz = line.z[(best + 1) % n] - line.z[best];
-    const lineHeading = Math.atan2(nx, nz);
+    // Measure both errors where the front axle projects onto the line between samples. The nearest
+    // 4 m sample can sit 2 m ahead: on Adelaide's 13 m hairpin its segment heading pointed up to
+    // 0.3 rad into the corner, and the car settled 1.2 m inside the line, onto the inside wall.
+    const [bx, bz] = lineTangent(line, best, n);
+    const a = (fx - line.x[best]) * bx + (fz - line.z[best]) * bz >= 0 ? best : (best - 1 + n) % n, b = (a + 1) % n;
+    const abx = line.x[b] - line.x[a], abz = line.z[b] - line.z[a];
+    const u = Math.max(0, Math.min(1, ((fx - line.x[a]) * abx + (fz - line.z[a]) * abz) / (abx * abx + abz * abz || 1)));
+    const [ax, az] = lineTangent(line, a, n);
+    const [cx, cz] = lineTangent(line, b, n);
+    const lineHeading = Math.atan2(ax + (cx - ax) * u, az + (cz - az) * u);
     let headErr = lineHeading - v.heading;
     while (headErr > Math.PI) headErr -= 2 * Math.PI;
     while (headErr < -Math.PI) headErr += 2 * Math.PI;
     // Cross-track error: + = line is to the car's left.
-    const ex = line.x[best] - fx, ez = line.z[best] - fz;
+    const ex = line.x[a] + abx * u - fx, ez = line.z[a] + abz * u - fz;
     const cross = ex * cos - ez * sin;
     const v1 = Math.max(4, Math.abs(speed));
     const preview = Math.round((Math.max(4, v1 * 0.25)) / track.spacing);
     const kappa = line.curvature[(best + preview) % n];
-    const delta = kappa * v.spec.dimensions.wheelbase * (1 + 0.15 * Math.min(1, v1 / 50)) + headErr + Math.atan((2.2 * cross) / (v1 + 2)) - v.yawRate * 0.02;
+    const delta = feedForward(v, kappa, v1) + headErr + Math.atan((2.2 * cross) / (v1 + 2)) - v.yawRate * 0.02;
     out.steer = Math.max(-1, Math.min(1, delta / v.spec.maxSteerRad));
     const crossErr = Math.abs(cross);
 
