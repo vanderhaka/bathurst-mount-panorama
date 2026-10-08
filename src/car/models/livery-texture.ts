@@ -3,6 +3,7 @@
 // back to the livery's primary colour.
 import * as THREE from 'three';
 import type { DashState, Livery } from '@/types/car-model';
+import { liveryNumber } from '@/car/liveries';
 import { paintLivery, type LiveryShape } from '@/car/models/livery-paint';
 import { contrastOn, FONT_STACK, hex, inRegion, type Ctx } from '@/car/models/livery-canvas';
 import type { AtlasRegion } from '@/car/models/livery-layout';
@@ -53,7 +54,7 @@ function paintBanner(ctx: Ctx, l: Livery): void {
   ctx.fillText(text, 0, 0);
   ctx.restore();
   ctx.font = `800 ${h * 0.5}px ${FONT_STACK}`;
-  ctx.fillText(String(l.number), w * 0.93, h * 0.45);
+  ctx.fillText(liveryNumber(l), w * 0.93, h * 0.45);
 }
 
 function paintDisplay(ctx: Ctx): void {

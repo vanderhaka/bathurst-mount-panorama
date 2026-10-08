@@ -10,10 +10,12 @@ export interface Livery {
   accent: number;
   /** Race number painted on doors, roof and windscreen banner. */
   number: number;
+  /** The race number as painted when it differs from String(number), for example '05'. */
+  numberText?: string;
   /** Short text on the windscreen banner and sills (not a real sponsor). */
   banner: string;
-  /** Pattern of the secondary colour on the body. */
-  pattern: 'stripes' | 'split' | 'chevron' | 'arrow';
+  /** Pattern of the secondary colour on the body. 'hdt79': the 1979 Bathurst colour zones of the Torana A9X (torana only). */
+  pattern: 'stripes' | 'split' | 'chevron' | 'arrow' | 'hdt79';
 }
 
 export type WheelIndex = 0 | 1 | 2 | 3; // FL, FR, RL, RR

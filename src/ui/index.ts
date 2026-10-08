@@ -13,7 +13,7 @@ import '@/ui/tabs.css';
 import '@/ui/phone.css';
 import '@/ui/telemetry.css';
 import { CAR_SPECS, type CarKind } from '@/car/car-specs';
-import { LIVERY_PRESETS } from '@/car/liveries';
+import { LIVERY_PRESETS, liveryNumber } from '@/car/liveries';
 import { h } from '@/hud/dom';
 import type { PadStyle } from '@/input/pad-style';
 import type { MenuCallbacks, MenuNav, Menus } from '@/types/hud';
@@ -153,7 +153,7 @@ class MenuController implements Menus {
   private sessionLine(): string {
     if (!this.lastConfig) return `${CIRCUITS[ACTIVE_CIRCUIT].name} · Practice`;
     const preset = LIVERY_PRESETS[this.lastConfig.car][this.lastConfig.liveryIndex];
-    return `${CAR_SPECS[this.lastConfig.car].shortName} · #${preset?.livery.number ?? ''} ${preset?.name ?? ''}`.trim();
+    return `${CAR_SPECS[this.lastConfig.car].shortName} · #${preset ? liveryNumber(preset.livery) : ''} ${preset?.name ?? ''}`.trim();
   }
 
   private show(screen: Screen): void {
