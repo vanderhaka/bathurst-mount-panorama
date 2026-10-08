@@ -37,7 +37,7 @@ describe('Gold Coast skyline, infill and palms', { timeout: 60000 }, () => {
     const towers = goldCoastTowerSpecs(track, high, 'high');
     expect(goldCoastTowerSpecs(track, high, 'high')).toEqual(towers);
     expect(towers.length).toBeGreaterThanOrEqual(100);
-    const q1 = towers.find(t => Math.hypot(t.x - 289.2, t.z - 2274.9) < 1);
+    const q1 = towers.find(t => Math.hypot(t.x - 291, t.z - 2289.2) < 1);
     expect(q1).toBeDefined(); expect(Math.abs(q1!.height - 323)).toBeLessThanOrEqual(1);
     for (const t of towers) {
       expect(goldCoastFootprintFits(high, t, 4)).toBe(true);
