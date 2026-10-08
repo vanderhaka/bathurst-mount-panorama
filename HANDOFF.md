@@ -8,15 +8,15 @@ That link is a frozen copy of the reviewed build (game code at `d0e6f89`). A pus
 
 **Where things stand**
 
-- Branch `codex/bathurst-plan` holds Codex's overnight work plus this review's 51 commits. It is pushed, and Vercel builds a protected Preview for each push (Vercel login needed).
-- `main` and production are unchanged at `3f157e9`. Nothing was merged.
+- Branch `codex/bathurst-plan` holds Codex's overnight work plus this review's 51 commits.
+- On 8 October you asked for a release. `main` fast-forwarded to this branch, and production at https://bathurst-mount-panorama.vercel.app deploys from `main`. The previous production commit was `3f157e9`.
 - All 750 tests pass. Types are clean. Desktop, phone-emulation and WebKit smokes pass on both circuits ([Verification](#verification-of-this-build)).
 
 **Your next steps**
 
 1. Run the iPhone checks below. Emulation cannot prove them.
 2. Decide on item 1.12. The graphics scorecard is 51.92/100 against the 72.05 target. Accept it or ask for a focused follow-up ([below](#awaiting-your-decision-112-scorecard)).
-3. When the phone checks pass, merge `codex/bathurst-plan` to `main`. A push to `main` deploys production.
+3. Report any phone fault. A fix goes to `main` and deploys production.
 
 ### Real-device checklist
 
@@ -175,7 +175,7 @@ Review the 15 matched pairs and the preview. Send any graphics-tuner values you 
 
 ## Delivery
 
-- **Preview only.** The work lives on `codex/bathurst-plan`, and `main` and production stay at `3f157e94f4053893c766601a658d02df4dd824dc`.
+- **Production.** `main` holds this work. A push to `main` deploys https://bathurst-mount-panorama.vercel.app. To roll back, redeploy `3f157e94f4053893c766601a658d02df4dd824dc`.
 - **Public playtest.** The Vercel project `bathurst-mount-panorama-playtest` serves a static copy of a frozen preview build. It is a separate project, so it never publishes to the live Bathurst project or `main`. It does not update when the branch gets a push.
 - **To redeploy the playtest:**
   1. Build with `VERCEL_ENV=preview npx vite build --outDir <dir>`.
