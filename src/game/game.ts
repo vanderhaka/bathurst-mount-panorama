@@ -20,12 +20,11 @@ import { RaceController } from '@/game/race-controller';
 import { RaceSession } from '@/game/race-session';
 import { loadSettings, saveSettings } from '@/game/settings-store';
 import { Stage } from '@/game/stage';
+import { installDeviceHooks } from '@/game/device-hooks';
 import { sessionResults } from '@/game/session-results';
 import { createHud, loadHudFonts, setHudOpacity, setHudScale } from '@/hud';
 import { InputManager } from '@/input/input-manager';
-import { TouchControls } from '@/input/touch-controls';
 import { touchOptions } from '@/input/touch-model';
-import { supportsTouchControls } from '@/input/touch-capability';
 import { Autopilot } from '@/race/autopilot';
 import { flushRecords } from '@/race/records-queue';
 import type { CarAudio } from '@/types/audio';
@@ -41,6 +40,8 @@ type GameState = 'title' | 'carSelect' | 'race' | 'paused';
 
 export class Game {
   private state: GameState = 'title';
+  /** Set when the WebGL context is lost: nothing starts, resumes or restarts a race again. */
+  private halted = false;
   private readonly wakeLock = new RaceWakeLock();
   private settings: Settings = loadSettings();
   private readonly input = new InputManager();
@@ -101,13 +102,7 @@ export class Game {
     hud.mount(root, hudTrackInfo(world.track));
     hud.setVisible(false);
     game = new Game(stage, world, hud, menus);
-    game.input.configureTouch(touchOptions(settings));
-    if (supportsTouchControls(navigator.maxTouchPoints, matchMedia('(pointer: coarse)').matches)) game.input.attachTouch(new TouchControls(root));
-    // A race pauses when the player can no longer drive it: the phone turns to portrait
-    // (index.html shows a turn-the-phone note) or the page is hidden (app switch, lock, call).
-    const pauseRace = (): void => { if (game?.state === 'race') game.pause(); };
-    matchMedia('(orientation: portrait) and (pointer: coarse)').addEventListener('change', (e) => { if (e.matches) pauseRace(); });
-    document.addEventListener('visibilitychange', () => { if (document.hidden) pauseRace(); });
+    installDeviceHooks(root, game.input, settings, () => { if (game?.state === 'race') game.pause(); });
     menus.showLoading(1, 'Ready');
     game.enterTitle();
     const limiter = new FrameLimiter();
@@ -146,6 +141,7 @@ export class Game {
   }
 
   private startRace(cfg: SessionConfig): void {
+    if (this.halted) return;
     this.applySettings(cfg.settings);
     this.attract.drop();
     this.endRace();
@@ -191,15 +187,18 @@ export class Game {
     this.menus.showPause();
   }
 
+  /** The WebGL context is lost and main.ts offers a reload: pause for good, releasing wake lock and audio. */
+  halt(): void { this.halted = true; this.wakeLock.setRunning(false); if (this.state === 'race') this.pause(); }
+
   private resume(): void {
-    if (this.state !== 'paused') return;
+    if (this.state !== 'paused' || this.halted) return;
     this.state = 'race';
     this.audio?.resume();
     this.graphics.settle();
   }
 
   private restart(): void {
-    if (!this.race) return;
+    if (!this.race || this.halted) return;
     this.race.session.placeOnGrid();
     this.race.profiles.reset();
     this.rig.snap();

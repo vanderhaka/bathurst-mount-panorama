@@ -24,14 +24,17 @@ if (!root) {
 } else {
   installTouchGuards(root);
   installAndroidPresentation(root);
-  // iOS can drop the WebGL context when the phone runs short of memory: offer a reload.
+  let running: Game | null = null;
+  // iOS can drop the WebGL context when the phone runs short of memory: stop the race and offer a reload.
   root.addEventListener('webglcontextlost', (e) => {
     e.preventDefault();
+    running?.halt();
     showError('The graphics stopped because the device ran short of memory. Tap to reload. If this happens again, set Settings > Graphics quality to Low.');
     document.getElementById('boot-error')?.addEventListener('click', () => location.reload(), { once: true });
   }, true);
   Game.create(root)
     .then((game) => {
+      running = game;
       window.__game = game;
       window.__shotReady = true;
     })
