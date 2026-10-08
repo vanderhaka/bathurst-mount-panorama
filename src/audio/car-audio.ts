@@ -1,4 +1,5 @@
 import type { CarKind } from '@/car/car-specs';
+import { ContextPause, isRealtime } from '@/audio/context-pause';
 import { CAR_SOUND_PROFILES, type CarSoundProfile } from '@/audio/dsp/engine-profile';
 import { clamp, clamp01 } from '@/audio/dsp/math';
 import { cabinLowpassHz, layerMix, type LayerMix } from '@/audio/dsp/mix-maps';
@@ -49,10 +50,6 @@ interface Buses {
   boom: BiquadFilterNode;
 }
 
-function isRealtime(ctx: BaseAudioContext | null): ctx is AudioContext {
-  return typeof AudioContext !== 'undefined' && ctx instanceof AudioContext;
-}
-
 function engineControls(f: CarAudioFrame): EngineControls {
   return {
     rpm: clamp(finite(f.rpm), 0, 12000),
@@ -70,6 +67,7 @@ class CarAudioEngine implements CarAudioDebug {
   private starting: Promise<void> | null = null;
   private built = false;
   private disposed = false;
+  private readonly pause = new ContextPause();
   private volume = 0.85;
   private master: MasterBus | null = null;
   private engine: EngineSource | null = null;
@@ -254,18 +252,17 @@ class CarAudioEngine implements CarAudioDebug {
   }
 
   suspend(): void {
-    const ctx = this.ctx;
-    if (isRealtime(ctx) && ctx.state === 'running') ctx.suspend().catch(() => undefined);
+    this.pause.suspend(this.ctx);
   }
 
   resume(): void {
-    const ctx = this.ctx;
-    if (isRealtime(ctx) && ctx.state === 'suspended') ctx.resume().catch(() => undefined);
+    this.pause.resume(this.ctx);
   }
 
   dispose(): void {
     if (this.disposed) return;
     this.disposed = true;
+    this.pause.release();
     this.oneShots?.stopAll();
     this.bag.disposeAll();
     if (this.ownsCtx && isRealtime(this.ctx)) this.ctx.close().catch(() => undefined);
