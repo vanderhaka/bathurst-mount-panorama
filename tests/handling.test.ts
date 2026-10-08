@@ -9,7 +9,7 @@ import { placeKerbs } from '@/track/kerbs';
 import { computeRacingLine } from '@/track/racing-line';
 import { Track } from '@/track/track-model';
 
-const out = (): TyreResult => ({ fx: 0, fy: 0, use: 0, absActive: false, tcActive: false });
+const out = (): TyreResult => ({ fx: 0, fy: 0, use: 0, slide: 0, absActive: false, tcActive: false });
 
 describe('tyre curve from the handling values', () => {
   it('peaks at the peak slip angle and falls to the slide grip in a full slide', () => {

@@ -6,11 +6,16 @@
 //  - braking: 60 % front bias split across each axle by load (the load moves
 //    forward under braking), plus brake-disc heat soaking into the wheels;
 //  - traction: rears only; strong out of slow corners, small on fast straights;
-//  - sliding: wheelspin or lock-up, when the physics reports grip use above 1.
+//  - sliding: friction work past the peak (slip angle, lock-up, wheelspin). It is
+//    bounded by a fully sliding patch (0.86 mu Fz at road speed), so a 300x
+//    lock-up demand heats no more than any other locked wheel.
 // Constants were fitted to five autopilot laps of the real physics.
+import { SLIDING_FRICTION, USE_PER_RAD } from '@/physics/tyre';
+
 export interface TyreHeatInput {
   throttle: number; brake: number; steer: number; gLat?: number; gLong?: number;
-  wheels?: ReadonlyArray<{ load: number; slip: number }>;
+  /** `slide`: the physics' friction-work fraction (WheelTelemetry); estimated from `slip` without it. */
+  wheels?: ReadonlyArray<{ load: number; slip: number; slide?: number }>;
 }
 
 const LAT_K = 0.0128;
@@ -37,6 +42,12 @@ const IS_FRONT = [true, true, false, false];
 const IS_RIGHT = [false, true, false, true];
 
 
+
+/** Friction work past the peak (fraction of mu Fz v); without telemetry, read slip use past 1 as slip angle. */
+function slideFraction(w: { slip: number; slide?: number }): number {
+  const f = w.slide ?? (w.slip - 1) / USE_PER_RAD;
+  return Math.max(0, Math.min(SLIDING_FRICTION, Number.isFinite(f) ? f : 0));
+}
 
 /** Lateral g (+ = left turn): telemetry, else a bicycle-model estimate from steer and speed. */
 function lateralG(st: TyreHeatInput, v: number): number {
@@ -83,7 +94,7 @@ export function tyreHeat(st: TyreHeatInput, v: number, out: number[]): number[] 
     const brake = BRAKE_K * 4 * brakeShare * gBrake * v + DISC_K * st.brake * v * (bias / 2);
     const driveShare = front ? 0 : (0.5 * sh[i]) / rearLoad;
     const traction = (TRACTION_K * (driveShare * gDrive) ** 2 * v) / s;
-    const slide = w ? SLIDE_K * Math.max(0, w[i].slip - 1) * 4 * s * v : 0;
+    const slide = w ? SLIDE_K * slideFraction(w[i]) * 4 * s * v : 0;
     out[i] = corner + brake + traction + slide;
   }
   return out;

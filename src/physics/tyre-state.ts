@@ -11,7 +11,11 @@ export const TYRE_COMPOUNDS: Readonly<Record<TyreCompound, Readonly<CompoundSpec
   hard: { minC: 90, maxC: 110, peakGrip: 0.99, coldLoss: 0.27, hotLoss: 0.18, wearRate: 5.4e-5, wearLoss: 0.28 },
 };
 export const TYRE_START_C = 52;
+/** Physical ceiling: slick rubber blisters and reverts beyond ~150 C; hot grip loss is complete by maxC + 35. */
+export const TYRE_MAX_C = 150;
 const AMBIENT_C = 22;
+/** Overheated wear grows 1x per 20 C above 110 C, up to 3x (reached at the ceiling). */
+const OVERHEAT_WEAR_MAX = 3;
 const COOL_BASE = 0.0036, COOL_SPEED = 0.00012;
 const SURFACE_GAIN = 4.5, SURFACE_TAU_S = 2;
 const unit = (v: number): number => Math.max(0, Math.min(1, Number.isFinite(v) ? v : 0));
@@ -39,7 +43,7 @@ export class TyreModel {
 
   fit(compound: TyreCompound = 'soft', tempC = TYRE_START_C, wear = 0): void {
     this.compound = compound;
-    const temp = Math.max(AMBIENT_C, Math.min(250, Number.isFinite(tempC) ? tempC : TYRE_START_C));
+    const temp = Math.max(AMBIENT_C, Math.min(TYRE_MAX_C, Number.isFinite(tempC) ? tempC : TYRE_START_C));
     for (let i = 0; i < 4; i++) {
       this.carcass[i] = temp;
       this.surface[i] = 0;
@@ -56,10 +60,10 @@ export class TyreModel {
     const c = TYRE_COMPOUNDS[this.compound];
     for (let i = 0; i < 4; i++) {
       const tyre = this.tyres[i];
-      this.carcass[i] += (heat[i] - (this.carcass[i] - AMBIENT_C) * cool) * dt;
+      this.carcass[i] = Math.min(TYRE_MAX_C, this.carcass[i] + (heat[i] - (this.carcass[i] - AMBIENT_C) * cool) * dt);
       this.surface[i] += (SURFACE_GAIN * heat[i] - this.surface[i]) * k;
-      tyre.tempC = this.carcass[i] + this.surface[i];
-      const overheat = 1 + Math.max(0, tyre.tempC - 110) / 20;
+      tyre.tempC = Math.min(TYRE_MAX_C, this.carcass[i] + this.surface[i]);
+      const overheat = Math.min(OVERHEAT_WEAR_MAX, 1 + Math.max(0, tyre.tempC - 110) / 20);
       tyre.wear = Math.min(1, tyre.wear + c.wearRate * heat[i] * overheat * dt);
       tyre.grip = tyreGrip(this.compound, tyre.tempC, tyre.wear);
     }

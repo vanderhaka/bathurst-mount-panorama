@@ -15,6 +15,10 @@ export const ABS_USE = 0.95;
 export const TC_USE = 0.95;
 /** Exponent of the combined-slip super-ellipse (2 = friction circle; real tyres are closer to 2.5). */
 const COMBINED_P = 2.4;
+/** Friction left to a locked or spinning tyre, as a fraction of the peak. */
+export const SLIDING_FRICTION = 0.86;
+/** Combined-slip use added per radian of slip angle past the peak. */
+export const USE_PER_RAD = 4;
 
 /** Shape of the lateral force curve (Pacejka B and C) and the slip angle of its peak (rad). */
 export interface TyreCurve { b: number; c: number; peak: number; slide: number }
@@ -50,6 +54,12 @@ export interface TyreResult {
   fy: number;
   /** Combined-slip use (0..1, >1 = sliding). */
   use: number;
+  /**
+   * Friction work past the peak as a fraction of mu * Fz * road speed: 0 while the tyre grips,
+   * SLIDING_FRICTION when the whole patch slides (locked or spinning). Bounded however hard
+   * the brake or throttle asks.
+   */
+  slide: number;
   absActive: boolean;
   tcActive: boolean;
 }
@@ -68,7 +78,7 @@ export function tyreForces(
   out.absActive = false;
   out.tcActive = false;
   if (fz <= 0) {
-    out.fx = 0; out.fy = 0; out.use = 0;
+    out.fx = 0; out.fy = 0; out.use = 0; out.slide = 0;
     return out;
   }
   const limit = mu * fz;
@@ -103,15 +113,17 @@ export function tyreForces(
   const use = Math.abs(fx) / limit;
   if (use > 1) {
     // Locked or spinning: sliding friction, little lateral grip left.
-    fx = Math.sign(fx) * limit * 0.86;
+    fx = Math.sign(fx) * limit * SLIDING_FRICTION;
     fy *= 0.32;
-    out.fx = fx; out.fy = fy; out.use = use;
+    out.fx = fx; out.fy = fy; out.use = use; out.slide = SLIDING_FRICTION;
     return out;
   }
   const latRoom = Math.pow(Math.max(0, 1 - Math.pow(use, COMBINED_P)), 1 / COMBINED_P);
   if (Math.abs(fy) > limit * latRoom) fy = Math.sign(fy) * limit * latRoom;
   out.fx = fx;
   out.fy = fy;
-  out.use = Math.hypot(fx, fy) / limit + Math.max(0, Math.abs(alpha) - curve.peak) * 4;
+  out.use = Math.hypot(fx, fy) / limit + Math.max(0, Math.abs(alpha) - curve.peak) * USE_PER_RAD;
+  // Lateral slip speed beyond the peak's, per unit road speed, times the force doing the work.
+  out.slide = (Math.abs(fy) / limit) * Math.max(0, Math.sin(Math.abs(alpha)) - Math.sin(curve.peak));
   return out;
 }

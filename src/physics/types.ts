@@ -30,6 +30,8 @@ export interface WheelTelemetry {
   load: number; // N
   /** Combined slip use 0..1+ (1 = at the limit, >1 = sliding). */
   slip: number;
+  /** Friction work past the peak, fraction of mu * Fz * road speed (0 gripping .. 0.86 locked or spinning). */
+  slide: number;
   surface: SurfaceKind;
   /** Accumulated spin angle (rad) for the visual wheel. */
   spin: number;

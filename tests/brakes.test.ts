@@ -7,7 +7,7 @@ import { CAR_SPECS } from '@/car/car-specs';
 import { Track } from '@/track/track-model';
 import { pointAt } from '@/track/track-query';
 
-const result = (overrides: Partial<TyreResult> = {}): TyreResult => ({ fx: -4000, fy: 0, use: 0.8, absActive: false, tcActive: false, ...overrides });
+const result = (overrides: Partial<TyreResult> = {}): TyreResult => ({ fx: -4000, fy: 0, use: 0.8, slide: 0, absActive: false, tcActive: false, ...overrides });
 
 describe('brake energy and cooling', () => {
   it('uses delivered caliper work and excludes engine braking, standstill and a locked rotor', () => {

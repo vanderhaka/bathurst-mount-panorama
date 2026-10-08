@@ -25,6 +25,9 @@ interface Run { minLoad: number; peakG: number; limitReached: boolean }
 /** Settles a car on the flat road, then runs it straight at `speed` (m/s) in a matching gear. */
 function launch(kind: CarKind, speed: number): Vehicle {
   const v = new Vehicle(CAR_SPECS[kind], flat, noKerbs);
+  // Race-warm tyres: the grip limit (and so the load transfer) is highest, and a short test must
+  // not depend on how fast sliding heats cold tyres.
+  v.stint.reset({ tempC: 95 });
   v.reset(1000, 0);
   for (let k = 0; k < 360; k++) v.step(idle(), DT);
   v.vx = Math.sin(v.heading) * speed;

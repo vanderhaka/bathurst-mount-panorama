@@ -51,7 +51,7 @@ export class Vehicle {
   steerAngle = 0;
   private readonly corners: SuspensionCorner[];
   private readonly wtp: TrackPoint[] = [0, 1, 2, 3].map(() => createTrackPoint());
-  private readonly tyre: TyreResult = { fx: 0, fy: 0, use: 0, absActive: false, tcActive: false };
+  private readonly tyre: TyreResult = { fx: 0, fy: 0, use: 0, slide: 0, absActive: false, tcActive: false };
   private prevComp = [0, 0, 0, 0];
   /** Lateral force of the front and rear axle from the last step (body axes, + = left). */
   private readonly axleFy = [0, 0];
@@ -68,7 +68,7 @@ export class Vehicle {
     this.setup = defaultSetup(spec.kind);
     this.trackGrip = new TrackGrip(track, kerbs.line);
     this.pt = createPowertrain(spec);
-    this.wheels = this.corners.map(() => ({ load: 0, slip: 0, surface: 'road' as const, spin: 0, compression: 0, steer: 0 }));
+    this.wheels = this.corners.map(() => ({ load: 0, slip: 0, slide: 0, surface: 'road' as const, spin: 0, compression: 0, steer: 0 }));
     this.telemetry = {
       speed: 0, rpm: spec.engine.idleRpm, gear: 1, throttle: 0, brake: 0, steer: 0, onLimiter: false,
       fuel: this.stint.fuel, tyres: this.stint.tyres, brakes: this.brakes.discs, flatSpots: this.flatSpots.tyres,
@@ -207,6 +207,7 @@ export class Vehicle {
       const wt = this.wheels[w];
       wt.load = fz;
       wt.slip = r.use;
+      wt.slide = r.slide;
       wt.surface = surf;
       wt.spin += locked ? 0 : (u / R) * dt * (r.use > 1 && !front && input.throttle > 0.3 ? 1.6 : 1);
       wt.compression = comp - (c.h0 - spec.cgHeight);
