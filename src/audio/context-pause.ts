@@ -4,6 +4,16 @@ export function isRealtime(ctx: BaseAudioContext | null): ctx is AudioContext {
 }
 
 /**
+ * Closes a context once its engine has `stopped`. A paused race's context is suspended, and a worklet only
+ * ends inside a render quantum, so it is resumed first: silent, as every node is already disconnected.
+ */
+export function closeWhenStopped(ctx: AudioContext, stopped: Promise<void>): void {
+  if (ctx.state === 'closed') return;
+  ctx.resume().catch(() => undefined);
+  void stopped.then(() => ctx.close()).catch(() => undefined);
+}
+
+/**
  * The game's pause intent for an AudioContext. It acts on every state but 'closed': iOS also reports
  * the non-standard 'interrupted' state when the system takes the audio session (backgrounding, a call),
  * possibly before the page reports it is hidden, and a context the page never suspended may come back

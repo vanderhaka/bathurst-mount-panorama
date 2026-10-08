@@ -2,7 +2,7 @@
 // `./engine-processor.ts?worker&url` so Vite bundles the dsp imports into it.
 import { EngineSynth } from '@/audio/dsp/engine-synth';
 import type { CarSoundProfile } from '@/audio/dsp/engine-profile';
-import { ENGINE_PROCESSOR_NAME } from '@/audio/engine-constants';
+import { ENGINE_PROCESSOR_NAME, ENGINE_STOP, ENGINE_STOPPED } from '@/audio/engine-constants';
 
 // The DOM lib has no AudioWorkletGlobalScope typings; declare just what is used.
 declare const sampleRate: number;
@@ -15,11 +15,13 @@ declare const AudioWorkletProcessor: new (options?: unknown) => { readonly port:
 
 class EngineProcessor extends AudioWorkletProcessor {
   private readonly synth: EngineSynth;
+  private stopping = false;
 
   constructor(options: ProcessorOptions) {
     super(options);
     const { profile, seed } = options.processorOptions;
     this.synth = new EngineSynth(profile, sampleRate, seed ?? profile.seed);
+    this.port.onmessage = (e: MessageEvent) => { if (e.data === ENGINE_STOP) this.stopping = true; };
   }
 
   static get parameterDescriptors(): Array<{
@@ -39,6 +41,12 @@ class EngineProcessor extends AudioWorkletProcessor {
   }
 
   process(_inputs: Float32Array[][], outputs: Float32Array[][], parameters: Record<string, Float32Array>): boolean {
+    // Returning false ends the node. Chrome keeps a node whose processor never does (and with it the
+    // whole AudioContext, closed or not) alive for the life of the page.
+    if (this.stopping) {
+      this.port.postMessage(ENGINE_STOPPED);
+      return false;
+    }
     const exhaust = outputs[0]?.[0];
     const intake = outputs[1]?.[0];
     if (!exhaust || !intake) return true;

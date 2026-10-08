@@ -6,7 +6,7 @@ import {
   patternHarmonics,
   renderPatternCycle,
 } from '@/audio/dsp/pulse-shape';
-import { ENGINE_PROCESSOR_NAME } from '@/audio/engine-constants';
+import { ENGINE_PROCESSOR_NAME, ENGINE_STOP, ENGINE_STOPPED } from '@/audio/engine-constants';
 import { filter, finite, gain, loop, oscillator, ramp, setNow, type LayerEnv } from '@/audio/graph/audio-utils';
 
 export interface EngineControls {
@@ -26,7 +26,12 @@ export interface EngineSource {
   setControls(c: EngineControls, t: number): void;
   /** Ignition cut (gear shift) for `seconds`. */
   cut(t: number, seconds: number): void;
+  /** Ends the engine for good; settles once it has (the context must run for a worklet to end). */
+  stop(): Promise<void>;
 }
+
+/** How long stop() waits for the worklet to confirm before giving up (a context that will not run). */
+export const ENGINE_STOP_TIMEOUT_MS = 1000;
 
 /** Primary path: the sample-accurate pulse-train synthesiser in an AudioWorklet. */
 export async function createWorkletEngine(env: LayerEnv): Promise<EngineSource> {
@@ -73,6 +78,18 @@ export async function createWorkletEngine(env: LayerEnv): Promise<EngineSource> 
       cutParam.cancelScheduledValues(t);
       cutParam.setValueAtTime(1, t);
       cutParam.setValueAtTime(0, t + seconds);
+    },
+    stop() {
+      return new Promise<void>((resolve) => {
+        const done = (): void => {
+          clearTimeout(timer);
+          node.port.close();
+          resolve();
+        };
+        const timer = setTimeout(done, ENGINE_STOP_TIMEOUT_MS);
+        node.port.onmessage = (e: MessageEvent) => { if (e.data === ENGINE_STOPPED) done(); };
+        node.port.postMessage(ENGINE_STOP);
+      });
     },
   };
 }
@@ -161,6 +178,7 @@ export function createFallbackEngine(env: LayerEnv): EngineSource {
     cut(t, seconds) {
       cutUntil = t + seconds;
     },
+    stop: () => Promise.resolve(), // its sources are stopped with the rest of the node bag
   };
 }
 

@@ -1,5 +1,5 @@
 import type { CarKind } from '@/car/car-specs';
-import { ContextPause, isRealtime } from '@/audio/context-pause';
+import { closeWhenStopped, ContextPause, isRealtime } from '@/audio/context-pause';
 import { CAR_SOUND_PROFILES, type CarSoundProfile } from '@/audio/dsp/engine-profile';
 import { clamp, clamp01 } from '@/audio/dsp/math';
 import { cabinLowpassHz, layerMix, type LayerMix } from '@/audio/dsp/mix-maps';
@@ -264,8 +264,9 @@ class CarAudioEngine implements CarAudioDebug {
     this.disposed = true;
     this.pause.release();
     this.oneShots?.stopAll();
+    const stopped = this.engine?.stop() ?? Promise.resolve();
     this.bag.disposeAll();
-    if (this.ownsCtx && isRealtime(this.ctx)) this.ctx.close().catch(() => undefined);
+    if (this.ownsCtx && isRealtime(this.ctx)) closeWhenStopped(this.ctx, stopped);
     this.engine = null;
     this.master = null;
     this.buses = null;
