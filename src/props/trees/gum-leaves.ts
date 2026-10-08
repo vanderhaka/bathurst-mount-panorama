@@ -4,15 +4,33 @@ import type { CrownShape } from '@/props/trees/gum-crown';
 
 const clamp = (n: number) => Math.max(0, Math.min(1, n));
 
-/** Lanceolate leaves over a dense connected core; only the outer rim has gaps. */
+/**
+ * Elongated eucalyptus leaves sprayed outwards from a handful of clump centres: dense
+ * clump cores, drooping leaf tips and real gaps between clumps. Leaf tips are lighter.
+ */
 export function generateLeafTile(size: number, seed: number, crown = false): Uint8Array {
-  const rng = createRng(seed), leaves = new Float32Array(size * size), tones = new Float32Array(size * size).fill(1);
-  for (let l = 0; l < 850; l++) {
-    const a = rng() * Math.PI * 2, r = Math.sqrt(rng()) * 0.95;
-    const cx = (0.5 + Math.cos(a) * r * 0.5) * size, cy = (0.5 + Math.sin(a) * r * 0.5) * size;
-    const angle = rng() * Math.PI + 0.3, c = Math.cos(angle), s = Math.sin(angle);
-    const length = size * rng.range(0.018, 0.05), width = length * rng.range(0.17, 0.25), radius = Math.ceil(length + 1);
-    const tint = rng.range(0.88, 1);
+  const rng = createRng(seed), leaves = new Float32Array(size * size), tones = new Float32Array(size * size).fill(0.8);
+  const field = new Float32Array(size * size);
+  const clumps = Array.from({ length: crown ? 15 : 12 }, () => {
+    const a = rng() * Math.PI * 2, r = Math.sqrt(rng()) * 0.62;
+    return { x: (0.5 + Math.cos(a) * r * 0.5) * size, y: (0.5 + Math.sin(a) * r * 0.5) * size, r: size * rng.range(0.07, 0.115) };
+  });
+  for (const c of clumps) {
+    for (let y = Math.max(0, Math.floor(c.y - c.r)); y < Math.min(size, c.y + c.r); y++) {
+      for (let x = Math.max(0, Math.floor(c.x - c.r)); x < Math.min(size, c.x + c.r); x++) {
+        const d = Math.hypot(x + 0.5 - c.x, y + 0.5 - c.y) / c.r;
+        field[y * size + x] = Math.max(field[y * size + x], clamp(1.4 - d * 1.4));
+      }
+    }
+  }
+  for (let l = 0; l < 520; l++) {
+    const clump = clumps[l % clumps.length], spread = rng() * clump.r * 1.25, around = rng() * Math.PI * 2;
+    const cx = clump.x + Math.cos(around) * spread, cy = clump.y + Math.sin(around) * spread;
+    // Leaves fan out from the clump centre with a downward droop.
+    const outward = Math.atan2(cy - clump.y, cx - clump.x), droop = Math.PI / 2;
+    const angle = outward * 0.55 + droop * 0.45 + rng.jitter(0.5), c = Math.cos(angle), s = Math.sin(angle);
+    const length = size * rng.range(0.045, 0.1), width = length * rng.range(0.12, 0.18), radius = Math.ceil(length + 1);
+    const tint = rng.range(0.9, 1);
     for (let y = Math.max(0, Math.floor(cy - radius)); y < Math.min(size, cy + radius); y++) {
       for (let x = Math.max(0, Math.floor(cx - radius)); x < Math.min(size, cx + radius); x++) {
         const dx = x + 0.5 - cx, dy = y + 0.5 - cy;
@@ -20,7 +38,8 @@ export function generateLeafTile(size: number, seed: number, crown = false): Uin
         const taper = Math.max(0.001, 1 - Math.abs(along) ** 1.35);
         const coverage = clamp((1 - Math.max(Math.abs(along), Math.abs(across) / taper)) * Math.max(1, width) + 0.5);
         const i = y * size + x;
-        if (coverage > leaves[i]) { leaves[i] = coverage; tones[i] = Math.abs(across) < 0.1 ? 1 : tint; }
+        // Dark leaf base, lighter tip.
+        if (coverage > leaves[i]) { leaves[i] = coverage; tones[i] = tint * (0.78 + 0.22 * clamp(Math.abs(along) * 1.1)); }
       }
     }
   }
@@ -30,10 +49,11 @@ export function generateLeafTile(size: number, seed: number, crown = false): Uin
     const angle = Math.atan2(v, u), radius = Math.hypot(u, v), i = y * size + x, k = i * 4;
     const rim = 0.94 + 0.025 * Math.sin(angle * (crown ? 5 : 7) + phase) + 0.016 * Math.sin(angle * 13 - phase);
     const envelope = clamp((rim - radius) * size * 0.4 + 0.5);
-    const core = clamp((0.80 - radius) * size * 0.4 + 0.5);
-    const alpha = envelope * (core + (1 - core) * (0.58 + leaves[i] * 0.42));
-    const tone = 1 - leaves[i] * (1 - tones[i]);
-    for (let j = 0; j < 3; j++) data[k + j] = Math.round(tone * 255);
+    // Solid clump cores, leaf-shaped edges; gaps between clumps stay open.
+    const core = clamp((field[i] - 0.55) * size * 0.2 + 0.5);
+    const alpha = envelope * Math.max(leaves[i], core * 0.9);
+    const tone = leaves[i] > 0.4 ? tones[i] : 0.7 + 0.1 * field[i];
+    for (let j = 0; j < 3; j++) data[k + j] = Math.round(clamp(tone) * 255);
     data[k + 3] = Math.round(alpha * 255);
   }
   return data;

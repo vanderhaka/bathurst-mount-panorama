@@ -33,14 +33,17 @@ function largestComponent(data: Uint8Array, size: number): [number, number] {
 }
 
 describe('gum surface assets', () => {
-  it('draws reproducible oval foliage with a connected core and transparent ragged rim', () => {
+  it('draws reproducible oval foliage of connected leaf clumps with gaps and a transparent ragged rim', () => {
     for (const seed of [3, 5, 11, 19]) {
       const data = generateLeafTile(128, seed, true);
       expect(data).toEqual(generateLeafTile(128, seed, true));
       const [largest, total] = largestComponent(data, 128);
-      expect(total).toBeGreaterThan(128 * 128 * 0.45);
-      expect(largest / total).toBeGreaterThan(0.995);
-      expect(data[(64 * 128 + 64) * 4 + 3]).toBe(255);
+      // Clumped leaf sprays: one dominant connected mass with real gaps between clumps (intentionally open, not a solid blob).
+      expect(total).toBeGreaterThan(128 * 128 * 0.2);
+      expect(largest / total).toBeGreaterThan(0.9);
+      let gaps = 0;
+      for (let y = 32; y < 96; y++) for (let x = 32; x < 96; x++) if (data[(y * 128 + x) * 4 + 3] < 115) gaps++;
+      expect(gaps).toBeGreaterThan(64 * 64 * 0.05);
       expect(data[3]).toBe(0);
       expect([...data].filter((v, i) => i % 4 === 3 && v > 0 && v < 255).length).toBeGreaterThan(20);
     }

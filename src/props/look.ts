@@ -5,6 +5,12 @@
 import { BUILDING, FOLIAGE, GROUND, LIVERY_COLOURS, TRACKSIDE } from '@/art/palette';
 import { clearAssetCache } from '@/props/core/cache';
 
+/** Gum crown gradient: olive, dark olive, sage, grey-green (blended pairwise per tree). */
+const GUM_FOLIAGE = [FOLIAGE.gumLeafOlive, FOLIAGE.gumLeafDark, FOLIAGE.gumLeafSage, FOLIAGE.gumLeafGrey];
+
+/** Crown shader shading: underside darkening, sun-facing top lift, and centre ambient occlusion. */
+export const GUM_SHADING = { under: 0.5, topLift: 0.5, gain: 1.3, ao: 0.36, aoStart: 0.1, aoEnd: 0.75, hueJitter: 0.02, satJitter: 0.08, lightJitter: 0.08 } as const;
+
 export type Range = [min: number, max: number];
 
 export interface TreeLook {
@@ -92,16 +98,16 @@ function defaultLook(): PropsLook {
     shading: { flat: true, roughness: 0.9, foliageRoughness: 0.95, metalRoughness: 0.55, glassRoughness: 0.28, treeTintHue: 0.5 },
     eucalyptus: {
       height: [12, 25],
-      foliage: [FOLIAGE.eucalyptBlueGrey, FOLIAGE.eucalyptGreyGreen, FOLIAGE.eucalyptSage, FOLIAGE.eucalyptOlive, FOLIAGE.eucalyptDarkOlive],
+      foliage: GUM_FOLIAGE,
       foliageJitter: 0.3,
       faceJitter: 0.07,
-      underShade: 0.22,
+      underShade: 0.5,
       under: FOLIAGE.eucalyptBlueGrey,
       underBlend: 0.35,
       innerShade: 0.25,
       topSheen: 0.22,
       sheen: FOLIAGE.eucalyptSheen,
-      trunk: FOLIAGE.eucalyptTrunkPale,
+      trunk: FOLIAGE.eucalyptTrunk,
       bark: FOLIAGE.eucalyptBark,
       barkStrip: FOLIAGE.eucalyptBarkStrip,
       boxBark: FOLIAGE.eucalyptBoxBark,
@@ -114,16 +120,16 @@ function defaultLook(): PropsLook {
     },
     eucalyptusYoung: {
       height: [4, 8],
-      foliage: [FOLIAGE.eucalyptBlueGrey, FOLIAGE.eucalyptGreyGreen, FOLIAGE.eucalyptSage, FOLIAGE.eucalyptOlive],
+      foliage: GUM_FOLIAGE,
       foliageJitter: 0.28,
       faceJitter: 0.06,
-      underShade: 0.2,
+      underShade: 0.5,
       under: FOLIAGE.eucalyptBlueGrey,
       underBlend: 0.35,
       innerShade: 0.2,
       topSheen: 0.22,
       sheen: FOLIAGE.eucalyptSheen,
-      trunk: FOLIAGE.eucalyptTrunkPale,
+      trunk: FOLIAGE.eucalyptTrunk,
       bark: FOLIAGE.eucalyptBark,
       barkStrip: FOLIAGE.eucalyptBarkStrip,
       boxBark: FOLIAGE.eucalyptBoxBark,
