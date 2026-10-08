@@ -7,15 +7,62 @@ export const CIRCUITS = {
     facts: [['Length', '3.219', 'km'], ['Turns', '14', ''], ['Direction', 'Clockwise', '']] },
 } as const;
 
-export function circuitFromSearch(search: string): CircuitId {
-  return new URLSearchParams(search).get('track') === 'adelaide' ? 'adelaide' : 'bathurst';
+/** Last circuit chosen on the title screen; read when the address names none (a Home Screen launch opens "/"). */
+const STORAGE_KEY = 'bathurst.circuit.v1';
+
+export type CircuitStorage = Pick<Storage, 'getItem' | 'setItem'>;
+
+function browserStorage(): CircuitStorage | null {
+  try { return typeof localStorage === 'undefined' ? null : localStorage; } catch { return null; }
 }
 
-export function circuitUrl(url: string, circuit: CircuitId): string {
+function parseCircuit(value: string | null | undefined): CircuitId | null {
+  const name = value?.trim().toLowerCase();
+  return name === 'adelaide' || name === 'bathurst' ? name : null;
+}
+
+/** The circuit named by ?track= (any letter case), or null when it is missing or unknown. */
+function explicitCircuit(search: string): CircuitId | null {
+  return parseCircuit(new URLSearchParams(search).get('track'));
+}
+
+export function circuitFromSearch(search: string): CircuitId {
+  return explicitCircuit(search) ?? 'bathurst';
+}
+
+export function loadSavedCircuit(storage: CircuitStorage | null = browserStorage()): CircuitId | null {
+  try { return parseCircuit(storage?.getItem(STORAGE_KEY)); } catch { return null; }
+}
+
+/** Remembers the choice for the next launch. Returns false when storage is missing, blocked or full. */
+export function saveCircuit(circuit: CircuitId, storage: CircuitStorage | null = browserStorage()): boolean {
+  try {
+    if (!storage) return false;
+    storage.setItem(STORAGE_KEY, circuit);
+    return true;
+  } catch { return false; }
+}
+
+/** An explicit ?track= wins, then the saved choice, then Bathurst on first launch. */
+export function resolveCircuit(search: string, saved: CircuitId | null): CircuitId {
+  return explicitCircuit(search) ?? saved ?? 'bathurst';
+}
+
+/** Adelaide is named in the address; Bathurst is the default, so its parameter is dropped unless `keepParam`. */
+export function circuitUrl(url: string, circuit: CircuitId, keepParam = false): string {
   const next = new URL(url);
-  if (circuit === 'adelaide') next.searchParams.set('track', circuit);
+  if (circuit === 'adelaide' || keepParam) next.searchParams.set('track', circuit);
   else next.searchParams.delete('track');
   return next.href;
 }
 
-export const ACTIVE_CIRCUIT: CircuitId = typeof location === 'undefined' ? 'bathurst' : circuitFromSearch(location.search);
+/**
+ * Reloads on another circuit and remembers it. `replace` swaps the history entry, so Back leaves the
+ * game instead of toggling circuits. If the choice can not be saved, the address names the circuit.
+ */
+export function switchCircuit(circuit: CircuitId, nav: Pick<Location, 'href' | 'replace'> = location, storage: CircuitStorage | null = browserStorage()): void {
+  const saved = saveCircuit(circuit, storage);
+  nav.replace(circuitUrl(nav.href, circuit, !saved));
+}
+
+export const ACTIVE_CIRCUIT: CircuitId = typeof location === 'undefined' ? 'bathurst' : resolveCircuit(location.search, loadSavedCircuit());
