@@ -164,6 +164,56 @@ Across the corrected stretches, the remaining offset to the measured centre has 
 - **T11 and T12.** These keep the map fit. The photos put them a median 0.3 m (T11) and 1.9 m (T12) from the carriageway centre, so they were left unchanged.
 - **Topology figure.** `gold-coast-topology.png` above still shows the route before the re-fit.
 
+## Tram, highway and footbridges
+
+Added 2026-10-08. The sources are OSM (ODbL) through Overpass, the Queensland aerial photos above (CC BY 4.0) and the 2025 numbered map. The 2014 photo was taken during the race build, so it shows the temporary bridges and stand frames. The 2022 photo shows no race build and serves as a control. The scripts, the cached extracts and the annotated check images are in `artifacts/review/gold-coast/trackside/` (`derive-trackside.py`, `export-runtime.mjs`, `check-*.jpg`). The runtime data is `src/track/data/gold-coast-trackside.json`.
+
+**Pedestrian bridges.** The 2025 map has four PEDESTRIAN BRIDGE symbols. Three cross the track, and the 2014 photo confirms each one within 5-12 m of its symbol:
+
+| Bridge | S (m) | Place | Deck |
+|---|---:|---|---|
+| A | 1282.6 | Main Beach Parade, 40 m past the beach zebra crossing | 42.1 m, nearly square to the track |
+| C | 2041.5 | Breaker Street at the Pacific Street junction | 47.6 m, 5 degrees from square |
+| D | 2590.5 | Gold Coast Highway, 98 m after T15 | 38.5 m, 7 degrees from square; the right end lands in the median |
+
+The fourth symbol is a permanent footbridge over the Nerang channel (OSM way 49134509). It does not cross the track. The 2014 photo also shows a bridge at s 2892 over the race road and the pit lane, but the 2025 map does not, so the game does not build it. The research first recorded bridge D at 19 degrees from square. The check image shows 7 degrees, so the runtime data uses 7.
+
+**Pit-straight cross-section** (2014 and 2022 photos, d from the game line, + = driver's left):
+
+- **Race road:** the real right edge is 4.0-5.0 m right of the line along the whole straight.
+- **Grass median:** with the stand frames, at d -5.4 to -14.2. The frames are 22-30 m long.
+- **Public carriageway (north-west bound):** kerb to kerb at d -16.1 to -28.4, with traffic. The OSM centre line (-20.4) is 1.6-1.9 m nearer the track than the photo centre.
+- **G:link light rail:** two tracks at d -33 to -38. The tram crosses the Nerang channel on its own bridges near s 400 and s 2620, beside the road bridges.
+- **Pit lane:** d +16 to +22.
+
+**Run into the Pizza Hut Hairpin.** The tram runs beside Surfers Paradise Boulevard. Its nearest rail comes within 6.6 m of the line between s 670 and s 750, and the tram turns away at the T4 apex. This matches the 2013 narrowing of this run for the light rail.
+
+**Changes to the game.**
+
+- **Pit straight, right side:** the edge is now 4.9 m and the wall 6.1 m (s 2640-360, blended over 40 m). The 7 m and 8.2 m before put the wall into the median.
+- **Run into T4, right side:** the wall stops 0.65 m short of the nearest rail (at least 5.91 m), and the edge narrows to 4.9 m. The T4 runoff on that side is gone, because the tram uses that space.
+- **Stands:**
+  - S11-S14 now stand in the median as the real ones do: 5 rows, no roof, their size an estimate. Before, they stood on the public carriageway.
+  - S15 moved behind the tram (56 m).
+  - S19 moved to s 1306, beside the 2014 frames and off bridge A's landing.
+  - S10 moved to 27 m, clear of the pit-lane paving.
+- **Tram:**
+  - **Track:** all 26 OSM tram ways, 4 of them bridges, each with a bed and two rails.
+  - **Overhead line:** poles about every 35 m, with a contact wire.
+  - **Stations:** platforms at Main Beach and Surfers Paradise North, with a stopped generic tram at each (no real livery).
+- **Highway:**
+  - **Ways:** the 7 ways beside the pit straight, plus both public carriageways out to 380 m from the circuit.
+  - **Road:** 11.2 m wide with three lanes. Generated traffic stands still.
+  - **Race walls:** the walls cut the road where it meets the circuit, as the race barriers close it.
+
+**Still estimates:**
+
+- **Poles:** the pole spacing and positions.
+- **Platforms:** the platform size and side.
+- **Trams and cars:** the tram shape and the car positions.
+- **Road width:** the width of the road away from the pit straight.
+- **Bridges:** each bridge's height (5.6 m clear over the racing surface, as at Bathurst) and its stair layout.
+
 ## Runtime world (implemented 2026-10-08)
 
 The game uses this research as follows. Each item is an estimate unless it says otherwise.
@@ -172,4 +222,5 @@ The game uses this research as follows. Each item is an estimate unless it says 
 - **Macintosh Island.** OSM maps the island at about 0.6 km². The pit straight runs on it, and the lap crosses the channel near s 400 and s 2620. The road corridor stays at ground height at both crossings, so they read as causeways. The game has no bridge models.
 - **Sea and beach.** The sea surface starts at the OSM coastline. The 55 m before the coastline is sand. The infield channel at z = 0 is about 67 m wide.
 - **Skyline.** 124 OSM towers fit on the High tier, Q1 among them at 323 m (OSM height tag). Footprints are size-class estimates; OSM gives only the building centres. Mid-rise street blocks (27 on High) are generated and kept off the island, the lap's infield and the 120 m before the coast.
-- **Trackside.** Palms (coconut and foxtail) are generated; the species is not verified. 12 of the 13 mapped stands fit; S22 does not fit beside S22A. Two of the three pit garage rows fit. Widths, runoff and tyre-stack positions are gameplay estimates.
+- **Trackside.** Palms (coconut and foxtail) are generated; the species is not verified. 12 of the 13 mapped stands fit; S22 does not fit beside S22A. Two of the three pit garage rows fit. Widths, runoff and tyre-stack positions are gameplay estimates. The section above gives the stand moves of the tram and highway work.
+- **Scale.** The environment data uses the re-fitted scale (0.995194). The positions in the Environment section above predate the re-fit and differ by up to 0.6 %.

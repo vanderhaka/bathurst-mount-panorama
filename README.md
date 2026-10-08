@@ -39,7 +39,9 @@ Parklands and Surfers Paradise. Switching reloads the scene.
   2025 Gold Coast 500 layout is 2.960 km, anticlockwise, with 15 numbered turns,
   the beach chicane, the OSM high-rise skyline, the beach and the Broadwater.
   The hairpins, the beach chicane and Hill Parade are measured from Queensland
-  Government aerial photos. Sources and estimates:
+  Government aerial photos. The G:link tram and the public Gold Coast Highway
+  run beside the pit straight, and three pedestrian bridges cross the track.
+  Sources and estimates:
   [`docs/research/gold-coast.md`](docs/research/gold-coast.md).
 
 Elevation, road widths, sectors and timing lines on both street circuits are
