@@ -30,5 +30,8 @@ export default defineConfig({
     // Diagnostic traces (no assertions): run with `npx vitest run tests/debug/<file> --silent=false`.
     exclude: ['tests/debug/**', 'node_modules/**'],
     environment: 'node',
+    // Many tests drive whole laps of car physics (up to ~4.5 s each on a quiet machine, 4x that under load).
+    // The 5 s default failed them when the CPU was busy; tests with a longer timeout of their own keep it.
+    testTimeout: 30_000,
   },
 });
