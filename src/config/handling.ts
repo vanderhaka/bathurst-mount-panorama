@@ -102,7 +102,11 @@ export function resetHandling(): void {
   current = { ...DEFAULT_HANDLING };
 }
 
-/** A car spec with the handling multipliers applied (for the racing-line speed profile). */
+/**
+ * A car spec with the handling multipliers applied (for the racing-line speed profile). tyreMu is the
+ * mean of the two axles; limitingGrip is the weaker axle relative to it (the front when rearGrip > 1).
+ */
 export function tunedSpec(spec: CarSpec, h: Readonly<HandlingConfig> = current): CarSpec {
-  return { ...spec, tyreMu: spec.tyreMu * h.grip * (1 + h.rearGrip) / 2, clA: spec.clA * h.downforce };
+  const limitingGrip = (2 * Math.min(1, h.rearGrip)) / (1 + h.rearGrip);
+  return { ...spec, tyreMu: spec.tyreMu * h.grip * (1 + h.rearGrip) / 2, limitingGrip, clA: spec.clA * h.downforce };
 }

@@ -67,6 +67,8 @@ export interface CarSpec {
   aeroBalanceFront: number;
   /** Peak tyre friction coefficient (dry, warm slicks). */
   tyreMu: number;
+  /** Friction of the weaker axle relative to tyreMu (the axle mean), from the handling tuner. Absent = 1. */
+  limitingGrip?: number;
   maxBrakeTorqueNm: number;
   brakeBiasFront: number;
   /** Max road-wheel steering angle (rad). */

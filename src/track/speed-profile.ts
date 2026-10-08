@@ -26,6 +26,11 @@ export interface ProfileOptions {
    * because heavy braking at high lateral g unloads the inside rear tyre.
    */
   trailBrakeExp: number;
+  /**
+   * Corner on the weaker axle's grip (spec.limitingGrip) instead of the mean of both axles. With
+   * more rear grip the car understeers at the front's limit; a mean promises cornering speed it cannot hold.
+   */
+  limitingAxle: boolean;
 }
 
 /**
@@ -33,7 +38,7 @@ export interface ProfileOptions {
  * driver can really hold, not the theoretical limit. A driver who brakes on red,
  * lifts on yellow and accelerates on green laps cleanly (tests/line-follower.test.ts).
  */
-export const LINE_PROFILE: Partial<ProfileOptions> = { gripFactor: 0.92, trailBrakeExp: 2 };
+export const LINE_PROFILE: Partial<ProfileOptions> = { gripFactor: 0.92, trailBrakeExp: 2, limitingAxle: true };
 
 /** Quasi-steady-state lap simulation: cornering limit, then forward (power) and backward (brakes) passes. */
 export function computeSpeedProfile(track: Track, line: RacingLine, spec: CarSpec, opts: Partial<ProfileOptions> = {}): SpeedProfile {
@@ -43,6 +48,7 @@ export function computeSpeedProfile(track: Track, line: RacingLine, spec: CarSpe
   const trailExp = opts.trailBrakeExp ?? 1;
   const m = spec.massKg;
   const mu = spec.tyreMu * grip;
+  const muCorner = mu * (opts.limitingAxle ? spec.limitingGrip ?? 1 : 1);
   const kAero = 0.5 * RHO * spec.clA; // downforce = kAero v^2
   const kDrag = 0.5 * RHO * spec.cdA;
   const peakPower = enginePeakPowerW(spec);
@@ -55,7 +61,7 @@ export function computeSpeedProfile(track: Track, line: RacingLine, spec: CarSpe
     // Crossfall: + helps (road rises to the outside), - is off-camber. bank + = left side higher,
     // curvature + = left turn, so a left turn is helped by the right side being higher.
     const help = -track.bank[i] * Math.sign(line.curvature[i]);
-    const muB = Math.max(0.2, (mu + help) / (1 - mu * help));
+    const muB = Math.max(0.2, (muCorner + help) / (1 - muCorner * help));
     // Normal load per unit mass: g * cos(grade) - v^2 * kv (crests unload the car).
     // Solve m v^2 k = muB (m (g - v^2 kv) + kAero v^2) for v.
     const denom = m * k - muB * kAero + muB * m * Math.max(-0.02, vertK[i]);
@@ -64,7 +70,7 @@ export function computeSpeedProfile(track: Track, line: RacingLine, spec: CarSpe
   const v = Float32Array.from(limit);
   const lateralUse = (i: number, vv: number) => {
     const aLat = vv * vv * Math.abs(line.curvature[i]);
-    const aMax = (mu * (m * (G - vv * vv * Math.max(0, vertK[i])) + kAero * vv * vv)) / m;
+    const aMax = (muCorner * (m * (G - vv * vv * Math.max(0, vertK[i])) + kAero * vv * vv)) / m;
     return Math.min(1, aLat / Math.max(0.1, aMax));
   };
   // Two laps of passes so that the wrap-around point converges.
