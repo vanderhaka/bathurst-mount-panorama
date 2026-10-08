@@ -1,3 +1,5 @@
+import type { MenuCallbacks } from '@/types/hud';
+
 interface FullscreenHost { requestFullscreen?(options?: FullscreenOptions): Promise<void> }
 interface LandscapeScreen { lock?(orientation: 'landscape'): Promise<void> }
 
@@ -12,10 +14,25 @@ export async function requestAndroidPresentation(userAgent: string, host: Fullsc
   }
 }
 
+/** Android only, and only outside fullscreen. Call it synchronously inside a tap. */
+function presentAndroid(): void {
+  if (document.fullscreenElement) return;
+  void requestAndroidPresentation(navigator.userAgent, document.documentElement,
+    screen.orientation as ScreenOrientation & LandscapeScreen);
+}
+
 export function installAndroidPresentation(host: HTMLElement): void {
   if (!/Android/i.test(navigator.userAgent)) return;
-  host.addEventListener('pointerup', () => {
-    void requestAndroidPresentation(navigator.userAgent, document.documentElement,
-      screen.orientation as ScreenOrientation & LandscapeScreen);
-  }, { once: true, passive: true });
+  host.addEventListener('pointerup', presentAndroid, { once: true, passive: true });
+}
+
+/** Back or a notification can leave fullscreen mid-session: Start, Resume and Restart taps
+ * request it again before the race continues. */
+export function presentOnRaceTaps(callbacks: MenuCallbacks): MenuCallbacks {
+  return {
+    ...callbacks,
+    onStart: (config) => { presentAndroid(); callbacks.onStart(config); },
+    onResume: () => { presentAndroid(); callbacks.onResume(); },
+    onRestart: () => { presentAndroid(); callbacks.onRestart(); },
+  };
 }

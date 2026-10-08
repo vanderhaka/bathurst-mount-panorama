@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { RaceWakeLock } from '@/phone/wake-lock';
+import { presentOnRaceTaps } from '@/phone/android-presentation';
 import { createCarAudio } from '@/audio';
 import { CameraRig } from '@/camera/camera-rig';
 import { CAR_SPECS, type CarKind } from '@/car/car-specs';
@@ -77,7 +78,7 @@ export class Game {
     const stage = new Stage(root, settings.quality, loadQualityChoice(settings).pixelRatio);
     const menus = createMenus();
     let game: Game | null = null;
-    menus.mount(root, {
+    menus.mount(root, presentOnRaceTaps({
       onStart: (cfg) => game?.startRace(cfg),
       onResume: () => game?.resume(),
       onRestart: () => game?.restart(),
@@ -88,7 +89,7 @@ export class Game {
       onQuitToMenu: () => game?.quitToTitle(),
       onSettingsChange: (s) => game?.applySettings(s),
       onPreviewCar: (car, livery) => game?.preview(car, livery),
-    }, settings);
+    }), settings);
     await loadHudFonts();
     menus.showLoading(0.02, 'Starting');
     const world = await buildWorld(stage.renderer, async (f, label) => {
