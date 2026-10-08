@@ -38,7 +38,8 @@ function profile(track: Track): SpeedProfile {
   return { speed: new Float32Array(track.n).fill(60), cornerLimit: new Float32Array(track.n).fill(60), lapTimeS: 90, topSpeed: 60 };
 }
 
-describe('Adelaide street and parkland surroundings', () => {
+// Every case here builds real terrain/scenery geometry: 1-4 s on a 2-worker CI runner, so the 5 s default is too tight.
+describe('Adelaide street and parkland surroundings', { timeout: 30000 }, () => {
   it.each(['low', 'medium', 'high'] as const)('keeps the %s rendered ground below the road and verges, including corners', quality => {
     const track = createAdelaideTrack(), terrain = buildAdelaideTerrain(track, quality);
     terrain.group.updateMatrixWorld(true);

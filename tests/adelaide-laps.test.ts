@@ -39,6 +39,6 @@ describe('Adelaide is drivable with the unchanged cars', () => {
       expect(worstOff).toBeLessThan(1.05);
       expect(laps[1]).toBeGreaterThan(70);
       expect(laps[1]).toBeLessThan(95);
-    });
+    }, 60000);
   }
 });

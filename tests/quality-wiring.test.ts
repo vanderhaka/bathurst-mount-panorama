@@ -25,4 +25,4 @@ it('honours the baked-AO switch when building fine and coarse terrain', () => {
   for (const call of bake.mock.calls) expect(call[4]).toBe(0);
   terrain.group.traverse(o => { if (o instanceof THREE.Mesh) o.geometry.dispose(); });
   terrain.dispose();
-});
+}, 30000); // builds the full Bathurst terrain: ~3.6 s on the 2-worker CI runner, too close to the 5 s default

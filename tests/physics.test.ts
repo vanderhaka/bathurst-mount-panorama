@@ -121,6 +121,6 @@ describe('vehicle physics', () => {
       expect(lapTime).toBeGreaterThan(118);
       expect(lapTime).toBeLessThan(145);
       expect(maxImpact).toBeLessThan(1);
-    });
+    }, 60000);
   }
 });
