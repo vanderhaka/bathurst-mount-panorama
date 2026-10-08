@@ -92,6 +92,15 @@ const GEN3_DIMENSIONS: CarDimensions = {
   rideHeight: 0.07,
 };
 
+/**
+ * CG height, estimate (no absolute Gen3 figure is published; Supercars gives only relative data,
+ * e.g. Camaro and Mustang 2.3 mm apart). Gen3 was built lower and wider than Gen2 for mechanical
+ * grip (100 mm lower roll hoop, 100 mm wider track), and road sports cars on taller suspension
+ * sit at 0.40-0.45 m (Alfa 4C, Corvette C7). The tip-over limit track / (2 * h) must stay above
+ * the tuned tyre friction (about 1.94), or an ordinary corner lifts the inside wheels.
+ */
+const GEN3_CG_HEIGHT = 0.38;
+
 export const CAR_SPECS: Record<CarKind, CarSpec> = {
   camaro: {
     kind: 'camaro',
@@ -101,7 +110,7 @@ export const CAR_SPECS: Record<CarKind, CarSpec> = {
     dimensions: { ...GEN3_DIMENSIONS, height: 1.29 },
     massKg: 1400,
     frontWeight: 0.53,
-    cgHeight: 0.44,
+    cgHeight: GEN3_CG_HEIGHT,
     yawInertia: 2400,
     engine: {
       label: '5.7 L pushrod V8',
@@ -136,7 +145,7 @@ export const CAR_SPECS: Record<CarKind, CarSpec> = {
     dimensions: { ...GEN3_DIMENSIONS, height: 1.33 },
     massKg: 1400,
     frontWeight: 0.53,
-    cgHeight: 0.44,
+    cgHeight: GEN3_CG_HEIGHT,
     yawInertia: 2400,
     engine: {
       label: '5.4 L DOHC V8',
@@ -175,7 +184,7 @@ export const CAR_SPECS: Record<CarKind, CarSpec> = {
     dimensions: { ...GEN3_DIMENSIONS, height: 1.23 },
     massKg: 1400,
     frontWeight: 0.53,
-    cgHeight: 0.44,
+    cgHeight: GEN3_CG_HEIGHT,
     yawInertia: 2400,
     engine: {
       label: '5.2 L quad-cam V8',

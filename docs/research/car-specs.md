@@ -64,7 +64,7 @@ Superseded claim: the 2022 WhichCar piece says the prototype Camaro had paddles.
 | Fuel tank | **135 L** (Supercars car page). Wikipedia says ~130 L | B | [S1] vs [S10]. 99 kg / 0.775 kg/L (E75 estimate) = 128 L, which fits ~130 L. Trusted: 130-135 L, use 132 L |
 | Fuel | E75 | A | [S10] |
 | Full-tank front weight share | **~51 %** | E | Added 99 kg at ~2.5 m behind the front axle (tank is ahead of the rear axle, [S10]). Front share rises back to ~54 % as fuel burns |
-| Centre-of-gravity height | Not published. **Estimate 0.44 m, +/-0.04 m** | E | Only relative CoG data exists: Camaro vs Mustang differed by **2.3 mm**, fixed by moving 4.97 kg of Camaro ballast rearward [S18]. Prior from low-slung front-engine touring cars |
+| Centre-of-gravity height | Not published. **Estimate 0.38 m** (was 0.44 m) | E | Only relative CoG data exists: Camaro vs Mustang differed by **2.3 mm**, fixed by moving 4.97 kg of Camaro ballast rearward [S18]. Gen3 is lower and wider than Gen2 for mechanical grip (100 mm lower roll hoop, 100 mm wider track; Autosport, The Race Torque). Road sports cars on taller suspension sit at 0.40-0.45 m (Alfa 4C, Corvette C7; Wikipedia, Automobile handling). The game's tuned tyre friction (~1.94) needs track/(2h) above it, or the car tips onto two wheels in normal corners (2026-10-08 wheel-lift fix) |
 | Yaw inertia | **~2,500 kg*m^2, +/-20 %** | E | m*a*b with a=1.35 m, b=1.41 m gives ~2,750; racing cars sit a little lower |
 
 ---
@@ -260,7 +260,7 @@ Values in bold are the recommended inputs. "Source" lists the supporting numbers
 | Wheelbase | **2.766 m** | [S2], [S3] |
 | Track (F/R) | **1.63 m** (E) | [S2] width context; E |
 | Overall L x W x H | **4.88 x 1.96 x 1.33 m** (height E) | [S3]; E |
-| CG height | **0.44 m** (E) | [S18] (relative only); E |
+| CG height | **0.38 m** (E) | [S18] (relative only); E; section 1 |
 | Yaw inertia | **2,500 kg*m^2** (E) | E |
 | Wheel / tyre | **18x11 in; rolling radius 0.340 m; tread 295 mm** | [S4] |
 | Peak power | **447 kW** at ~7,000 rpm (rated) | [S1], [S3], [S5] |

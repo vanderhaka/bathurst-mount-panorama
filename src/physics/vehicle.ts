@@ -53,6 +53,8 @@ export class Vehicle {
   private readonly wtp: TrackPoint[] = [0, 1, 2, 3].map(() => createTrackPoint());
   private readonly tyre: TyreResult = { fx: 0, fy: 0, use: 0, absActive: false, tcActive: false };
   private prevComp = [0, 0, 0, 0];
+  /** Lateral force of the front and rear axle from the last step (body axes, + = left). */
+  private readonly axleFy = [0, 0];
   private readonly comps = [0, 0, 0, 0];
   private readonly surfs: SurfaceKind[] = ['road', 'road', 'road', 'road'];
   private readonly a: number;
@@ -83,6 +85,7 @@ export class Vehicle {
     this.heading = Math.atan2(t.tx[i], t.tz[i]);
     this.vx = this.vz = this.yawRate = 0;
     this.vy = this.pitchRate = this.rollRate = 0;
+    this.axleFy[0] = this.axleFy[1] = 0;
     this.pitch = this.roll = 0;
     projectToTrack(t, this.x, this.z, -1, this.tp);
     this.stint.placeOnTrack(this.tp.s);
@@ -147,6 +150,7 @@ export class Vehicle {
     let anyGround = false, absActive = false, tcActive = false;
     const R = spec.dimensions.wheelRadius;
     rearSlip = 0;
+    let fyFront = 0, fyRear = 0;
     // Pass 1: contact points, ground and suspension compression of all four corners.
     contactPass(this, this.corners, this.wtp, this.comps, this.surfs);
     const comps = this.comps, surfs = this.surfs;
@@ -160,7 +164,10 @@ export class Vehicle {
       const comp = comps[w];
       const arb = front ? this.setup.frontArbNpm : this.setup.rearArbNpm;
       const fs = suspensionForce(c, comp, this.prevComp[w], comps[w ^ 1], spec.cgHeight, arb, dt);
-      const fz = fs;
+      // Geometric load transfer through the links (roll centre): moves load to the outside
+      // wheel at once, without body roll. An unloaded spring means the wheel is off the ground.
+      const geometric = -Math.sign(c.x) * this.axleFy[front ? 0 : 1] * c.rc / (2 * Math.abs(c.x));
+      const fz = fs > 0 ? Math.max(0, fs + geometric) : 0;
       if (fz > 0) anyGround = true;
       // Velocity of the contact patch in body axes, then in wheel axes.
       const uB = vLong - this.yawRate * c.x;
@@ -187,9 +194,10 @@ export class Vehicle {
       fLong += fbL;
       fLat += fbT;
       yawM += c.z * fbT - c.x * fbL;
-      heave += fs;
-      pitchM += fs * c.z;
-      rollM += fs * c.x;
+      heave += fz;
+      pitchM += fz * c.z;
+      rollM += fz * c.x;
+      if (front) fyFront += fbT; else fyRear += fbT;
       // Slope: the ground reaction leans with the surface (horizontal push downhill).
       const grade = sampleArray(track, track.grade, tp.index, tp.t);
       const cross = kerbCrossfallAt(track, this.kerbs, tp.index, tp.t, tp.d);
@@ -206,6 +214,8 @@ export class Vehicle {
       if (!front) rearSlip = Math.max(rearSlip, r.use);
     }
     for (let w = 0; w < 4; w++) this.prevComp[w] = comps[w];
+    this.axleFy[0] = fyFront;
+    this.axleFy[1] = fyRear;
     // Planar integration (body forces to world).
     fLong -= drag * vLong;
     fLat -= drag * vLat;

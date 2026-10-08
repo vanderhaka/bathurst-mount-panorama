@@ -1,15 +1,23 @@
 import type { CarSpec } from '@/car/car-specs';
 import type { CarSetup } from '@/config/setup';
 
-/** Corner geometry and existing spring/damper parameters, measured from the CG. */
-export interface SuspensionCorner { x: number; z: number; k: number; c: number; h0: number }
+/** Corner geometry and existing spring/damper parameters, measured from the CG; rc = roll-centre height (m). */
+export interface SuspensionCorner { x: number; z: number; k: number; c: number; h0: number; rc: number }
+
+/**
+ * Roll-centre heights of the double-wishbone axles (estimates: not published for Gen3; typical
+ * race-car values with the rear above the front). Their share of the lateral load transfer goes
+ * through the links, not the springs; the total transfer stays m * ay * cgHeight / track.
+ */
+const ROLL_CENTRE_FRONT_M = 0.05;
+const ROLL_CENTRE_REAR_M = 0.08;
 
 export function suspensionCorners(spec: CarSpec, a: number, b: number): SuspensionCorner[] {
   const d = spec.dimensions, G = 9.81;
   const mg = spec.massKg * G;
   const loadF = mg * spec.frontWeight / 2, loadR = mg * (1 - spec.frontWeight) / 2;
-  const mk = (x: number, z: number, k: number, load: number): SuspensionCorner => ({ x, z, k, c: 2 * 0.5 * Math.sqrt(k * (load / G)), h0: spec.cgHeight + load / k });
-  return [mk(d.trackFront / 2, a, 125000, loadF), mk(-d.trackFront / 2, a, 125000, loadF), mk(d.trackRear / 2, -b, 112000, loadR), mk(-d.trackRear / 2, -b, 112000, loadR)];
+  const mk = (x: number, z: number, k: number, load: number, rc: number): SuspensionCorner => ({ x, z, k, c: 2 * 0.5 * Math.sqrt(k * (load / G)), h0: spec.cgHeight + load / k, rc });
+  return [mk(d.trackFront / 2, a, 125000, loadF, ROLL_CENTRE_FRONT_M), mk(-d.trackFront / 2, a, 125000, loadF, ROLL_CENTRE_FRONT_M), mk(d.trackRear / 2, -b, 112000, loadR, ROLL_CENTRE_REAR_M), mk(-d.trackRear / 2, -b, 112000, loadR, ROLL_CENTRE_REAR_M)];
 }
 
 /** Spring, blow-off damper, bump stop and bar: the default reproduces the existing forces. */
