@@ -41,6 +41,14 @@ describe('Surfers Paradise Street Circuit', () => {
     expect(track.corners.every((c, i) => c.s > (track.corners[i - 1]?.s ?? 0) && c.s < track.length)).toBe(true);
   });
 
+  it('places the beach chicane where the aerial photos put it', () => {
+    // 10 cm Queensland imagery (2014/2022): bulge, kerb and stand frames put T6 near 1415 m and T10 near 1550 m.
+    expect(Math.abs(track.corners[5].s - 1415)).toBeLessThanOrEqual(20);
+    expect(Math.abs(track.corners[9].s - 1550)).toBeLessThanOrEqual(25);
+    expect(track.placeAt(track.corners[5].s - 50)).toBe('Beach Chicane');
+    expect(track.placeAt(track.corners[9].s + 45)).toBe('Main Beach Parade North');
+  });
+
   it('names the street each turn leaves', () => {
     for (const [turns, street] of streets) for (const t of turns) expect(track.placeAt(track.corners[t - 1].s)).toBe(street);
   });

@@ -19,7 +19,7 @@ import type { Terrain } from '@/world/terrain';
 const STANDS: ReadonlyArray<readonly [string, number, 1 | -1, boolean, number]> = [
   ['S10', 2703, 1, false, 18], ['S11', 2801, -1, false, 22], ['S12', 2848, -1, true, 24], ['S13', 2907, -1, true, 21],
   ['S14', 15, -1, true, 24], ['S5', 445, 1, false, 14], ['S15', 611, -1, true, 29], ['S18', 1017, -1, false, 20],
-  ['S19', 1282, -1, false, 16], ['S7', 1342, 1, false, 25], ['S22', 1522, -1, true, 11], ['S22A', 1574, -1, true, 9],
+  ['S19', 1282, -1, false, 16], ['S7', 1342, 1, false, 25], ['S22', 1522, -1, true, 11], ['S22A', 1580, -1, true, 9],
   ['S23', 2465, -1, true, 25]];
 const TYRE_CORNERS = [1, 6, 7, 8, 9, 10, 13, 15];
 

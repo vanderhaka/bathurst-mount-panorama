@@ -21,7 +21,7 @@ Official maps are cached for research under `artifacts/review/gold-coast/referen
 - [Reproduction scripts](../../artifacts/review/gold-coast/references/derive-geometry.py): `fetch-sources.py` (OSM), `extract-schematic.py` (needs poppler; reads the cached PDF), `derive-geometry.py` (standard library only; writes both tracked JSON files), `elevation.py`, `fetch-environment.py`, `environment-positions.py`, `make-reference-plot.py` and `make-manifest.py`. `derive-geometry.py` asserts connected shared nodes, closure, orientation, nonzero segments and no proper self-crossings.
 - [Source manifest](../../artifacts/review/gold-coast/references/source-manifest.json) records URLs, retrieval date, licensing and SHA-256 hashes.
 
-`pointsXZ` is raw projected metres, **X east and Z south**. `pointsXZOfficial` applies one uniform factor of **0.9889891833632268**, changing the measured length **2992.954877 m** to the official **2960 m**. The runtime file holds 583 points (the closing repeat of the first point is omitted, as in the Adelaide file; `pointCountIncludingClosure` is 584). The loop begins at `[0, 0]` at the estimated timing line: latitude **-27.985477895428858**, longitude **153.42675693540406**. That is the mid-point of the OSM pit-lane service way [179722656](https://www.openstreetmap.org/way/179722656) (`highway=service`, `sport=motor`, 601 m long) projected onto the pit straight, 21.9 m away. It is an estimate; no source surveys the line. `finishLineS = 0` is therefore an estimate.
+`pointsXZ` is raw projected metres, **X east and Z south**. `pointsXZOfficial` applies one uniform factor of **0.9889891833632268**, changing the measured length **2992.954877 m** to the official **2960 m**. The runtime file first held these 583 points (the closing repeat of the first point is omitted, as in the Adelaide file; `pointCountIncludingClosure` is 584). After the [aerial-photo re-fit](#re-fit-from-queensland-aerial-photos) it holds 776 points at official scale and no longer matches the coordinate files above. The loop begins at `[0, 0]` at the estimated timing line: latitude **-27.985477895428858**, longitude **153.42675693540406**. That is the mid-point of the OSM pit-lane service way [179722656](https://www.openstreetmap.org/way/179722656) (`highway=service`, `sport=motor`, 601 m long) projected onto the pit straight, 21.9 m away. It is an estimate; no source surveys the line. `finishLineS = 0` is therefore an estimate.
 
 ### What OSM could and could not give
 
@@ -36,7 +36,7 @@ OSM has **no raceway ways and no circuit relation with chicanes** for this circu
    | beach chicane | T6-T10, s 1349-1583 | the straight part of 1452178841 |
    | T11 to final corner | T11-T15, s 1838-2621 | 27768096 tail, 24314788, 737489999, 737489998, 24314826, 670483895, 258848231, 670483887 |
 
-Where the chicanes sit along the 1.1 km Main Beach Parade straight is the weakest figure: the map is not to scale and two landmark methods (Higman Street and Cable Street) disagree by about 40 m, so the beach chicane position carries **about +/-40 m**. Chicane shapes (T1-T3 lateral swing about 20 m, T6-T10 about 12 m peak to peak) come from the map and are estimates; they were not smoothed. After the game's own 3 m smoothing the tightest corners measure T12 13.6 m, T14 17.7 m, T13 19.1 m, T4 19.2 m, T11 24.7 m, and the chicane corners 39-52 m radius.
+Where the chicanes sit along the 1.1 km Main Beach Parade straight is the weakest figure: the map is not to scale and two landmark methods (Higman Street and Cable Street) disagree by about 40 m, so the beach chicane position carried **about +/-40 m**. The [aerial-photo re-fit](#re-fit-from-queensland-aerial-photos) has since fixed its position. Chicane shapes (T1-T3 lateral swing about 20 m, T6-T10 about 12 m peak to peak) come from the map and are estimates; they were not smoothed. After the game's own 3 m smoothing the tightest corners measure T12 13.6 m, T14 17.7 m, T13 19.1 m, T4 19.2 m, T11 24.7 m, and the chicane corners 39-52 m radius.
 
 OSM way chain in race order, starting at the pit-straight origin (all `highway` ways; * = vertices kept in the output):
 
@@ -50,27 +50,27 @@ OSM way chain in race order, starting at the pit-straight origin (all `highway` 
 
 ## Turn signs and approximate bend markers
 
-The organiser's map names only T1-3, T4, T8 and T11-T14. **T5, T6/T7/T9/T10 and T15 are inferred**: T6-T10 is the five-part beach chicane in Supercars' own guides (the map's "T8" label sits on its third bend, and the kerb-sensor sides in the sources match the bend directions R/L/R/L for T7-T10); T5 is the flat left after the hairpin (the 2025 resurfacing ran "Turn 4 through to Turn 6"); T15 is the long left onto the pit straight (a 2017 report cites a Turn 15 tyre bundle, and 15 matches Wikipedia). Supercars' circuit text lists T4 and T15 as the slowest points; the map geometry makes **T14 the tight corner** and T15 a wide sweep, so treat the T14/T15 split as approximate. The map's T1-3 label sits on the middle bend, which supports left-right-left. Names below are street/section descriptions or the map's sponsor labels, not formal corner names. `S` is metres from the estimated timing origin after uniform length calibration. Indices address both JSON point arrays, before any resampling.
+The organiser's map names only T1-3, T4, T8 and T11-T14. **T5, T6/T7/T9/T10 and T15 are inferred**: T6-T10 is the five-part beach chicane in Supercars' own guides (the map's "T8" label sits on its third bend, and the kerb-sensor sides in the sources match the bend directions R/L/R/L for T7-T10); T5 is the flat left after the hairpin (the 2025 resurfacing ran "Turn 4 through to Turn 6"); T15 is the long left onto the pit straight (a 2017 report cites a Turn 15 tyre bundle, and 15 matches Wikipedia). Supercars' circuit text lists T4 and T15 as the slowest points; the map geometry makes **T14 the tight corner** and T15 a wide sweep, so treat the T14/T15 split as approximate. The map's T1-3 label sits on the middle bend, which supports left-right-left. Names below are street/section descriptions or the map's sponsor labels, not formal corner names. `S` is metres from the estimated timing origin after uniform length calibration. `S` and indices are from the runtime file after the aerial-photo re-fit; indices address its point array, before any resampling.
 
 | Turn | Direction | Description | Point index | Approximate S (m) |
 |---|---|---|---:|---:|
-| T1 | Left | Front chicane (Ferny Avenue junction) | 46 | 516.461 |
-| T2 | Right | Front chicane, central corner | 61 | 559.287 |
-| T3 | Left | Front chicane exit, Surfers Paradise Boulevard | 74 | 596.366 |
-| T4 | Left | Pizza Hut Hairpin, into Main Beach Parade | 136 | 773.636 |
-| T5 | Left | Flat left after the hairpin (inferred) | 166 | 859.084 |
-| T6 | Left | Beach chicane (first bend) | 212 | 1365.854 |
-| T7 | Right | Beach chicane | 222 | 1394.443 |
-| T8 | Left | Beach chicane (map label T8) | 234 | 1429.472 |
-| T9 | Right | Beach chicane | 247 | 1466.655 |
-| T10 | Left | Beach chicane (last numbered bend) | 258 | 1498.829 |
-| T11 | Left | Hino Corner, Main Beach Parade to Breaker Street | 333 | 1917.992 |
-| T12 | Left | Repco Corner, Breaker Street to Serisier Avenue | 401 | 2111.851 |
-| T13 | Right | Coates Corner, onto Hill Parade | 432 | 2200.325 |
-| T14 | Left | Boost Mobile Hairpin, Hill Parade to Tedder Avenue | 515 | 2436.854 |
-| T15 | Left | Long left from Tedder Avenue onto the pit straight (inferred) | 535 | 2493.881 |
+| T1 | Left | Front chicane (Ferny Avenue junction) | 51 | 534.419 |
+| T2 | Right | Front chicane, central corner | 57 | 550.342 |
+| T3 | Left | Front chicane exit, Surfers Paradise Boulevard | 83 | 608.064 |
+| T4 | Left | Pizza Hut Hairpin, into Main Beach Parade | 168 | 764.309 |
+| T5 | Left | Flat left after the hairpin (inferred) | 212 | 850.891 |
+| T6 | Left | Beach chicane (first bend) | 316 | 1415.166 |
+| T7 | Right | Beach chicane | 329 | 1443.031 |
+| T8 | Left | Beach chicane (map label T8) | 347 | 1477.863 |
+| T9 | Right | Beach chicane | 367 | 1515.681 |
+| T10 | Left | Beach chicane (last numbered bend) | 383 | 1549.517 |
+| T11 | Left | Hino Corner, Main Beach Parade to Breaker Street | 456 | 1914.753 |
+| T12 | Left | Repco Corner, Breaker Street to Serisier Avenue | 525 | 2110.807 |
+| T13 | Right | Coates Corner, onto Hill Parade | 564 | 2200.374 |
+| T14 | Left | Boost Mobile Hairpin, Hill Parade to Tedder Avenue | 686 | 2443.202 |
+| T15 | Left | Long left from Tedder Avenue onto the pit straight (inferred) | 712 | 2491.966 |
 
-A further unnumbered right bend (about 37 degrees) closes the beach chicane after T10, and a gentle right of about 40 degrees on Hill Parade leads into T14. The pit straight, from T15 to T1, is about 980 m. Route by street (official S): pit straight / Gold Coast Highway 2494-516, front chicane at Ferny Avenue 516-596, Surfers Paradise Boulevard 596-774, Main Beach Parade 774-1918, Breaker Street 1918-2112, Serisier Avenue 2112-2200, Hill Parade 2200-2437, Tedder Avenue 2437-2494. Suggested HUD stretches, each starting just after the junction it is named for: Pit Straight 0, Front Chicane 470, Surfers Paradise Boulevard 620, Pizza Hut Hairpin 740, Main Beach Parade 800, Beach Chicane 1340, Main Beach Parade 1520, Breaker Street 1935, Hill Parade 2215, Boost Mobile Hairpin 2400, Pit Straight 2520.
+A further unnumbered right bend (about 37 degrees) closes the beach chicane after T10, and a gentle right of about 40 degrees on Hill Parade leads into T14. The pit straight, from T15 to T1, is about 980 m. Route by street (official S): pit straight / Gold Coast Highway 2492-534, front chicane at Ferny Avenue 534-608, Surfers Paradise Boulevard 608-764, Main Beach Parade 764-1915, Breaker Street 1915-2111, Serisier Avenue 2111-2200, Hill Parade 2200-2443, Tedder Avenue 2443-2492. HUD stretches in the game, each starting just after the junction it is named for: Pit Straight 0, Front Chicane 440, Surfers Paradise Boulevard 640, Main Beach Parade 790, Beach Chicane 1350, Main Beach Parade North 1590, Breaker Street 1940, Serisier Avenue 2140, Hill Parade 2215, Tedder Avenue 2465, Pit Straight 2560.
 
 Suggested **gameplay sector estimates**, not official timing-loop positions (no sector data was found): `0-900 m` pit straight, front chicane and the hairpin, `900-1960 m` Main Beach Parade, beach chicane and Hino Corner, `1960-2960 m` Breaker Street, T12-T15 and the pit straight. These are `sectorStarts: [900, 1960]`.
 
@@ -89,7 +89,7 @@ That is a roughly **68-71 second** pace reference for experienced Gen3 drivers, 
 
 Tracked source: `data/raw/gold-coast-osm-circuit.json`; distributed derived geometry: `public/data/gold-coast-centerline.json`, byte-identical to `src/track/data/gold-coast.json` (ODbL). The runtime resamples at 4 m after the same 3 m Gaussian smoothing used by the Bathurst builder, then normalizes the loop to 2,960 m. The standing-start line is estimated at 100 m after the estimated timing line (the Adelaide convention; no source locates the grid).
 
-The coordinates supply horizontal route geometry only. Elevation, banking, road width, kerb dimensions, barrier offsets, grip and the exact timing-loop position are **unmeasured**. The T1-T3 and T6-T10 shapes, the beach chicane position (+/-40 m), the T14/T15 split and the carriageway choice (+/-12 m) are estimates, as is every position in the Environment section. Do not transfer Bathurst's mountain elevation or its named corners.
+The coordinates supply horizontal route geometry only. Elevation, banking, road width, kerb dimensions, barrier offsets, grip and the exact timing-loop position are **unmeasured**. The T1-T3 and T6-T10 shapes, the T14/T15 split and the carriageway choice (+/-12 m) are estimates, as is every position in the Environment section. Do not transfer Bathurst's mountain elevation or its named corners.
 
 ### Displayed altitude above sea level
 
@@ -135,9 +135,34 @@ Final geometry hashes:
 
 - `gold-coast-coordinates.json`: `4b5c3bcb80371ccab64a1a860b0755d1d95c2ee5b3acdd7abaf2668d0ab97ae9`
 - `gold-coast-centerline.geojson`: `db82af50f6d48246ea13339cb8f2a012ac1955312401ca0460c2f65ac2e51264`
-- `src/track/data/gold-coast.json` and `public/data/gold-coast-centerline.json`: `61d3f44367fe8edca7c8e1de842d57e40d1218035563e84000427a02e7206e32`
+- `src/track/data/gold-coast.json` and `public/data/gold-coast-centerline.json`: `61d3f44367fe8edca7c8e1de842d57e40d1218035563e84000427a02e7206e32` before the re-fit, `6ef3f9b4fb72fcfcd6b95f14a931121e9a0730fb92f8f6a2d5f809f67a08aa8c` after it
 
-Validation: exact closure by shared node, 584 points including closure, **anticlockwise** projected signed area **-276071.391 m²** (negative in the x-east, z-south frame, where Adelaide's clockwise route is positive), zero zero-length edges and zero proper self-intersections. This research does not prove runtime rendering, handling or deployment.
+Validation: exact closure by shared node, 584 points including closure (777 after the re-fit), **anticlockwise** projected signed area **-276071.391 m²** (-273556.044 m² after the re-fit) (negative in the x-east, z-south frame, where Adelaide's clockwise route is positive), zero zero-length edges and zero proper self-intersections. This research does not prove runtime rendering, handling or deployment.
+
+## Re-fit from Queensland aerial photos
+
+Re-fitted 2026-10-08. The State of Queensland publishes 10 cm aerial photos of the Gold Coast through its [TimeSeries AerialOrtho image service](https://spatial-img.information.qld.gov.au/arcgis/rest/services/TimeSeries/AerialOrtho_AllUsers/ImageServer). This re-fit uses the projects `Gold_Coast_2014_10cm_SISP_LGA` and `Gold_Coast_LGA_2022_10cm_SISP`. The photos are licensed CC BY 4.0. They served for measurement only; the game ships no imagery.
+
+> Includes material © State of Queensland (Department of Natural Resources and Mines, Manufacturing and Regional and Rural Development), CC BY 4.0
+
+**Method.** The centreline was sampled every few metres. At each sample, the offset to the race carriageway's centre was measured across the photo. The evidence was barrier lines, painted kerbs and the paved edges. Only valid samples were kept. They were median-filtered over +/-8 m, then smoothed with a 4 m Gaussian, and gaps were interpolated. The correction applies in full inside each stretch and tapers to zero over 30 m at both ends. For the beach chicane, the photos show a permanent bulge in the road, painted kerbs and stand frames. These fixed the chicane's position and its lateral extremes, and the five bends were re-placed between them. The scripts and per-sample offsets are in `artifacts/review/gold-coast/measure/` (`refit-centreline.py`, `offsets_per_sample.csv`, `beach_chicane_features.csv`, overlays in `refit/`). The image fetcher is `artifacts/review/gold-coast/references/web/fetch-qld-imagery.py`. The runtime JSON records the same in `meta.refit`.
+
+| Stretch (old S) | Before | After |
+|---|---|---|
+| Surfers Paradise Boulevard, s 633-745 | Line on the tram tracks, 9-11 m off the race carriageway | On the carriageway |
+| T4 Pizza Hut Hairpin apex | 10-12 m off | On the 2014 asphalt ridge (low confidence) |
+| Beach chicane T6-T10 | About 50 m early and too wide | Apexes at s 1415-1550, lateral swing -5.1 to +7 m |
+| Hill Parade and the T14 approach | 3-5 m off | On the carriageway |
+
+Across the corrected stretches, the remaining offset to the measured centre has a median of 0.2-0.4 m. The maximum is 1.88 m on confident samples, and three low-confidence samples reach 3.85 m. The measured loop is 2,974.3 m before scaling to the official 2,960 m (scale 0.995194, previously 0.98899). Autopilot laps after the re-fit take 68.55-68.87 s, against the real 68.3-70.8 s.
+
+**Still estimates.**
+
+- **T4 apex.** The junction is open. The 2022 photo shows no race barriers, so the apex follows the centre of the turning carriageway in the 2014 photo.
+- **Beach chicane block shape.** The shape between the measured extremes is an estimate, because no top-down race-weekend photo of the chicane was found.
+- **T1-T2.** The front chicane keeps the map shape. Temporary barriers build it across a wide road, so the road centre in the photos is not the race line. The line sits a median 4.0 m (at most 7.5 m) from that road centre.
+- **T11 and T12.** These keep the map fit. The photos put them a median 0.3 m (T11) and 1.9 m (T12) from the carriageway centre, so they were left unchanged.
+- **Topology figure.** `gold-coast-topology.png` above still shows the route before the re-fit.
 
 ## Runtime world (implemented 2026-10-08)
 

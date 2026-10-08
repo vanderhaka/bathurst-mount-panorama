@@ -38,7 +38,8 @@ Parklands and Surfers Paradise. Switching reloads the scene.
 - **Surfers Paradise (Gold Coast)** opens directly with `?track=gold-coast`. The
   2025 Gold Coast 500 layout is 2.960 km, anticlockwise, with 15 numbered turns,
   the beach chicane, the OSM high-rise skyline, the beach and the Broadwater.
-  Sources and estimates:
+  The hairpins, the beach chicane and Hill Parade are measured from Queensland
+  Government aerial photos. Sources and estimates:
   [`docs/research/gold-coast.md`](docs/research/gold-coast.md).
 
 Elevation, road widths, sectors and timing lines on both street circuits are
@@ -198,5 +199,6 @@ The independent review rubric is in `docs/VERIFICATION.md`.
 - © OpenStreetMap contributors (ODbL).
 - SRTM via opentopodata.org.
 - NSW Spatial Services topographic contours.
+- Gold Coast geometry: includes material © State of Queensland (Department of Natural Resources and Mines, Manufacturing and Regional and Rural Development), CC BY 4.0. The aerial photos were used for measurement only.
 
 The cars and liveries are generic and do not use real team or sponsor branding.

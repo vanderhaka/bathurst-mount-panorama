@@ -14,7 +14,7 @@ export function goldCoastSides(n: number, spacing: number, length: number, corne
   const runoff = (turn: number) => (turn === 4 || turn === 14 ? 4 : [1, 11, 12, 13, 15].includes(turn) ? 2.5 : 1);
   for (let i = 0; i < n; i++) {
     const s = i * spacing;
-    const half = 6 + 1.0 * blend(s, 0, 380) - 0.6 * blend(s, 556, 90) - 0.6 * blend(s, 1432, 110);
+    const half = 6 + 1.0 * blend(s, 0, 380) - 0.6 * blend(s, 556, 90) - 0.7 * blend(s, 1482, 110);
     left.edge[i] = right.edge[i] = half;
     left.wall[i] = right.wall[i] = half + 1.2;
     for (const corner of corners) {
