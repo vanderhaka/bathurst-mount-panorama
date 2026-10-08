@@ -61,6 +61,12 @@ describe('saved graphics result', () => {
     expect(loadQualityChoice(loadSettings())).toEqual({ quality: 'high', pixelRatio: 2, automatic: true });
   });
 
+  it('starts a phone on High with automatic quality, like a desktop', () => {
+    vi.stubGlobal('matchMedia', () => ({ matches: true }));
+    expect(loadSettings()).toMatchObject({ quality: 'high', autoQuality: true });
+    expect(loadQualityChoice(loadSettings())).toEqual({ quality: 'high', pixelRatio: 2, automatic: true });
+  });
+
   it('recovers from malformed saved data and unavailable storage', () => {
     data.set(KEY, JSON.stringify({ quality: 'ultra', pixelRatio: -1, automatic: true }));
     expect(loadQualityChoice({ quality: 'medium', autoQuality: true })).toEqual({ quality: 'medium', pixelRatio: 1.5, automatic: true });

@@ -5,14 +5,9 @@ import { touchOptions } from '@/input/touch-model';
 
 const KEY = 'bathurst.settings.v1';
 
-/** Phones (touch screen, small side at most 540 px) start on Medium graphics. */
-function deviceDefaults(): Settings {
-  const phone = typeof matchMedia === 'function' && matchMedia('(pointer: coarse) and (max-height: 540px), (pointer: coarse) and (max-width: 540px)').matches;
-  return phone ? { ...DEFAULT_SETTINGS, quality: 'medium' } : { ...DEFAULT_SETTINGS };
-}
-
 export function loadSettings(): Settings {
-  const defaults = deviceDefaults();
+  // Every device starts on High with automatic quality: it steps down only after two slow windows.
+  const defaults: Settings = { ...DEFAULT_SETTINGS };
   let saved: Partial<Settings> = {};
   try {
     const raw = localStorage.getItem(KEY);
