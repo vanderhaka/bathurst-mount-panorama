@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { resetGraphics } from '@/config/graphics';
 import { createGoldCoastTrack } from '@/track/gold-coast';
 import { heightAt, pointAt, createTrackPoint, projectToTrack } from '@/track/track-query';
@@ -126,5 +126,35 @@ describe('Gold Coast ground, sea and water', { timeout: 60000 }, () => {
     expect(materialDispose).toHaveBeenCalledOnce(); expect(mapDispose).toHaveBeenCalledOnce(); expect(seaDispose).toHaveBeenCalledOnce();
     expect(next.group.children.length).toBeGreaterThan(0);
     expect(next.heightAt(0, 0)).toBeLessThan(0); next.dispose();
+  });
+});
+
+describe('Gold Coast sea and water never show beside the road', { timeout: 120000 }, () => {
+  const track = createGoldCoastTrack();
+  let terrain: ReturnType<typeof buildGoldCoastTerrain>;
+  let checked = 0;
+  beforeAll(() => { terrain = buildGoldCoastTerrain(track, 'high'); terrain.group.updateMatrixWorld(true); }, 60000);
+  afterAll(() => terrain.dispose());
+
+  it('starts the sea at the coastline, not under the mainland', () => {
+    const sea = terrain.group.getObjectByName('gold-coast-sea') as THREE.Mesh;
+    const pos = sea.geometry.getAttribute('position');
+    expect(pos.count).toBeGreaterThan(3);
+    for (let i = 0; i < pos.count; i++) expect(pos.getX(i), `vertex ${i}`).toBeGreaterThanOrEqual(coastXAt(pos.getZ(i)) - 1);
+  });
+
+  it('keeps the first surface under the verges away from the sea and water meshes', () => {
+    const ray = new THREE.Raycaster(), p: [number, number, number] = [0, 0, 0];
+    for (let s = 0; s < track.length; s += 20) for (const side of [1, -1] as const) for (const extra of [1, 4, 8, 14, 20]) {
+      const i = Math.floor(s / track.spacing), wall = (side > 0 ? track.left : track.right).wall[i];
+      pointAt(track, s, side * (wall + extra), p);
+      if (inWater(p[0], p[2]) || inSea(p[0], p[2])) continue;
+      ray.set(new THREE.Vector3(p[0], 50, p[2]), new THREE.Vector3(0, -1, 0));
+      const hit = ray.intersectObject(terrain.group, true)[0];
+      expect(hit, `no surface at s ${s}, offset ${side * (wall + extra)}`).toBeDefined();
+      expect(['gold-coast-sea', 'gold-coast-water'], `s ${s}, offset ${side * (wall + extra)}`).not.toContain(hit.object.name);
+      checked++;
+    }
+    expect(checked).toBeGreaterThan(500);
   });
 });

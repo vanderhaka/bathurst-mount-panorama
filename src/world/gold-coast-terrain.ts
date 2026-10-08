@@ -54,11 +54,11 @@ export function buildGoldCoastTerrain(track: Track, quality: QualityPreset): Ter
   const group = new THREE.Group(); group.name = 'gold-coast-terrain';
   const material = createTerrainMaterial({ enabled: cfg.terrainDetail && tier.terrainDetail, size: tier.terrainMapSize,
     normalStrength: cfg.terrainNormalStrength, mownStrength: cfg.mownStrength });
-  const geometries: THREE.BufferGeometry[] = [], seaBox = { x0: Math.min(...GOLD_COAST_ENV.coastline.map(p => p[0])) - 20,
-    x1: box.x1 + 3000, z0: box.z0 - 3000, z1: box.z1 + 3000 };
+  const geometries: THREE.BufferGeometry[] = [], seaBox = { x1: box.x1 + 3000, z0: box.z0 - 3000, z1: box.z1 + 3000 };
   const addGround = (name: string, x0: number, z0: number, w: number, h: number, step: number, height: (x: number, z: number) => number) => {
     // Horizon tiles are skipped where the sea plane already covers them.
-    const covered = (cx: number, cz: number) => inSea(cx, cz) && cx - step / 2 > seaBox.x0 && cx + step / 2 < seaBox.x1 && cz - step / 2 > seaBox.z0 && cz + step / 2 < seaBox.z1;
+    const covered = (cx: number, cz: number) => cx + step / 2 < seaBox.x1 && cz - step / 2 > seaBox.z0 && cz + step / 2 < seaBox.z1
+      && [-1, 1].every(a => [-1, 1].every(b => inSea(cx + a * step / 2, cz + b * step / 2)));
     const geo = groundGrid(x0, z0, w, h, step, height, (x, z) => corridor(x, z).clearance, cfg.terrainColourNoise,
       name === 'gold-coast-flat-horizon' ? undefined : surface, name === 'gold-coast-flat-horizon' ? covered : undefined);
     const mesh = new THREE.Mesh(geo, material); mesh.name = name; mesh.receiveShadow = true;
@@ -72,10 +72,10 @@ export function buildGoldCoastTerrain(track: Track, quality: QualityPreset): Ter
   addGround('gold-coast-flat-horizon', -6000, -6000, 12, 12, 1000, () => -1.8);
   const seaMaterial = new THREE.MeshStandardMaterial({ color: '#1d6a86', roughness: 0.18, metalness: 0 });
   const waterMaterial = new THREE.MeshStandardMaterial({ color: '#2a6f7a', roughness: 0.22, metalness: 0 });
-  const sea = new THREE.PlaneGeometry(seaBox.x1 - seaBox.x0, seaBox.z1 - seaBox.z0).rotateX(-Math.PI / 2);
+  const sea = seaGeometry(seaBox);
   const lakes = waterGeometry();
   const seaMesh = Object.assign(new THREE.Mesh(sea, seaMaterial), { name: 'gold-coast-sea' });
-  seaMesh.position.set((seaBox.x0 + seaBox.x1) / 2, SEA_Y, (seaBox.z0 + seaBox.z1) / 2);
+  seaMesh.position.y = SEA_Y;
   const waterMesh = Object.assign(new THREE.Mesh(lakes, waterMaterial), { name: 'gold-coast-water' });
   waterMesh.position.y = WATER_Y;
   group.add(seaMesh, waterMesh); geometries.push(sea, lakes);
@@ -99,6 +99,13 @@ export function buildGoldCoastTerrain(track: Track, quality: QualityPreset): Ter
     grass.dispose(); geometries.forEach(geo => geo.dispose()); disposeTerrainMaterial(material);
     pavingMaterial.dispose(); seaMaterial.dispose(); waterMaterial.dispose(); group.clear();
   } };
+}
+
+/** The Pacific: one shape whose west edge is the coastline (extended to the box edges), so it never lies under the mainland. */
+function seaGeometry(box: { x1: number; z0: number; z1: number }): THREE.BufferGeometry {
+  const edge: [number, number][] = [[coastXAt(box.z0), box.z0], ...GOLD_COAST_ENV.coastline.filter(p => p[1] > box.z0 && p[1] < box.z1), [coastXAt(box.z1), box.z1]];
+  const ring = [...edge, [box.x1, box.z1], [box.x1, box.z0]];
+  return new THREE.ShapeGeometry(new THREE.Shape(ring.map(([x, z]) => new THREE.Vector2(x, -z)))).rotateX(-Math.PI / 2);
 }
 
 /** All inland water rings merged into one XZ-plane geometry (shape y is -z, so the -90 degree turn restores z). */

@@ -49,6 +49,9 @@ export function inWater(x: number, z: number): boolean {
   return (rings.some(r => within(r, x, z)) && !holes.some(h => within(h, x, z))) || ponds.some(r => within(r, x, z));
 }
 
+/** Inside an island hole of the water rings (Macintosh Island, which carries the pit straight). */
+export function onIsland(x: number, z: number): boolean { return holes.some(h => within(h, x, z)); }
+
 /** Distance (m) from a point to the nearest water-ring edge; used for the shore blend. */
 export function shoreDistance(x: number, z: number): number {
   let best = Infinity;
