@@ -12,12 +12,16 @@ function deviceDefaults(): Settings {
 }
 
 export function loadSettings(): Settings {
-  let settings = deviceDefaults();
+  const defaults = deviceDefaults();
+  let saved: Partial<Settings> = {};
   try {
     const raw = localStorage.getItem(KEY);
-    if (raw) settings = { ...settings, ...(JSON.parse(raw) as Partial<Settings>) };
+    if (raw) saved = (JSON.parse(raw) as Partial<Settings> | null) ?? {};
   } catch { /* storage unavailable */ }
-  const graphics = loadQualityChoice(settings.quality);
+  const settings = { ...defaults, ...saved };
+  // Without a stored graphics result the quality saved here still applies, except an automatic
+  // one: it is learned again (the old monitor saved automatic results that were far too low).
+  const graphics = loadQualityChoice(saved.autoQuality === true ? defaults : settings);
   const touch = touchOptions(settings);
   return { ...settings, headMotion: headMotionAmount(settings.headMotion), quality: graphics.quality, autoQuality: graphics.automatic,
     touchMode: touch.mode, touchAnalogThrottle: touch.analogThrottle,

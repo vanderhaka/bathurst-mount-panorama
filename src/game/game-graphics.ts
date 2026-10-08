@@ -21,7 +21,7 @@ export class GameGraphics {
   private building: Promise<void> | null = null;
 
   constructor(private readonly stage: Stage, private settings: Settings, private readonly host: GraphicsHost) {
-    this.choice = loadQualityChoice(settings.quality);
+    this.choice = loadQualityChoice(settings);
     this.adaptive = new AdaptiveQuality(this.choice);
   }
 

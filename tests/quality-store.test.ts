@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { deviceQualityKey, loadQualityChoice, qualityFromSettings, saveQualityChoice } from '@/game/quality-store';
+import { loadQualityChoice, qualityFromSettings, saveQualityChoice } from '@/game/quality-store';
 import { loadSettings } from '@/game/settings-store';
 import { DEFAULT_SETTINGS } from '@/types/session';
 import { adjustSetting, ALL_FIELDS } from '@/ui/settings-model';
@@ -17,39 +17,57 @@ beforeEach(() => {
 });
 afterEach(() => vi.unstubAllGlobals());
 
-describe('per-device graphics result', () => {
+const KEY = 'bathurst.quality.v2';
+const auto = { quality: 'high', autoQuality: true } as const;
+const savedSettings = (values: object) => data.set('bathurst.settings.v1', JSON.stringify({ ...DEFAULT_SETTINGS, ...values }));
+
+describe('saved graphics result', () => {
   it('restores both the automatic tier and DPR after reloading Settings', () => {
     saveQualityChoice({ quality: 'low', pixelRatio: 0.75, automatic: true });
-    expect(loadQualityChoice('high')).toEqual({ quality: 'low', pixelRatio: 0.75, automatic: true });
+    expect(loadQualityChoice(auto)).toEqual({ quality: 'low', pixelRatio: 0.75, automatic: true });
     expect(loadSettings()).toMatchObject({ quality: 'low', autoQuality: true });
   });
 
-  it('is stable across device orientation but separate for another device', () => {
-    const key = deviceQualityKey();
-    saveQualityChoice({ quality: 'low', pixelRatio: 0.5, automatic: true });
+  it('keeps a manual choice across browser updates, desktop zoom and orientation', () => {
+    saveQualityChoice({ quality: 'medium', pixelRatio: 1.5, automatic: false });
+    vi.stubGlobal('navigator', { userAgent: 'test-device, one version later' });
+    vi.stubGlobal('window', { devicePixelRatio: 2.2 });
     vi.stubGlobal('screen', { width: 844, height: 390 });
-    expect(deviceQualityKey()).toBe(key);
-    vi.stubGlobal('navigator', { userAgent: 'another-device' });
-    expect(loadQualityChoice('high')).toEqual({ quality: 'high', pixelRatio: 2, automatic: true });
+    expect(loadQualityChoice(auto)).toEqual({ quality: 'medium', pixelRatio: 1.5, automatic: false });
+    expect(loadSettings()).toMatchObject({ quality: 'medium', autoQuality: false });
   });
 
-  it('discards automatic results saved by the old monitor but keeps manual choices', () => {
-    const legacy = deviceQualityKey().replace('.v2.', '.v1.');
-    data.set(legacy, JSON.stringify({ quality: 'low', pixelRatio: 0.75, automatic: true }));
-    expect(loadQualityChoice('high')).toEqual({ quality: 'high', pixelRatio: 2, automatic: true });
+  it('keeps a learned density but lets tier defaults follow the current display', () => {
+    saveQualityChoice({ quality: 'high', pixelRatio: 1, automatic: true });
+    vi.stubGlobal('window', { devicePixelRatio: 1 });
+    saveQualityChoice({ quality: 'medium', pixelRatio: 1, automatic: false });
+    vi.stubGlobal('window', { devicePixelRatio: 2 });
+    expect(loadQualityChoice(auto)).toEqual({ quality: 'medium', pixelRatio: 1.5, automatic: false });
+    saveQualityChoice({ quality: 'low', pixelRatio: 0.75, automatic: true });
+    vi.stubGlobal('window', { devicePixelRatio: 1.25 });
+    expect(loadQualityChoice(auto)).toEqual({ quality: 'low', pixelRatio: 0.75, automatic: true });
+  });
+
+  it('falls back to a manual quality saved with Settings when no graphics result is stored', () => {
+    savedSettings({ quality: 'low', autoQuality: false });
+    expect(loadSettings()).toMatchObject({ quality: 'low', autoQuality: false });
+    expect(loadQualityChoice(loadSettings())).toEqual({ quality: 'low', pixelRatio: 1, automatic: false });
+  });
+
+  it('learns again instead of restoring an automatic result saved by the old monitor', () => {
+    savedSettings({ quality: 'low', autoQuality: true });
+    data.set(`bathurst.quality.v1.${JSON.stringify(['test-device', [390, 844], 3, false])}`, JSON.stringify({ quality: 'low', pixelRatio: 0.75, automatic: true }));
     expect(loadSettings()).toMatchObject({ quality: 'high', autoQuality: true });
-    data.set(legacy, JSON.stringify({ quality: 'medium', pixelRatio: 1.5, automatic: false }));
-    expect(loadQualityChoice('high')).toEqual({ quality: 'medium', pixelRatio: 1.5, automatic: false });
-    saveQualityChoice({ quality: 'low', pixelRatio: 1, automatic: true });
-    expect(loadQualityChoice('high')).toEqual({ quality: 'low', pixelRatio: 1, automatic: true });
+    expect(loadQualityChoice(loadSettings())).toEqual({ quality: 'high', pixelRatio: 2, automatic: true });
   });
 
   it('recovers from malformed saved data and unavailable storage', () => {
-    data.set(deviceQualityKey(), JSON.stringify({ quality: 'ultra', pixelRatio: -1, automatic: true }));
-    expect(loadQualityChoice('medium')).toEqual({ quality: 'medium', pixelRatio: 1.5, automatic: true });
+    data.set(KEY, JSON.stringify({ quality: 'ultra', pixelRatio: -1, automatic: true }));
+    expect(loadQualityChoice({ quality: 'medium', autoQuality: true })).toEqual({ quality: 'medium', pixelRatio: 1.5, automatic: true });
     vi.stubGlobal('localStorage', { getItem: () => { throw new Error('blocked'); }, setItem: () => { throw new Error('blocked'); } });
     expect(() => saveQualityChoice({ quality: 'low', pixelRatio: 0.5, automatic: true })).not.toThrow();
-    expect(loadQualityChoice('high').quality).toBe('high');
+    expect(loadQualityChoice(auto).quality).toBe('high');
+    expect(loadSettings()).toMatchObject({ quality: 'high', autoQuality: true });
   });
 
   it('choosing Graphics quality explicitly disables automatic changes and restores tier density', () => {

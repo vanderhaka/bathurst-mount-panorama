@@ -8,36 +8,35 @@ export interface QualityChoice {
   automatic: boolean;
 }
 
-/** Orientation-independent display/browser key. Only stored locally on this device.
+/** One entry per browser profile, which is already local to this device. It deliberately
+ * ignores the user agent and pixel ratio, so browser updates and desktop zoom keep it.
  * Version 1 automatic results came from a monitor that ratcheted healthy hardware down. */
-export function deviceQualityKey(version = 2): string {
-  const size = typeof screen === 'undefined' ? [0, 0] : [screen.width, screen.height].sort((a, b) => a - b);
-  const agent = typeof navigator === 'undefined' ? '' : navigator.userAgent;
-  const ratio = typeof window === 'undefined' ? 1 : window.devicePixelRatio || 1;
-  const coarse = typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches;
-  return `bathurst.quality.v${version}.${JSON.stringify([agent, size, ratio, coarse])}`;
-}
+const KEY = 'bathurst.quality.v2';
 
-function readChoice(key: string): QualityChoice | null {
-  const raw = localStorage.getItem(key);
-  const value = raw ? JSON.parse(raw) as Partial<QualityChoice> | null : null;
-  if (!value || !['low', 'medium', 'high'].includes(value.quality ?? '')
-    || typeof value.pixelRatio !== 'number' || !Number.isFinite(value.pixelRatio)
-    || value.pixelRatio < 0.5 || typeof value.automatic !== 'boolean') return null;
+/** Stored density: null is the tier default for the current display and zoom; a number is a learned reduction. */
+type StoredChoice = Omit<QualityChoice, 'pixelRatio'> & { pixelRatio: number | null };
+
+function readChoice(): QualityChoice | null {
+  const raw = localStorage.getItem(KEY);
+  const value = raw ? JSON.parse(raw) as Partial<StoredChoice> | null : null;
+  const density = value?.pixelRatio ?? null;
+  if (!value || !['low', 'medium', 'high'].includes(value.quality ?? '') || typeof value.automatic !== 'boolean'
+    || (density !== null && (typeof density !== 'number' || !Number.isFinite(density) || density < 0.5))) return null;
   const quality = value.quality as QualityPreset;
-  return { quality, pixelRatio: pixelRatioForQuality(quality, value.pixelRatio), automatic: value.automatic };
+  return { quality, pixelRatio: pixelRatioForQuality(quality, density ?? Infinity), automatic: value.automatic };
 }
 
-export function loadQualityChoice(fallback: QualityPreset): QualityChoice {
-  const defaults = { quality: fallback, pixelRatio: pixelRatioForQuality(fallback), automatic: true };
-  try {
-    const legacy = readChoice(deviceQualityKey(1));
-    return readChoice(deviceQualityKey()) ?? (legacy?.automatic === false ? legacy : defaults);
-  } catch { return defaults; }
+/** The stored result, else the fallback tier at its default pixel density. */
+export function loadQualityChoice(fallback: Pick<Settings, 'quality' | 'autoQuality'>): QualityChoice {
+  const defaults = { quality: fallback.quality, pixelRatio: pixelRatioForQuality(fallback.quality), automatic: fallback.autoQuality };
+  try { return readChoice() ?? defaults; }
+  catch { return defaults; }
 }
 
 export function saveQualityChoice(choice: QualityChoice): void {
-  try { localStorage.setItem(deviceQualityKey(), JSON.stringify(choice)); }
+  const reduced = choice.pixelRatio < pixelRatioForQuality(choice.quality) - 1e-6;
+  const stored: StoredChoice = { ...choice, pixelRatio: reduced ? choice.pixelRatio : null };
+  try { localStorage.setItem(KEY, JSON.stringify(stored)); }
   catch { /* localStorage unavailable */ }
 }
 

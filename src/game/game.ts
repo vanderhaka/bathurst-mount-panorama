@@ -74,7 +74,7 @@ export class Game {
 
   static async create(root: HTMLElement): Promise<Game> {
     const settings = loadSettings();
-    const stage = new Stage(root, settings.quality, loadQualityChoice(settings.quality).pixelRatio);
+    const stage = new Stage(root, settings.quality, loadQualityChoice(settings).pixelRatio);
     const menus = createMenus();
     let game: Game | null = null;
     menus.mount(root, {
