@@ -17,4 +17,6 @@ jobs:
       - run: npm run typecheck
       # Bound concurrent geometry/stint work on the hosted runner.
       - run: npm test -- --maxWorkers=2
+      # Browser-verification helper tests live in scripts/ outside Vitest's include pattern.
+      - run: node --test scripts/verify-brakes.test.mjs scripts/verify-setup.test.mjs
       - run: npm run build
