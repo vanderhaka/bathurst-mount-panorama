@@ -10,6 +10,7 @@ import { bakeHeightFieldAo } from '@/art/ambient-occlusion';
 import { createTerrainMaterial, disposeTerrainMaterial } from '@/world/terrain-detail';
 import { createTerrainSurfaceSampler, prepareTerrainGeometry, terrainSplat, terrainSurfaceColour } from '@/world/terrain-surface';
 import { createNearGrass, type NearGrass } from '@/world/near-grass';
+import { createCorridorMask } from '@/world/corridor-mask';
 
 const FINE_CELL = 6;
 const COARSE_CELL = 60;
@@ -18,6 +19,8 @@ const MARGIN = 240;
 /** Terrain stays this far below the drawn verge inside the track corridor. */
 const CORRIDOR_SINK = 0.7;
 const BLEND = 30;
+/** Beyond this distance past the barrier the terrain is the natural ground (no projection needed). */
+const NATURAL_BEYOND_WALL = 1.5 + BLEND + 5;
 /** The Cutting: the road is cut into the hillside, so the bank rises steeply right behind the wall. */
 const CUT = { from: 1780, to: 2140, ramp: 50, blend: 6 };
 
@@ -45,23 +48,23 @@ export interface Terrain {
 /** Builds the carved fine terrain around the circuit and the coarse landscape to the horizon. */
 export function buildTerrain(track: Track, material?: THREE.Material, quality: QualityPreset = 'high'): Terrain {
   const tp = createTrackPoint();
-  let hint = -1;
   const noiseAmp = 1.2;
   const box = fineBox(track);
   const fineEdgeFade = (x: number, z: number) => Math.min(1, Math.min(x - box.x0, box.x1 - x, z - box.z0, box.z1 - z) / 120);
 
-  const corridor = (x: number, z: number) => {
+  const corridorAt = (x: number, z: number, hint: number) => {
     projectToTrack(track, x, z, hint, tp);
-    hint = tp.index;
     const side = tp.d >= 0 ? track.left : track.right;
     const wall = sampleArray(track, side.wall, tp.index, tp.t);
     return { dist: Math.abs(tp.d), wall, edge: sampleArray(track, side.edge, tp.index, tp.t), d: tp.d, index: tp.index, t: tp.t, cut: cutWeight((tp.index + tp.t) * track.spacing) };
   };
+  // Meshes and grass: no search hint, so a projection depends on the point alone and the vertices that
+  // neighbouring chunks share (and the samples either side of a normal) agree in any build order.
+  const corridor = (x: number, z: number) => corridorAt(x, z, -1);
   const natural = (x: number, z: number) => demHeight(x, z) + fbm(x / 70, z / 70, 3, 11) * noiseAmp * fineEdgeFade(x, z);
-  const heightFn = (x: number, z: number): number => {
-    const c = corridor(x, z);
+  const carved = (c: ReturnType<typeof corridor>, x: number, z: number): number => {
     const dem = natural(x, z);
-    if (c.dist > c.wall + 1.5 + BLEND + 5) return dem;
+    if (c.dist > c.wall + NATURAL_BEYOND_WALL) return dem;
     const sign = c.d >= 0 ? 1 : -1;
     if (c.dist < c.wall + 1.5) return heightAt(track, c.index, c.t, c.d) - CORRIDOR_SINK;
     const atWall = heightAt(track, c.index, c.t, sign * c.wall) - 0.15;
@@ -69,6 +72,14 @@ export function buildTerrain(track: Track, material?: THREE.Material, quality: Q
     const u = smooth((c.dist - c.wall - 1.5) / blend);
     return atWall + (dem - atWall) * u;
   };
+  // Most of the box is open country: skip the (global) track projection where the corridor cannot reach.
+  const mayCarve = createCorridorMask(track, box, widestWall(track) + NATURAL_BEYOND_WALL);
+  const heightFn = (x: number, z: number): number => (mayCarve(x, z) ? carved(corridor(x, z), x, z) : natural(x, z));
+  // Scenery queries keep the original hint-chained search: placement draws every tree and building from one
+  // random stream, so a single changed answer would reshuffle the whole layout. The chain starts where the
+  // original build left it (its last projection, the far box corner, always takes the global search).
+  let hint = projectToTrack(track, box.x1, box.z1, -1, createTrackPoint()).index;
+  const queryCorridor = (x: number, z: number) => { const c = corridorAt(x, z, hint); hint = c.index; return c; };
 
   const cfg = getGraphics(), tier = QUALITY[quality];
   const owned = material ? null : createTerrainMaterial({ enabled: cfg.terrainDetail && tier.terrainDetail,
@@ -113,9 +124,9 @@ export function buildTerrain(track: Track, material?: THREE.Material, quality: Q
   return {
     group, grass,
     dispose: () => { if (disposed) return; disposed = true; grass.dispose(); if (owned) disposeTerrainMaterial(owned); },
-    heightAt: (x, z) => (x > box.x0 && x < box.x1 && z > box.z0 && z < box.z1 ? heightFn(x, z) : demHeight(x, z)),
+    heightAt: (x, z) => (x > box.x0 && x < box.x1 && z > box.z0 && z < box.z1 ? carved(queryCorridor(x, z), x, z) : demHeight(x, z)),
     clearance: (x, z) => {
-      const c = corridor(x, z);
+      const c = queryCorridor(x, z);
       return c.dist - c.wall;
     },
     box,
@@ -130,6 +141,12 @@ function fineBox(track: Track) {
   }
   const snap = (v: number, up: boolean) => (up ? Math.ceil(v / COARSE_CELL) : Math.floor(v / COARSE_CELL)) * COARSE_CELL;
   return { x0: snap(x0 - MARGIN, false), x1: snap(x1 + MARGIN, true), z0: snap(z0 - MARGIN, false), z1: snap(z1 + MARGIN, true) };
+}
+
+function widestWall(track: Track): number {
+  let widest = 0;
+  for (let i = 0; i < track.n; i++) widest = Math.max(widest, track.left.wall[i], track.right.wall[i]);
+  return widest;
 }
 
 const smooth = (u: number) => {
