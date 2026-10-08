@@ -1,6 +1,7 @@
 // Title screen over the live 3D background: typographic wordmark, circuit
 // facts, main menu.
 import { h } from '@/hud/dom';
+import { flushRecords } from '@/race/records-queue';
 import { hintBar, menuButton, type Screen, screenEl, STD_HINTS, valueRow } from '@/ui/screen';
 import { ACTIVE_CIRCUIT, CIRCUITS, switchCircuit } from '@/track/circuits';
 
@@ -34,7 +35,11 @@ export class TitleScreen implements Screen {
 
   constructor(actions: TitleActions) {
     const circuit = CIRCUITS[ACTIVE_CIRCUIT];
-    this.circuitRow = valueRow('Circuit', () => switchCircuit(ACTIVE_CIRCUIT === 'bathurst' ? 'adelaide' : 'bathurst'));
+    // The page reloads for the other circuit: pending records are written first.
+    this.circuitRow = valueRow('Circuit', () => {
+      flushRecords();
+      switchCircuit(ACTIVE_CIRCUIT === 'bathurst' ? 'adelaide' : 'bathurst');
+    });
     this.circuitRow.value.textContent = circuit.name;
     this.circuitRow.el.setAttribute('aria-label', `Circuit: ${circuit.name}. Left and right to change.`);
     this.buttons = [

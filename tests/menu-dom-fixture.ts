@@ -85,7 +85,9 @@ export class MenuNode {
 
 export class MenuDocument {
   activeElement: MenuNode | null = null;
+  visibilityState = 'visible';
   readonly body = new MenuNode('body', this);
+  addEventListener(): void {}
   createElement(tag: string): MenuNode { return new MenuNode(tag, this); }
   createElementNS(_ns: string, tag: string): MenuNode { return new MenuNode(tag, this); }
 }

@@ -26,6 +26,7 @@ import { TouchControls } from '@/input/touch-controls';
 import { touchOptions } from '@/input/touch-model';
 import { supportsTouchControls } from '@/input/touch-capability';
 import { Autopilot } from '@/race/autopilot';
+import { flushRecords } from '@/race/records-queue';
 import type { CarAudio } from '@/types/audio';
 import type { CarModel } from '@/types/car-model';
 import type { Hud, Menus } from '@/types/hud';
@@ -213,6 +214,7 @@ export class Game {
   }
 
   private quitToTitle(): void {
+    flushRecords();
     this.endRace();
     this.enterTitle();
   }

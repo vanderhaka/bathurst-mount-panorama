@@ -4,7 +4,8 @@ import { GhostPlayer, GhostRecorder, type GhostPose } from '@/race/ghost';
 import { formatLapTime } from '@/hud/format';
 import { gridSlot } from '@/race/grid';
 import { LapTimer, type LapResult } from '@/race/lap-timer';
-import { loadRecords, saveRecords, type CarRecords } from '@/race/records';
+import { loadRecords, type CarRecords } from '@/race/records';
+import { queueRecordsSave } from '@/race/records-queue';
 import { TelemetryRecorder } from '@/race/telemetry-recorder';
 import type { RacingLine } from '@/track/racing-line';
 import type { Track } from '@/track/track-model';
@@ -166,8 +167,8 @@ export class RaceSession {
       telemetry: this.bestTelemetry ?? undefined,
       laps: this.laps.slice(-50),
     };
-    // Save when the browser is idle: a synchronous localStorage write at the line costs a frame.
-    if (Number.isFinite(next.bestS) || next.laps.length) whenIdle(() => saveRecords(this.car, next, this.track.id));
+    // Saved when the browser is idle, or at once on quit and page hide (records-queue).
+    if (Number.isFinite(next.bestS) || next.laps.length) queueRecordsSave(this.car, next, this.track.id);
     this.records = next;
   }
 
@@ -192,11 +193,6 @@ export class RaceSession {
     if (timed) this.timer.invalidate();
     this.say(timed ? 'CAR RESET AND REPAIRED — LAP INVALIDATED' : 'CAR RESET AND REPAIRED', 'warn');
   }
-}
-
-function whenIdle(fn: () => void): void {
-  if (typeof requestIdleCallback === 'function') requestIdleCallback(fn, { timeout: 3000 });
-  else setTimeout(fn, 0);
 }
 
 /** Lap time as m:ss.mmm, truncated like the timing tower (one format everywhere). */

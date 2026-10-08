@@ -1,7 +1,7 @@
 import type { CarKind } from '@/car/car-specs';
 import { decodeGhost, encodeGhost, GhostPlayer } from '@/race/ghost';
 import type { LapRecord } from '@/types/session';
-import { restoreTelemetry, type LapTelemetry } from '@/types/telemetry';
+import { compactTelemetry, restoreTelemetry, type LapTelemetry } from '@/types/telemetry';
 import { CIRCUITS, type CircuitId } from '@/track/circuits';
 
 // v2: v1 records could hold ghosts that replayed fast and fake bests from reversing over the line.
@@ -53,12 +53,19 @@ function encodeCached(g: Float32Array): string {
   return e;
 }
 
+/**
+ * A Bathurst record with ghost and pedal trace is ~0.25 M characters. When storage is full,
+ * the best time, sectors and lap history still persist: the trace is dropped first, then the ghost.
+ */
 export function saveRecords(car: CarKind, r: CarRecords, circuit: CircuitId = 'bathurst'): void {
-  try {
-    const s: Stored = { bestS: r.bestS, bestSectors: r.bestSectors, trace: r.trace, ghost: r.ghost ? encodeCached(r.ghost) : undefined,
-      telemetry: r.telemetry, laps: r.laps.slice(-50) };
-    localStorage.setItem(KEY(car, circuit), JSON.stringify(s));
-  } catch {
-    /* storage full or unavailable: records stay for this session only */
+  const full: Stored = { bestS: r.bestS, bestSectors: r.bestSectors, trace: r.trace, ghost: r.ghost ? encodeCached(r.ghost) : undefined,
+    telemetry: r.telemetry ? compactTelemetry(r.telemetry) : undefined, laps: r.laps.slice(-50) };
+  for (const s of [full, { ...full, telemetry: undefined }, { ...full, telemetry: undefined, ghost: undefined }]) {
+    try {
+      localStorage.setItem(KEY(car, circuit), JSON.stringify(s));
+      return;
+    } catch {
+      /* storage full (try a smaller record) or unavailable: records stay for this session only */
+    }
   }
 }

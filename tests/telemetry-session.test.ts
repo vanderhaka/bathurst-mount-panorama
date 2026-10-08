@@ -9,7 +9,7 @@ import { loadRecords, saveRecords } from '@/race/records';
 import { placeKerbs } from '@/track/kerbs';
 import { computeRacingLine } from '@/track/racing-line';
 import { Track } from '@/track/track-model';
-import { restoreTelemetry, type LapTelemetry } from '@/types/telemetry';
+import { compactTelemetry, restoreTelemetry, type LapTelemetry } from '@/types/telemetry';
 import { tracePath } from '@/ui/telemetry-chart';
 import { adjust } from '@/ui/screen';
 import { TelemetryScreen } from '@/ui/screens/telemetry';
@@ -72,9 +72,9 @@ describe('session telemetry and its ghost', () => {
     vi.runAllTimers();
     const restored = loadRecords('camaro');
     expect(restored?.ghost).toBeDefined();
-    expect(restored?.telemetry).toEqual(data.best);
+    expect(restored?.telemetry).toEqual(compactTelemetry(data.best!)); // saved rounded
     const reloaded = fixture().session, reload = reloaded.telemetrySnapshot();
-    expect(reload.best).toEqual(data.best);
+    expect(reload.best).toEqual(compactTelemetry(data.best!));
     expect(reloaded.ghost).not.toBeNull();
     expect(reload.laps).toHaveLength(0);
     const [laps, best] = sessionResults(session);

@@ -28,6 +28,28 @@ export interface SessionTelemetry {
   corners: TelemetryCorner[];
 }
 
+const round = (value: number, places: number): number => Math.round(value * 10 ** places) / 10 ** places;
+
+/**
+ * The saved form of a lap trace, about 40 % smaller: interior samples rounded to
+ * 1 mm, 0.1 ms, 0.01 km/h and 0.1 % pedal, and dropped where rounding would break the
+ * strictly increasing distance and time restoreTelemetry requires. The timing-line
+ * endpoints keep their exact distance and time.
+ */
+export function compactTelemetry(lap: LapTelemetry): LapTelemetry {
+  if (lap.samples.length < 3) return lap;
+  const at = (s: TelemetrySample, distanceM: number, timeS: number): TelemetrySample =>
+    ({ distanceM, timeS, speedKmh: round(s.speedKmh, 2), throttle: round(s.throttle, 3), brake: round(s.brake, 3) });
+  const first = lap.samples[0], last = lap.samples[lap.samples.length - 1];
+  const samples = [at(first, first.distanceM, first.timeS)];
+  for (let i = 1; i < lap.samples.length - 1; i++) {
+    const prev = samples[samples.length - 1], d = round(lap.samples[i].distanceM, 3), t = round(lap.samples[i].timeS, 4);
+    if (d > prev.distanceM && t > prev.timeS && d < last.distanceM && t < last.timeS) samples.push(at(lap.samples[i], d, t));
+  }
+  samples.push(at(last, last.distanceM, last.timeS));
+  return { ...lap, samples };
+}
+
 /** Read saved data defensively; never manufacture inputs for a legacy ghost. */
 export function restoreTelemetry(value: unknown, bestS: number, lengthM?: number): LapTelemetry | null {
   if (!value || typeof value !== 'object') return null;
