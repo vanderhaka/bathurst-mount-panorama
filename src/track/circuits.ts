@@ -1,10 +1,11 @@
 export type CircuitId = 'bathurst' | 'adelaide';
 
+/** altitudeDerate: engine torque at the circuit's air density (Bathurst 700-870 m, docs/research/car-specs.md; Adelaide is at sea level). */
 export const CIRCUITS = {
   bathurst: { name: 'Mount Panorama', city: 'Bathurst', title: ['Mount', 'Panorama'], location: 'Bathurst · New South Wales', lengthM: 6213,
-    facts: [['Length', '6.213', 'km'], ['Turns', '23', ''], ['Elevation change', '174', 'm']] },
+    facts: [['Length', '6.213', 'km'], ['Turns', '23', ''], ['Elevation change', '174', 'm']], altitudeDerate: 0.92 },
   adelaide: { name: 'Adelaide Parklands', city: 'Adelaide', title: ['Adelaide', 'Parklands'], location: 'Adelaide · South Australia', lengthM: 3219,
-    facts: [['Length', '3.219', 'km'], ['Turns', '14', ''], ['Direction', 'Clockwise', '']] },
+    facts: [['Length', '3.219', 'km'], ['Turns', '14', ''], ['Direction', 'Clockwise', '']], altitudeDerate: 1 },
 } as const;
 
 /** Last circuit chosen on the title screen; read when the address names none (a Home Screen launch opens "/"). */

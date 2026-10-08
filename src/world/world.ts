@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { CAR_SPECS } from '@/car/car-specs';
+import { circuitCarSpec } from '@/car/car-specs';
 import { DEFAULT_HANDLING, tunedSpec } from '@/config/handling';
 import { placeKerbs, type KerbLayout } from '@/track/kerbs';
 import { computeRacingLine, type RacingLine } from '@/track/racing-line';
@@ -43,7 +43,7 @@ export async function buildWorld(
   const track = reuse?.track ?? (ACTIVE_CIRCUIT === 'adelaide' ? (await import('@/track/adelaide')).createAdelaideTrack() : new Track());
   await progress(0.12, 'Computing the racing line');
   const line = reuse?.line ?? computeRacingLine(track);
-  const profile = reuse?.profile ?? computeSpeedProfile(track, line, tunedSpec(CAR_SPECS.camaro, DEFAULT_HANDLING), LINE_PROFILE);
+  const profile = reuse?.profile ?? computeSpeedProfile(track, line, tunedSpec(circuitCarSpec('camaro', track.id), DEFAULT_HANDLING), LINE_PROFILE);
   const kerbs = reuse?.kerbs ?? placeKerbs(track, line);
   await progress(0.25, 'Laying the asphalt');
   const cfg = getGraphics(), tier = QUALITY[quality];

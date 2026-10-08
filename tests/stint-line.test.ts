@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { describe, expect, it } from 'vitest';
-import { CAR_SPECS } from '@/car/car-specs';
+import { circuitCarSpec } from '@/car/car-specs';
 import { AttractMode } from '@/game/attract-mode';
 import type { CarEntity } from '@/game/car-entity';
 import { SessionProfiles } from '@/game/session-profiles';
@@ -21,7 +21,7 @@ const layouts = new Map(circuits.map(([, track]) => {
 const idle = (): VehicleInput => ({ throttle: 0, brake: 0, steer: 0, shiftUp: false, shiftDown: false });
 
 function car(track: Track): Vehicle {
-  const v = new Vehicle(CAR_SPECS.camaro, track, layouts.get(track)!.kerbs);
+  const v = new Vehicle(circuitCarSpec('camaro', track.id), track, layouts.get(track)!.kerbs);
   v.stint.reset({ tempC: 95 });
   return v;
 }
@@ -72,7 +72,7 @@ describe('stint laps are counted at the timing line in wrapped lap distance', ()
 
   it('refits the title-screen demo car each lap on Adelaide', () => {
     const track = circuits[0][1], { line } = layouts.get(track)!;
-    const vehicle = new Vehicle(CAR_SPECS.camaro, track, layouts.get(track)!.kerbs);
+    const vehicle = new Vehicle(circuitCarSpec('camaro', 'adelaide'), track, layouts.get(track)!.kerbs);
     vehicle.reset(900, line.offset[Math.round(900 / track.spacing)]);
     const entity = {
       vehicle, model: { root: new THREE.Object3D(), dispose() {} }, sync() {},

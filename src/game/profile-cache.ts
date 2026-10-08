@@ -1,7 +1,7 @@
 // Racing-line speed profiles per car: the player's line (LINE_PROFILE, shown as the
 // racing line and corner-speed hints) and the AI driver's (AI_PROFILE). Both follow
 // the handling tuner: the cache key holds the values that change the car's limits.
-import { CAR_SPECS, type CarKind } from '@/car/car-specs';
+import { circuitCarSpec, type CarKind } from '@/car/car-specs';
 import { DEFAULT_HANDLING, getHandling, tunedSpec, type HandlingConfig } from '@/config/handling';
 import { AI_PROFILE } from '@/race/autopilot';
 import { computeSpeedProfile, LINE_PROFILE, type SpeedProfile } from '@/track/speed-profile';
@@ -28,7 +28,7 @@ export class ProfileCache {
     let p = this.cache.get(key);
     if (!p) {
       const { track, line, profile } = this.world();
-      const spec = tunedSpec(CAR_SPECS[car], h);
+      const spec = tunedSpec(circuitCarSpec(car, track.id), h);
       // The world holds the Camaro's line profile for the default handling (world.ts).
       const reuse = car === 'camaro' && limitsKey(h) === limitsKey(DEFAULT_HANDLING);
       p = {

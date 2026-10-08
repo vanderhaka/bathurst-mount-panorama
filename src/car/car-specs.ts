@@ -1,6 +1,7 @@
 // Physical specification of the three Gen3 Supercars. Single source of truth for
 // both the 3D models (dimensions) and the vehicle physics (mass, power, aero).
 // Sources: docs/research/car-specs.md.
+import { CIRCUITS, type CircuitId } from '@/track/circuits';
 
 export type CarKind = 'camaro' | 'mustang' | 'supra';
 
@@ -77,9 +78,17 @@ export interface CarSpec {
 
 // docs/research/car-specs.md: wheelbase 2.766 m (WhichCar), L x W 4.88 x 1.96 m (iRacing
 // sheet), 18x11 in wheels with 0.340 m rolling radius. Height and track are estimates.
-/** Bathurst altitude power derate (docs/research/car-specs.md). */
-const ALTITUDE_DERATE = 0.92;
-const derate = (curve: Array<[number, number]>): Array<[number, number]> => curve.map(([r, t]) => [r, Math.round(t * ALTITUDE_DERATE)]);
+/** Rated full-throttle torque curves, [rpm, Nm]; each circuit derates them for its altitude. */
+const RATED_TORQUE: Record<CarKind, Array<[number, number]>> = {
+  // 660 Nm / ~447 kW rated (Supercars).
+  camaro: [[1000, 440], [2500, 570], [4000, 645], [5000, 660], [6000, 645], [7000, 605], [7600, 540]],
+  // Same rated output (parity), flatter top end from the DOHC heads.
+  mustang: [[1000, 400], [2500, 525], [4000, 615], [5000, 655], [6000, 660], [7000, 610], [7600, 555]],
+  // Lexus 2UR-GSE based, 94 x 94 mm bore and stroke. Parity rules match its power and
+  // torque to the other two across the rev range; the DOHC heads give a Mustang-like top end.
+  supra: [[1000, 390], [2500, 515], [4000, 610], [5000, 655], [6000, 660], [7000, 610], [7600, 555]],
+};
+const derate = (curve: Array<[number, number]>, factor: number): Array<[number, number]> => curve.map(([r, t]) => [r, Math.round(t * factor)]);
 
 const GEN3_DIMENSIONS: CarDimensions = {
   length: 4.88,
@@ -103,6 +112,7 @@ const GEN3_DIMENSIONS: CarDimensions = {
  */
 const GEN3_CG_HEIGHT = 0.38;
 
+/** The cars as raced at Bathurst, where the physics was calibrated. A session uses circuitCarSpec. */
 export const CAR_SPECS: Record<CarKind, CarSpec> = {
   camaro: {
     kind: 'camaro',
@@ -117,8 +127,7 @@ export const CAR_SPECS: Record<CarKind, CarSpec> = {
     engine: {
       label: '5.7 L pushrod V8',
       displacementL: 5.7,
-      // 660 Nm / ~447 kW rated (Supercars), x0.92 for Bathurst altitude (700-870 m).
-      torqueCurve: derate([[1000, 440], [2500, 570], [4000, 645], [5000, 660], [6000, 645], [7000, 605], [7600, 540]]),
+      torqueCurve: derate(RATED_TORQUE.camaro, CIRCUITS.bathurst.altitudeDerate),
       idleRpm: 1150,
       redlineRpm: 7400,
       limiterRpm: 7500,
@@ -152,8 +161,7 @@ export const CAR_SPECS: Record<CarKind, CarSpec> = {
     engine: {
       label: '5.4 L DOHC V8',
       displacementL: 5.4,
-      // Same rated output (parity), flatter top end from the DOHC heads.
-      torqueCurve: derate([[1000, 400], [2500, 525], [4000, 615], [5000, 655], [6000, 660], [7000, 610], [7600, 555]]),
+      torqueCurve: derate(RATED_TORQUE.mustang, CIRCUITS.bathurst.altitudeDerate),
       idleRpm: 1250,
       redlineRpm: 7400,
       limiterRpm: 7500,
@@ -191,9 +199,7 @@ export const CAR_SPECS: Record<CarKind, CarSpec> = {
     engine: {
       label: '5.2 L quad-cam V8',
       displacementL: 5.2,
-      // Lexus 2UR-GSE based, 94 x 94 mm bore and stroke. Parity rules match its power and
-      // torque to the other two across the rev range; the DOHC heads give a Mustang-like top end.
-      torqueCurve: derate([[1000, 390], [2500, 515], [4000, 610], [5000, 655], [6000, 660], [7000, 610], [7600, 555]]),
+      torqueCurve: derate(RATED_TORQUE.supra, CIRCUITS.bathurst.altitudeDerate),
       idleRpm: 1200,
       redlineRpm: 7400,
       limiterRpm: 7500,
@@ -216,3 +222,19 @@ export const CAR_SPECS: Record<CarKind, CarSpec> = {
     maxSteerRad: 0.36,
   },
 };
+
+const circuitSpecs = new Map<string, CarSpec>();
+
+/** The car at a circuit: its altitude derate on the rated torque, everything else as CAR_SPECS (Bathurst is CAR_SPECS itself). */
+export function circuitCarSpec(kind: CarKind, circuit: CircuitId): CarSpec {
+  const factor = CIRCUITS[circuit].altitudeDerate;
+  if (factor === CIRCUITS.bathurst.altitudeDerate) return CAR_SPECS[kind];
+  const key = `${kind}|${circuit}`;
+  let spec = circuitSpecs.get(key);
+  if (!spec) {
+    const base = CAR_SPECS[kind];
+    spec = { ...base, engine: { ...base.engine, torqueCurve: derate(RATED_TORQUE[kind], factor) } };
+    circuitSpecs.set(key, spec);
+  }
+  return spec;
+}

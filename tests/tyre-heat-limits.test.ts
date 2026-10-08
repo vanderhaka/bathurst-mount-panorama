@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { CAR_SPECS } from '@/car/car-specs';
+import { CAR_SPECS, circuitCarSpec } from '@/car/car-specs';
 import { SessionProfiles } from '@/game/session-profiles';
 import { tyreForces, type TyreResult } from '@/physics/tyre';
 import { tyreHeat, type TyreHeatInput } from '@/physics/tyre-heat';
@@ -93,7 +93,7 @@ describe('tyre temperatures stay physical on the real physics', () => {
   // feedback loop once took the front-left from 93 to 221 C and the laps from 78.8 to 84.4 s).
   it('settles the fronts over a 12-lap Adelaide soft stint without lap times drifting', () => {
     const track = createAdelaideTrack(), line = computeRacingLine(track), kerbs = placeKerbs(track, line);
-    const v = new Vehicle(CAR_SPECS.camaro, track, kerbs);
+    const v = new Vehicle(circuitCarSpec('camaro', 'adelaide'), track, kerbs);
     v.stint.reset({ compound: 'soft' });
     v.reset(track.gridLineS - 7, -2.2);
     const profiles = new SessionProfiles(v, line), ap = new Autopilot(track, line, profiles.ai), input = idle();

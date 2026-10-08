@@ -1,7 +1,8 @@
 // Car-select data derived from CAR_SPECS and LIVERY_PRESETS (single sources of truth).
-import { CAR_SPECS, type CarKind } from '@/car/car-specs';
+import { circuitCarSpec, type CarKind } from '@/car/car-specs';
 import { LIVERY_PRESETS } from '@/car/liveries';
 import { peakPowerKw } from '@/hud/indicators';
+import { CIRCUITS, type CircuitId } from '@/track/circuits';
 
 export const CAR_ORDER: CarKind[] = ['camaro', 'mustang', 'supra'];
 
@@ -16,8 +17,8 @@ export interface CarSheet {
 
 /**
  * Published Gen3 ratings (parity: same for every car), docs/research/car-specs.md
- * [S1][S3][S5]. CAR_SPECS holds the Bathurst altitude-derated curve the physics uses,
- * so the menu shows these figures and notes the in-game output separately.
+ * [S1][S3][S5]. The physics derates them for the circuit's altitude (circuitCarSpec),
+ * so the menu shows these figures and notes the in-game output at the selected circuit.
  */
 const RATED: Record<CarKind, { kw: number; hp: number; nm: number }> = {
   camaro: { kw: 447, hp: 600, nm: 660 },
@@ -27,8 +28,8 @@ const RATED: Record<CarKind, { kw: number; hp: number; nm: number }> = {
 
 const nf = new Intl.NumberFormat('en-AU');
 
-export function carSheet(kind: CarKind): CarSheet {
-  const spec = CAR_SPECS[kind];
+export function carSheet(kind: CarKind, circuit: CircuitId): CarSheet {
+  const spec = circuitCarSpec(kind, circuit);
   const rated = RATED[kind];
   const inGame = peakPowerKw(spec.engine.torqueCurve);
   return {
@@ -42,7 +43,9 @@ export function carSheet(kind: CarKind): CarSheet {
       ['Weight', `${nf.format(spec.massKg)} kg`],
       ['Redline', `${nf.format(spec.engine.redlineRpm)} rpm`],
     ],
-    note: `Rated output. Altitude-derated in game at Bathurst (~${Math.round(inGame.kw)} kW).`,
+    note: CIRCUITS[circuit].altitudeDerate < 1
+      ? `Rated output. Altitude-derated in game at ${CIRCUITS[circuit].city} (~${Math.round(inGame.kw)} kW).`
+      : `Rated output. No altitude derate in game at ${CIRCUITS[circuit].city} (~${Math.round(inGame.kw)} kW).`,
   };
 }
 

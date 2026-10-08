@@ -3,6 +3,7 @@ import type { CarKind } from '@/car/car-specs';
 import type { TyreCompound } from '@/physics/tyre-state';
 import { LIVERY_PRESETS } from '@/car/liveries';
 import { h } from '@/hud/dom';
+import { ACTIVE_CIRCUIT } from '@/track/circuits';
 import { CAR_ORDER, carSheet, hexColour, LIVERY_COUNT } from '@/ui/car-data';
 import { hintBar, kicker, menuButton, type Screen, screenEl, STD_HINTS, valueRow } from '@/ui/screen';
 
@@ -70,7 +71,7 @@ export class CarSelectScreen implements Screen {
   }
 
   private render(): void {
-    const sheet = carSheet(this.car);
+    const sheet = carSheet(this.car, ACTIVE_CIRCUIT);
     this.carRow.value.replaceChildren(
       h('span', 'mn-car__maker', undefined, [sheet.maker]),
       h('span', 'mn-car__name', undefined, [sheet.name]),

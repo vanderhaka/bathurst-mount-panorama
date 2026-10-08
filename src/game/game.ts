@@ -3,7 +3,7 @@ import { RaceWakeLock } from '@/phone/wake-lock';
 import { presentOnRaceTaps } from '@/phone/android-presentation';
 import { createCarAudio } from '@/audio';
 import { CameraRig } from '@/camera/camera-rig';
-import { CAR_SPECS, type CarKind } from '@/car/car-specs';
+import { circuitCarSpec, type CarKind } from '@/car/car-specs';
 import { getHandling } from '@/config/handling';
 import { getSetup } from '@/config/setup';
 import { LIVERY_PRESETS } from '@/car/liveries';
@@ -112,7 +112,7 @@ export class Game {
 
   private makeEntity(car: CarKind, liveryIndex: number): CarEntity {
     const livery = LIVERY_PRESETS[car][liveryIndex % LIVERY_PRESETS[car].length].livery;
-    const e = new CarEntity(CAR_SPECS[car], this.world.track, this.world.kerbs, (kind, options) => createCarModel(kind, { ...options, quality: this.settings.quality }), livery);
+    const e = new CarEntity(circuitCarSpec(car, this.world.track.id), this.world.track, this.world.kerbs, (kind, options) => createCarModel(kind, { ...options, quality: this.settings.quality }), livery);
     e.vehicle.handling = getHandling(); // a race car takes the live values every frame
     e.vehicle.setup = getSetup(car);
     this.stage.scene.add(e.model.root);

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { CAR_SPECS, type CarKind } from '@/car/car-specs';
+import { circuitCarSpec, type CarKind } from '@/car/car-specs';
 import { SessionProfiles } from '@/game/session-profiles';
 import { Vehicle } from '@/physics/vehicle';
 import { Autopilot } from '@/race/autopilot';
@@ -12,7 +12,7 @@ const track = createAdelaideTrack(), line = computeRacingLine(track), kerbs = pl
 describe('Adelaide is drivable with the unchanged cars', () => {
   for (const kind of ['camaro', 'mustang', 'supra'] as CarKind[]) {
     it(`completes three laps in the ${kind} without a wall impact`, () => {
-      const v = new Vehicle(CAR_SPECS[kind], track, kerbs);
+      const v = new Vehicle(circuitCarSpec(kind, 'adelaide'), track, kerbs);
       const profiles = new SessionProfiles(v, line);
       const ap = new Autopilot(track, line, profiles.ai);
       v.reset(0, line.offset[0]);

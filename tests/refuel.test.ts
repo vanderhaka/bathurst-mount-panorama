@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { CAR_SPECS } from '@/car/car-specs';
+import { CAR_SPECS, circuitCarSpec } from '@/car/car-specs';
 import type { CarEntity } from '@/game/car-entity';
 import { RaceSession } from '@/game/race-session';
 import { SessionProfiles } from '@/game/session-profiles';
@@ -51,7 +51,7 @@ describe('refuelling at the line', () => {
 
   for (const [name, track, laps] of [['Bathurst', bathurst, 24], ['Adelaide', createAdelaideTrack(), 34]] as const) {
     it(`${name}: a long AI run never runs dry, refuels at the line and keeps lapping`, () => {
-      const line = computeRacingLine(track), v = new Vehicle(CAR_SPECS.camaro, track, placeKerbs(track, line));
+      const line = computeRacingLine(track), v = new Vehicle(circuitCarSpec('camaro', track.id), track, placeKerbs(track, line));
       v.stint.reset({ tempC: 95 });
       const s0 = track.wrapS(track.startLineS - 300);
       v.reset(s0, line.offset[Math.round(s0 / track.spacing) % track.n]);

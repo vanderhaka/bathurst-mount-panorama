@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { CAR_SPECS, type CarKind } from '@/car/car-specs';
+import { circuitCarSpec, type CarKind } from '@/car/car-specs';
 import { DEFAULT_HANDLING, tunedSpec } from '@/config/handling';
 import { SessionProfiles } from '@/game/session-profiles';
 import { Vehicle } from '@/physics/vehicle';
@@ -22,7 +22,7 @@ const HAIRPIN = [2215, 2260];
 describe('the AI tracks Adelaide hairpins on warm tyres', () => {
   for (const kind of ['camaro', 'mustang', 'supra'] as CarKind[]) {
     it(`keeps the ${kind} on its line through Dequetteville without touching the wall`, () => {
-      const v = new Vehicle(CAR_SPECS[kind], track, kerbs);
+      const v = new Vehicle(circuitCarSpec(kind, 'adelaide'), track, kerbs);
       v.stint.reset({ tempC: 95 });
       v.reset(0, line.offset[0]);
       const profiles = new SessionProfiles(v, line), ap = new Autopilot(track, line, profiles.ai);
@@ -56,7 +56,7 @@ describe('the AI tracks Adelaide hairpins on warm tyres', () => {
 describe('Adelaide racing-line colours are achievable', () => {
   for (const kind of ['camaro', 'mustang', 'supra'] as CarKind[]) {
     it(`a colour-following driver laps cleanly in the ${kind}`, () => {
-      const spec = CAR_SPECS[kind];
+      const spec = circuitCarSpec(kind, 'adelaide');
       const prof = computeSpeedProfile(track, line, tunedSpec(spec, DEFAULT_HANDLING), LINE_PROFILE);
       const v = new Vehicle(spec, track, kerbs);
       const steer = new Autopilot(track, line, prof);
