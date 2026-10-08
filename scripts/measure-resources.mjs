@@ -4,6 +4,7 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { chromium } from 'playwright';
 import { authenticatePreview } from './browser-auth.mjs';
+import { answerSteerQuestion } from './steer-question.mjs';
 
 const args = process.argv.slice(2), out = args[0];
 if (!out) throw new Error('Supply an output JSON path');
@@ -75,6 +76,7 @@ await page.waitForFunction(() => window.__shotReady, null, { timeout: 120000 });
 await page.getByRole('button', { name: 'Time trial', exact: true }).tap();
 await page.waitForTimeout(400);
 await page.getByRole('button', { name: 'Start time trial', exact: true }).tap();
+await answerSteerQuestion(page);
 await page.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))));
 await page.waitForFunction(() => window.__game?.race?.session.lights < 0, null, { timeout: 30000 });
 await page.waitForTimeout(1000);

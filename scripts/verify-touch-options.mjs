@@ -7,6 +7,7 @@ import { resolve } from 'node:path';
 import { chromium, webkit } from 'playwright';
 import { browserTouches } from './browser-touch.mjs';
 import { authenticatePreview } from './browser-auth.mjs';
+import { answerSteerQuestion } from './steer-question.mjs';
 
 const engine = process.argv[2] ?? 'chromium';
 const url = process.argv[3] ?? 'http://127.0.0.1:5181/';
@@ -37,6 +38,7 @@ const start = async () => {
   await page.locator('.mn-screen--title .mn-btn--primary').tap();
   await page.waitForTimeout(400);
   await page.locator('[aria-label="Start time trial"]').tap();
+  await answerSteerQuestion(page);
   await page.waitForFunction(() => window.__game.race?.session.lights < 0);
 };
 const controls = () => page.evaluate(() => window.__game.input.update(0));

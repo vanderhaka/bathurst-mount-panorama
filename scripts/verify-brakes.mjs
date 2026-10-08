@@ -6,6 +6,7 @@ import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { chromium, webkit } from 'playwright';
 import { authenticatePreview } from './browser-auth.mjs';
+import { answerSteerQuestion } from './steer-question.mjs';
 
 export function adjustmentDirection(current, target) {
   return typeof current === 'number' && typeof target === 'number' && current > target ? 'Previous' : 'Next';
@@ -160,7 +161,7 @@ async function main() {
   };
   try {
     await page.goto(url); await page.waitForFunction(() => window.__shotReady && window.__game, null, { timeout: 90000 });
-    await button('title', 'Time trial').tap(); await button('car', 'Start time trial').tap(); await ready();
+    await button('title', 'Time trial').tap(); await button('car', 'Start time trial').tap(); await answerSteerQuestion(page); await ready();
     await page.evaluate(observeBrakes); await checkpoint('fresh-soft');
     await page.evaluate(() => { window.__game.setDebugAutopilot(true); window.__game.timeScale = 3; });
     for (let count = 1; count <= 3; count++) {

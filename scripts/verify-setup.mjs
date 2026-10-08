@@ -6,6 +6,7 @@ import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { chromium, webkit } from 'playwright';
 import { authenticatePreview } from './browser-auth.mjs';
+import { answerSteerQuestion } from './steer-question.mjs';
 
 export const DEFAULTS = Object.freeze({ brakeBiasFront: .6, frontArbNpm: 52000, rearArbNpm: 26000, frontPressureKpa: 150, rearPressureKpa: 150 });
 const CARS = ['camaro', 'mustang', 'supra'], NAMES = ['Camaro ZL1', 'Mustang GT', 'GR Supra'];
@@ -149,7 +150,7 @@ async function main() {
       await button('car', 'Next car').tap();
     }
     assert.equal((await page.locator('.mn-screen--car .mn-car__name').textContent()).trim(), NAMES[CARS.indexOf(car)]);
-    await button('car', 'Start time trial').tap(); await raceReady();
+    await button('car', 'Start time trial').tap(); await answerSteerQuestion(page); await raceReady();
   };
   try {
     await page.goto(url); await page.waitForFunction(() => window.__shotReady && window.__game, null, { timeout: 90000 });

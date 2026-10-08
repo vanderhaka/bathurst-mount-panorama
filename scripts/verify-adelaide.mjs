@@ -5,6 +5,7 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { chromium, webkit } from 'playwright';
 import { authenticatePreview } from './browser-auth.mjs';
+import { answerSteerQuestion } from './steer-question.mjs';
 
 const args = process.argv.slice(2), out = resolve(args[0] ?? 'artifacts/review/adelaide/browser');
 const option = (name, fallback) => { const i = args.indexOf(name); return i < 0 ? fallback : args[i + 1]; };
@@ -55,6 +56,7 @@ try {
     await activate(button('title', 'Time trial'));
     if (i) await activate(page.locator('.mn-screen--car [aria-label="Next car"]'));
     await shot(`car-${car}`); await activate(button('car', 'Start time trial'));
+    if (mobile) await answerSteerQuestion(page);
     await page.waitForFunction(() => window.__game.state === 'race' && window.__game.race.session.lights < 0, null, { timeout: 30000 });
     const grid = await page.evaluate(() => { const g = window.__game, v = g.race.player.vehicle;
       return { car: g.race.session.car, circuit: g.world.track.id, s: v.tp.s, offset: v.tp.d, y: v.y, speed: v.speed,

@@ -4,7 +4,7 @@
 // Usage: node scripts/play.mjs <scenario.json> [--url http://127.0.0.1:5180/] [--size 1600x900] [--mobile] [--android] [--engine chromium|webkit]
 // Scenario: [{ "clickOn": "css selector" } | { "key": "Enter" } | { "down": "ArrowUp" } | { "up": "ArrowUp" } | { "wait": 1500 }
 //            | { "shot": "artifacts/x.png" } | { "eval": "js expression" } | { "waitFor": "js expression" }
-//            | { "tap": [x, y] } | { "tapOn": "css selector" } | { "viewport": [w, h] }
+//            | { "tap": [x, y] } | { "tapOn": "css selector" } | { "viewport": [w, h] } | { "reload": true }
 //            | { "touch": "start" | "move" | "end", "points": [[x, y], ...] } | { "pinch": [x, y, scale] }]
 // --mobile emulates an iPhone (touch screen, 3x pixels, mobile user agent); "touch" sends real
 // multi-finger touch events via Chrome CDP. WebKit uses native taps and synthetic
@@ -57,7 +57,11 @@ try {
       if (!box) throw new Error(`tapOn: ${s.tapOn} is not visible`);
       await page.touchscreen.tap(box.x + box.width / 2, box.y + box.height / 2);
     } else if (s.viewport) await page.setViewportSize({ width: s.viewport[0], height: s.viewport[1] });
-    else if (s.pinch) await touch.pinch(s.pinch);
+    else if (s.reload) {
+      // Saved settings survive; the multi-touch helper does not (use it before reloading).
+      await page.reload({ waitUntil: 'load' });
+      await page.waitForFunction(() => window.__shotReady === true, null, { timeout: 90000 });
+    } else if (s.pinch) await touch.pinch(s.pinch);
     else if (s.touch) await touch.touch(s.touch, s.points);
     else if (s.shot) {
       mkdirSync(dirname(s.shot), { recursive: true });

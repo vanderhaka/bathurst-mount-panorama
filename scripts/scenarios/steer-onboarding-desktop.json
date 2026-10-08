@@ -1,0 +1,21 @@
+[
+  {
+    "eval": "(() => { if (window.__game.state !== 'title') throw new Error('Title did not load'); return document.title; })()"
+  },
+  {
+    "key": "Enter"
+  },
+  {
+    "wait": 500
+  },
+  {
+    "clickOn": "[aria-label='Start time trial']"
+  },
+  {
+    "waitFor": "window.__game?.state === 'race' && window.__game.race.session.lights < 0",
+    "timeout": 30000
+  },
+  {
+    "eval": "(() => { const s = document.querySelector('.mn-screen--steer'); if (!s.hidden) throw new Error('A desktop was asked how to steer'); if (window.__game.settings.steerOnboarded) throw new Error('A desktop was marked as chosen'); return 'no steering question on desktop'; })()"
+  }
+]

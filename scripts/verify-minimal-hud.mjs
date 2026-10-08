@@ -5,6 +5,7 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { chromium, webkit } from 'playwright';
+import { answerSteerQuestion } from './steer-question.mjs';
 
 export function unionArea(rectangles) {
   const rects = rectangles.filter(r => r.width > 0 && r.height > 0);
@@ -140,6 +141,7 @@ async function main() {
     await page.waitForFunction(() => window.__shotReady && window.__game, null, { timeout: 90000 });
     await page.locator('.mn-screen--title .mn-btn--primary').tap();
     await page.locator('[aria-label="Start time trial"]').tap();
+    await answerSteerQuestion(page);
     await page.waitForFunction(() => window.__game.race?.session.lights < 0, null, { timeout: 30000 });
     await display([['hudSize', 'HUD size', 'full'], ['units', 'Speed units', 'kmh']], 'settings-full');
     await camera('chase');

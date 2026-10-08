@@ -6,6 +6,7 @@ import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { chromium, webkit } from 'playwright';
 import { authenticatePreview } from './browser-auth.mjs';
+import { answerSteerQuestion } from './steer-question.mjs';
 
 export function observeSession() {
   const session = window.__game.race.session, vehicle = session.entity.vehicle, original = session.update;
@@ -173,6 +174,7 @@ async function main() {
     await page.waitForFunction(() => window.__shotReady && window.__game, null, { timeout: 90000 });
     report.circuit = await page.evaluate(() => ({ id: window.__game.world.track.id, lengthM: window.__game.world.track.length }));
     await button('title', 'Time trial').tap(); await button('car', 'Start time trial').tap();
+    await answerSteerQuestion(page);
     await page.waitForFunction(() => window.__game.state === 'race' && window.__game.race);
     await page.evaluate(() => { window.__game.setDebugAutopilot(true); window.__game.timeScale = 3; });
     await page.evaluate(observeSession);

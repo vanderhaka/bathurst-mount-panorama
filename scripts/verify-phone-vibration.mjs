@@ -6,6 +6,7 @@ import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { chromium, webkit } from 'playwright';
 import { authenticatePreview } from './browser-auth.mjs';
+import { answerSteerQuestion } from './steer-question.mjs';
 
 export function installProbe() {
   const original = navigator.vibrate;
@@ -201,6 +202,7 @@ async function main() {
     if (mode === 'android') assert.ok(report.api.originalNative, 'Expected browser native navigator.vibrate');
     await page.locator('.mn-screen--title .mn-btn--primary').tap();
     await page.locator('[aria-label="Start time trial"]').tap();
+    await answerSteerQuestion(page);
     await page.waitForFunction(() => window.__game.race?.session.lights < 0, null, { timeout: 30000 });
     await page.evaluate(observeImpacts);
     for (const kind of ['kerb', 'impact']) for (const enabled of [true, false]) await runContact(kind, enabled);

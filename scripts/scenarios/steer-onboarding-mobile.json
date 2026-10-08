@@ -1,0 +1,99 @@
+[
+  {
+    "eval": "(() => { if (window.__game.state !== 'title') throw new Error('Title did not load'); return document.title; })()"
+  },
+  {
+    "tapOn": ".mn-screen--title .mn-btn--primary"
+  },
+  {
+    "wait": 500
+  },
+  {
+    "tapOn": "[aria-label='Start time trial']"
+  },
+  {
+    "waitFor": "(() => { const s = document.querySelector('.mn-screen--steer'); return !!s && !s.hidden; })()",
+    "timeout": 10000
+  },
+  {
+    "wait": 600
+  },
+  {
+    "eval": "(() => { const g = window.__game, s = document.querySelector('.mn-screen--steer'); const choices = [...s.querySelectorAll('[data-steer-choice]')]; if (g.state === 'race') throw new Error('The race started before the choice'); if (choices.length !== 2 || document.activeElement !== choices[0]) throw new Error('Finger is not focused first'); if (!s.textContent.includes('Settings > Steering')) throw new Error('Missing the Settings hint'); if (g.settings.steerOnboarded) throw new Error('Marked as chosen too early'); return { choices: choices.map((b) => b.textContent), help: s.querySelector('.mn-help').textContent }; })()"
+  },
+  {
+    "shot": "artifacts/steer-onboarding/question.png"
+  },
+  {
+    "tapOn": "[data-steer-choice='drag']"
+  },
+  {
+    "waitFor": "window.__game?.state === 'race' && window.__game.race.session.lights < 0",
+    "timeout": 30000
+  },
+  {
+    "waitFor": "!window.__game.input.menusOpen",
+    "timeout": 10000
+  },
+  {
+    "wait": 100
+  },
+  {
+    "down": "ArrowUp"
+  },
+  {
+    "wait": 1500
+  },
+  {
+    "up": "ArrowUp"
+  },
+  {
+    "eval": "(() => { const g = window.__game; if (g.state !== 'race' || g.race.player.vehicle.speed < 1) throw new Error('Race did not drive'); const saved = JSON.parse(localStorage.getItem('bathurst.settings.v1')); if (saved.touchMode !== 'drag' || saved.steerOnboarded !== true) throw new Error('The choice was not saved: ' + JSON.stringify(saved)); return { speed: g.race.player.vehicle.speed, touchMode: saved.touchMode, steerOnboarded: saved.steerOnboarded }; })()"
+  },
+  {
+    "shot": "artifacts/steer-onboarding/driving.png"
+  },
+  {
+    "reload": true
+  },
+  {
+    "eval": "(() => { if (window.__game.state !== 'title') throw new Error('Title did not load after the reload'); return JSON.parse(localStorage.getItem('bathurst.settings.v1')).steerOnboarded; })()"
+  },
+  {
+    "tapOn": ".mn-screen--title .mn-btn--primary"
+  },
+  {
+    "wait": 500
+  },
+  {
+    "tapOn": "[aria-label='Start time trial']"
+  },
+  {
+    "waitFor": "window.__game?.state === 'race' && window.__game.race.session.lights < 0",
+    "timeout": 30000
+  },
+  {
+    "eval": "(() => { if (!document.querySelector('.mn-screen--steer').hidden) throw new Error('Asked a second time'); return window.__game.settings.touchMode; })()"
+  },
+  {
+    "viewport": [
+      390,
+      844
+    ]
+  },
+  {
+    "wait": 600
+  },
+  {
+    "eval": "(() => { if (window.__game.state !== 'paused') throw new Error('Portrait did not pause'); return window.__game.state; })()"
+  },
+  {
+    "viewport": [
+      844,
+      390
+    ]
+  },
+  {
+    "wait": 500
+  }
+]
