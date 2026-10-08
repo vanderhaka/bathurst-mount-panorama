@@ -47,6 +47,30 @@ it('keeps aerial perspective installed across High, Low and Medium cascade chang
   lighting.dispose();
 });
 
+it('keeps haze on a material first seen while hidden (the ghost car) across tier changes', () => {
+  const scene = new THREE.Scene(), camera = new THREE.PerspectiveCamera();
+  const material = new THREE.MeshStandardMaterial();
+  const ghost = new THREE.Mesh(new THREE.BoxGeometry(), material);
+  ghost.visible = false;
+  scene.add(ghost);
+  const lighting = createLighting(scene, 'high', camera);
+  lighting.apply(DEFAULT_GRAPHICS);
+  lighting.follow(new THREE.Vector3());
+  ghost.visible = true;
+  lighting.follow(new THREE.Vector3());
+  for (const tier of ['medium', 'high', 'low', 'medium'] as const) {
+    lighting.setQuality(tier);
+    lighting.apply(DEFAULT_GRAPHICS);
+    lighting.follow(new THREE.Vector3());
+    const shader = { uniforms: {}, vertexShader: THREE.ShaderLib.standard.vertexShader,
+      fragmentShader: THREE.ShaderLib.standard.fragmentShader } as Parameters<THREE.Material['onBeforeCompile']>[0];
+    material.onBeforeCompile(shader, {} as THREE.WebGLRenderer);
+    expect(shader.uniforms, tier).toHaveProperty('CSM_cascades');
+    expect('hazeFalloff' in shader.uniforms, tier).toBe(tier !== 'low');
+  }
+  lighting.dispose();
+});
+
 const view = (fov = 62, near = 0.1) => {
   const camera = new THREE.PerspectiveCamera(fov, 16 / 9, near, 16000);
   camera.position.set(0, 2, 0);

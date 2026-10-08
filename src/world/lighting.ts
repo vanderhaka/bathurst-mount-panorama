@@ -31,11 +31,12 @@ export function createLighting(scene: THREE.Scene, quality: QualityPreset = 'hig
   const hemi = new THREE.HemisphereLight(cfg0.hemiSky, cfg0.hemiGround, cfg0.hemiIntensity);
   scene.add(hemi);
 
-  const shadows = createShadowRig(scene, camera, quality);
+  const shadows = createShadowRig(scene, camera, quality, aerial.install);
   return {
     get sun() { return shadows.sun; },
     hemi,
-    // Haze owns the inner shader hook; CSM wraps it so changing cascades cannot erase it.
+    // Haze owns the inner shader hook (installed as the shadow rig registers a material); CSM wraps it,
+    // so changing cascades cannot erase it.
     follow(focus) { aerial.prepare(camera); shadows.update(focus); },
     resize() { shadows.resize(); },
     dispose() { shadows.dispose(); scene.remove(hemi); scene.onBeforeRender = previousRender; },

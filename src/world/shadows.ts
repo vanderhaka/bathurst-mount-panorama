@@ -11,8 +11,12 @@ const FOCUS_REACH = { scale: 1.15, margin: 10, max: 300 };
 /** Relative change in field of view or reach that refits the cascades to the camera. */
 const REFIT = 0.04;
 
-/** Keeps material shader hooks intact when the add-on installs CSM uniforms. */
-export function createShadowRig(scene: THREE.Scene, camera: THREE.PerspectiveCamera, quality: QualityPreset) {
+/**
+ * Keeps material shader hooks intact when the add-on installs CSM uniforms. `visit` sees every material in
+ * the scene just before the cascades wrap it; lighting installs the haze there.
+ */
+export function createShadowRig(scene: THREE.Scene, camera: THREE.PerspectiveCamera, quality: QualityPreset,
+  visit?: (material: THREE.Material) => void) {
   const originals = new Map<THREE.Material, { compile: THREE.Material['onBeforeCompile']; key: THREE.Material['customProgramCacheKey']; release: () => void }>();
   let direction = new THREE.Vector3(0.4, -0.6, -0.4).normalize();
   let intensity = 3, colour = '#fff1dc', distance = 400;
@@ -44,27 +48,33 @@ export function createShadowRig(scene: THREE.Scene, camera: THREE.PerspectiveCam
     if (moved(camera.fov, fitted.fov) || moved(far, fitted.far) || camera.near !== fitted.near
       || camera.aspect !== fitted.aspect || camera.zoom !== fitted.zoom) fit(far);
   };
-  const register = () => scene.traverse(object => {
-    if (!(object instanceof THREE.Mesh)) return;
-    for (const material of Array.isArray(object.material) ? object.material : [object.material]) {
-      if (!(material instanceof THREE.MeshStandardMaterial) || originals.has(material)) continue;
-      const original = material.onBeforeCompile;
-      const originalKey = material.customProgramCacheKey;
-      const release = () => {
-        csm.shaders.delete(material); originals.delete(material);
-        material.onBeforeCompile = original; material.customProgramCacheKey = originalKey;
-        if (material.defines) { delete material.defines.USE_CSM; delete material.defines.CSM_CASCADES; delete material.defines.CSM_FADE; }
-        material.removeEventListener('dispose', release);
-      };
-      originals.set(material, { compile: original, key: originalKey, release });
-      material.addEventListener('dispose', release);
-      csm.setupMaterial(material);
-      const install = material.onBeforeCompile;
-      material.onBeforeCompile = (shader, renderer) => { install.call(material, shader, renderer); original.call(material, shader, renderer); };
-      material.customProgramCacheKey = () => `${originalKey.call(material)}|csm-${QUALITY[quality].cascades}`;
-      material.needsUpdate = true;
-    }
-  });
+  const registerMaterial = (material: THREE.Material, mesh: boolean) => {
+    // Inner hooks (haze) go in first: a tier change restores exactly what was here, so they survive it.
+    visit?.(material);
+    if (!mesh || !(material instanceof THREE.MeshStandardMaterial) || originals.has(material)) return;
+    const original = material.onBeforeCompile;
+    const originalKey = material.customProgramCacheKey;
+    const release = () => {
+      csm.shaders.delete(material); originals.delete(material);
+      material.onBeforeCompile = original; material.customProgramCacheKey = originalKey;
+      if (material.defines) { delete material.defines.USE_CSM; delete material.defines.CSM_CASCADES; delete material.defines.CSM_FADE; }
+      material.removeEventListener('dispose', release);
+    };
+    originals.set(material, { compile: original, key: originalKey, release });
+    material.addEventListener('dispose', release);
+    csm.setupMaterial(material);
+    const install = material.onBeforeCompile;
+    material.onBeforeCompile = (shader, renderer) => { install.call(material, shader, renderer); original.call(material, shader, renderer); };
+    material.customProgramCacheKey = () => `${originalKey.call(material)}|csm-${QUALITY[quality].cascades}`;
+    material.needsUpdate = true;
+  };
+  /** Hidden objects too (the ghost car is added hidden), so every material is seen before its first draw. */
+  const registerObject = (object: THREE.Object3D) => {
+    if (!('material' in object)) return;
+    const value = object.material as THREE.Material | THREE.Material[] | null | undefined, mesh = object instanceof THREE.Mesh;
+    if (Array.isArray(value)) for (const material of value) registerMaterial(material, mesh);
+    else if (value) registerMaterial(value, mesh);
+  };
   const clear = () => {
     csm.remove();
     for (const light of csm.lights) light.shadow.dispose();
@@ -81,7 +91,7 @@ export function createShadowRig(scene: THREE.Scene, camera: THREE.PerspectiveCam
     get coverage(): number { return fitted.far; },
     /** Texel edge (m) of each cascade's shadow map, nearest first. */
     get texels(): number[] { return csm.lights.map(light => (light.shadow.camera.right - light.shadow.camera.left) / light.shadow.mapSize.x); },
-    update(focus?: THREE.Vector3) { register(); camera.updateMatrixWorld(); refitIfStale(focus); csm.update(); },
+    update(focus?: THREE.Vector3) { scene.traverse(registerObject); camera.updateMatrixWorld(); refitIfStale(focus); csm.update(); },
     setQuality(q: QualityPreset) { if (q !== quality) { clear(); quality = q; csm = make(); fit(reach()); } },
     apply(sun: THREE.Vector3, power: number, tint: string, maxFar: number) {
       direction = sun.clone().negate(); intensity = power; colour = tint;

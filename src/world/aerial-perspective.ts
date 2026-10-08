@@ -10,6 +10,8 @@ export function heightDensity(height: number, falloff: number): number {
 export interface AerialPerspective {
   apply(cfg: GraphicsConfig): void;
   prepare(camera: THREE.Camera): void;
+  /** Adds the haze hook to a fog material (once). Install it before outer hooks such as the shadow cascades. */
+  install(material: THREE.Material): void;
   setEnabled(enabled: boolean): void;
 }
 
@@ -91,6 +93,7 @@ export function createAerialPerspective(scene: THREE.Scene): AerialPerspective {
   }
 
   return {
+    install,
     prepare(camera) {
       camera.getWorldPosition(position);
       uniforms.hazeCameraDensity.value = heightDensity(position.y, uniforms.hazeFalloff.value);
