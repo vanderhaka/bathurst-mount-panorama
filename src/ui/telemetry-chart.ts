@@ -22,5 +22,6 @@ export function telemetryChart(lap: LapTelemetry, reference: LapTelemetry, key: 
     s('path', { class: 'mn-trace__reference', d: tracePath(reference, key, max, units) }),
     s('path', { class: 'mn-trace__lap', d: tracePath(lap, key, max, units) }),
   ]);
-  return h('figure', 'mn-trace', undefined, [h('figcaption', undefined, undefined, [label]), svg]);
+  // A focus stop on the telemetry screen (up / down scroll it into view).
+  return h('figure', 'mn-trace', { tabindex: 0 }, [h('figcaption', undefined, undefined, [label]), svg]);
 }

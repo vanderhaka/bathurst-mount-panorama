@@ -19,6 +19,8 @@ export class TelemetryScreen implements Screen {
   private readonly lapRow = valueRow('Lap to inspect', (dir) => this.changeLap(dir));
   private readonly referenceRow = valueRow('Compare with', (dir) => this.changeReference(dir));
   private readonly done: HTMLButtonElement;
+  /** Charts and corner rows: focus stops, so up / down (D-pad) scroll the whole body into view. */
+  private stops: HTMLElement[] = [];
   private data: SessionTelemetry | null = null;
   private lapIndex = 0;
   private referenceIndex = 0;
@@ -35,7 +37,7 @@ export class TelemetryScreen implements Screen {
     );
   }
 
-  items(): HTMLElement[] { return [this.lapRow.el, this.referenceRow.el, this.done]; }
+  items(): HTMLElement[] { return [this.lapRow.el, this.referenceRow.el, ...this.stops, this.done]; }
   back(): void { this.done.click(); }
 
   onShow(): void {
@@ -74,6 +76,7 @@ export class TelemetryScreen implements Screen {
   private render(): void {
     const lap = this.data?.laps[this.lapIndex];
     this.body.replaceChildren();
+    this.stops = [];
     this.lapRow.value.textContent = lap ? lapLabel(lap) : 'No complete flying lap';
     if (!lap) {
       this.summary.textContent = 'Complete a flying lap to record speed, throttle and brake.';
@@ -91,12 +94,13 @@ export class TelemetryScreen implements Screen {
     const result = compareLaps(lap, reference.lap, this.data!.corners);
     const totalMs = Math.round(result.lapDeltaS * 1000);
     this.summary.textContent = `${lapLabel(lap)} · ${deltaText(totalMs)} s against ${reference.name.toLowerCase()}`;
+    const charts = (['speedKmh', 'throttle', 'brake'] as const).map((key) => telemetryChart(lap, reference.lap, key, this.units()));
     const graphs = h('div', 'mn-telemetry__graphs', undefined, [
       h('p', 'mn-telemetry__legend', undefined, [h('span', 'mn-trace__lap', undefined, ['Inspected lap']), h('span', 'mn-trace__reference', undefined, [reference.name])]),
-      ...(['speedKmh', 'throttle', 'brake'] as const).map((key) => telemetryChart(lap, reference.lap, key, this.units())),
+      ...charts,
     ]);
     const head = h('tr', undefined, undefined, ['Turn', 'Distance (m)', 'Delta (s)'].map((text) => h('th', undefined, { scope: 'col' }, [text])));
-    const rows = result.corners.map((c) => h('tr', undefined, undefined, [
+    const rows = result.corners.map((c) => h('tr', undefined, { tabindex: 0 }, [
       h('td', undefined, undefined, [`T${c.turn} ${c.name}`]),
       h('td', 'mn-num', undefined, [`${Math.round(c.fromM)}–${Math.round(c.toM)}`]),
       h('td', `mn-num ${deltaClass(c.deltaMs)}`, undefined, [deltaText(c.deltaMs)]),
@@ -109,5 +113,6 @@ export class TelemetryScreen implements Screen {
       ]),
     ]);
     this.body.append(graphs, corners);
+    this.stops = [...charts, ...rows];
   }
 }
