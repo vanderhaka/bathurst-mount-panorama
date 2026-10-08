@@ -26,7 +26,7 @@ export const LEVEL_PRESETS: Readonly<Record<DrivingLevel, Rules>> = {
 export const LEVEL_NAMES: Readonly<Record<LevelChoice, { title: string; badge: string; tagline: string }>> = {
   casual: { title: 'Casual', badge: 'Casual', tagline: 'Get in and drive.' },
   experienced: { title: 'Experienced', badge: 'Experienced', tagline: 'A real car with some help.' },
-  superstar: { title: 'Supercar Superstar', badge: 'Superstar', tagline: 'The real Gen3 car. No help.' },
+  superstar: { title: 'Supercar Superstar', badge: 'Superstar', tagline: 'A real race car. No help.' },
   custom: { title: 'Custom', badge: 'Custom', tagline: 'Choose every rule yourself.' },
 };
 

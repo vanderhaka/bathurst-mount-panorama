@@ -1,0 +1,39 @@
+[
+  {
+    "eval": "(() => { if (window.__game.state !== 'title') throw new Error('Title did not load'); return document.title; })()"
+  },
+  { "key": "Enter" },
+  { "wait": 500 },
+  { "key": "ArrowLeft" },
+  { "wait": 300 },
+  {
+    "eval": "(() => { const row = document.querySelector('[aria-label^=\"Car: \"]'); if (!row || !row.getAttribute('aria-label').includes('Torana')) throw new Error('Torana not selected: ' + (row && row.getAttribute('aria-label'))); return row.getAttribute('aria-label'); })()"
+  },
+  { "clickOn": "[aria-label='Start time trial']" },
+  {
+    "waitFor": "(() => { const s = document.querySelector('.mn-screen--onboarding'); return !!s && !s.hidden; })()",
+    "timeout": 10000
+  },
+  { "clickOn": "[data-level-card='superstar']" },
+  { "clickOn": "[data-onboarding-next]" },
+  { "clickOn": "[data-onboarding-start]" },
+  {
+    "waitFor": "window.__game?.state === 'race' && window.__game.race.session.lights < 0",
+    "timeout": 30000
+  },
+  {
+    "waitFor": "!window.__game.input.menusOpen",
+    "timeout": 10000
+  },
+  {
+    "eval": "(() => { const g = window.__game, s = g.race.session; if (s.car !== 'torana') throw new Error('Session car is ' + s.car); if (s.level !== 'superstar') throw new Error('Session level is ' + s.level); if (g.settings.autoGears || g.settings.abs || g.settings.tractionControl) throw new Error('Superstar aids still on'); return { car: s.car, level: s.level }; })()"
+  },
+  { "wait": 100 },
+  { "down": "ArrowUp" },
+  { "wait": 2500 },
+  { "up": "ArrowUp" },
+  {
+    "eval": "(() => { const v = window.__game.race.player.vehicle; if (v.speed < 1) throw new Error('Torana did not drive: ' + v.speed); return { speed: v.speed, gear: v.gear }; })()"
+  },
+  { "shot": "artifacts/first-race-setup/torana-superstar.png" }
+]
