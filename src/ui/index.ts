@@ -106,7 +106,14 @@ class MenuController implements Menus {
         session: () => this.sessionLine(),
       }),
       controls: new ControlsScreen(backFromSub),
-      results: new ResultsScreen({ again: () => this.leave(() => this.cb.onRestart()), changeCar: () => this.showCarSelect(), menu: () => (this.showTitle(), this.cb.onQuitToMenu()), telemetry: () => sub(screens.telemetry), backToSession: () => this.showPause() }),
+      results: new ResultsScreen({
+        again: () => this.leave(() => this.cb.onRestart()),
+        // The paused race ends first (records saved, HUD and cars removed), then car select.
+        changeCar: () => { this.cb.onQuitToMenu(); this.showCarSelect(); },
+        menu: () => (this.showTitle(), this.cb.onQuitToMenu()),
+        telemetry: () => sub(screens.telemetry),
+        backToSession: () => this.showPause(),
+      }),
       telemetry: new TelemetryScreen(() => this.cb.telemetry?.() ?? null, backFromSub, () => this.settings.units),
     };
     this.screens = screens;
