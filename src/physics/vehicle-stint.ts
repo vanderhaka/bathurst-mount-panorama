@@ -23,12 +23,17 @@ export class VehicleStint {
   readonly flatSpots = new FlatSpots();
   private readonly brakeWork: BrakeContact = { powerW: 0, lockUse: 0 };
   completedLaps = 0;
+  /** Refuels at the line over this vehicle's life; never reset, so readers can spot a new one. */
+  refuels = 0;
+  /** The stint's starting load: what a refuel at the line fills the tank back to. */
+  private startFuelL = FUEL_REFERENCE_L;
   private previousS: number | null = null;
   /** Forward metres since the last line crossing; null until the stint's first crossing, which always counts. */
   private covered: number | null = null;
 
   reset(start: StintStart = {}): void {
-    this.fuel.reset(start.fuelL ?? FUEL_REFERENCE_L);
+    this.startFuelL = start.fuelL ?? FUEL_REFERENCE_L;
+    this.fuel.reset(this.startFuelL);
     this.fitTyres(start.compound ?? 'soft', start.tempC ?? TYRE_START_C, start.wear ?? 0);
     this.brakes.reset();
     this.completedLaps = 0;
@@ -68,7 +73,8 @@ export class VehicleStint {
 
   /**
    * Counts a forward crossing of the line in wrapped lap distance (a line at distance 0 works). Like
-   * LapTimer, reversing back over the line and driving forward again restarts the lap instead.
+   * LapTimer, reversing back over the line and driving forward again restarts the lap instead. A
+   * counted lap refuels the car when the tank cannot finish the next one.
    */
   private crossLine(prev: number, s: number, lineS: number, lapLength: number): void {
     // The signed step wraps into (-L/2, L/2], never [0, L): a car is never half a lap from its last step.
@@ -83,6 +89,7 @@ export class VehicleStint {
     if (this.covered === null || this.covered - after >= lapLength * MIN_COVERED) {
       this.fuel.crossLine();
       this.completedLaps++;
+      if (this.fuel.refuelIfShort(this.startFuelL, lapLength)) this.refuels++;
     } else this.fuel.cancelLap();
     this.covered = after;
   }

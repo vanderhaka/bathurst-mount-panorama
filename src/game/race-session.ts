@@ -36,6 +36,9 @@ export class RaceSession {
   private offTrackT = 0;
   private message: Message | null = null;
   private messageT = 0;
+  /** Shown when the current message ends (a refuel notice waits behind the lap time). */
+  private nextMessage: { message: Message; seconds: number } | null = null;
+  private refuelsSeen: number;
   readonly ghostPose: GhostPose = { x: 0, y: 0, z: 0, heading: 0, pitch: 0, roll: 0, steer: 0, speed: 0 };
   ghostVisible = false;
 
@@ -49,6 +52,7 @@ export class RaceSession {
     if (this.records?.ghost) this.ghost = new GhostPlayer(this.records.ghost);
     if (this.records?.laps) this.laps.push(...this.records.laps);
     this.savedLapCount = this.laps.length;
+    this.refuelsSeen = entity.vehicle.stint.refuels;
   }
 
   /** Laps driven since this session started (Restart keeps them). */
@@ -86,6 +90,12 @@ export class RaceSession {
     this.messageT = seconds;
   }
 
+  /** Says it now, or after the message on screen. */
+  sayNext(text: string, kind: Message['kind'], seconds = 2.6): void {
+    if (this.message) this.nextMessage = { message: { text, kind }, seconds };
+    else this.say(text, kind, seconds);
+  }
+
   currentMessage(): Message | null {
     return this.message;
   }
@@ -93,7 +103,12 @@ export class RaceSession {
   /** Advances lights and messages; returns true once when the lights go out. */
   updateLights(dt: number): boolean {
     this.messageT -= dt;
-    if (this.messageT <= 0) this.message = null;
+    if (this.messageT <= 0) {
+      this.message = null;
+      const next = this.nextMessage;
+      this.nextMessage = null;
+      if (next) this.say(next.message.text, next.message.kind, next.seconds);
+    }
     if (this.lights < 0) return false;
     this.lightsT += dt;
     if (this.lights < 5) {
@@ -126,6 +141,11 @@ export class RaceSession {
     this.recorder.record(dt, { x: v.x, y: v.y, z: v.z, heading: v.heading, pitch: v.pitch, roll: v.roll, steer: v.steerAngle, speed: v.speed });
     if (this.timer.crossings !== crossingsBefore) this.onLapStart(res);
     else this.telemetryRecorder.record(this.telemetrySample());
+    // The stint refuels at the line when the tank cannot finish the next lap.
+    if (v.stint.refuels !== this.refuelsSeen) {
+      this.refuelsSeen = v.stint.refuels;
+      this.sayNext('REFUELLED', 'info');
+    }
     if (this.ghost && this.ghostVisible) {
       this.ghostVisible = this.ghost.poseAt(this.timer.lapTime, this.ghostPose);
     }
