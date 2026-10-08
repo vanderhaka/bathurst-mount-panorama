@@ -28,6 +28,7 @@ import { LoadingScreen } from '@/ui/screens/loading';
 import { PauseScreen } from '@/ui/screens/pause';
 import { ResultsScreen } from '@/ui/screens/results';
 import { SettingsScreen } from '@/ui/screens/settings';
+import { SteerOnboardingScreen } from '@/ui/screens/steer-onboarding';
 import { TitleScreen } from '@/ui/screens/title';
 import { TelemetryScreen } from '@/ui/screens/telemetry';
 import { ACTIVE_CIRCUIT, CIRCUITS } from '@/track/circuits';
@@ -56,6 +57,7 @@ interface ScreenSet {
   loading: LoadingScreen;
   title: TitleScreen;
   car: CarSelectScreen;
+  steer: SteerOnboardingScreen;
   settings: SettingsScreen;
   pause: PauseScreen;
   controls: ControlsScreen;
@@ -90,6 +92,7 @@ class MenuController implements Menus {
       loading: new LoadingScreen(),
       title: new TitleScreen({ race: () => this.showCarSelect(), settings: () => sub(screens.settings), controls: () => sub(screens.controls) }),
       car: new CarSelectScreen({ preview: (c, l) => this.cb.onPreviewCar(c, l), start: (c, l, t) => this.start(c, l, t), back: () => this.showTitle() }),
+      steer: new SteerOnboardingScreen({ get: () => this.settings, set: (s) => this.applySettings(s), enableTilt: () => this.cb.onEnableTilt?.() ?? Promise.resolve('unavailable'), back: () => this.showCarSelect() }),
       settings: new SettingsScreen({ get: () => this.settings, set: (s) => this.applySettings(s), back: backFromSub, toggleTuner: () => this.cb.onToggleTuner(), car: () => this.lastConfig?.car ?? 'camaro' }),
       pause: new PauseScreen({
         resume: () => this.leave(() => this.cb.onResume()),
@@ -131,9 +134,14 @@ class MenuController implements Menus {
   }
 
   private start(car: CarKind, liveryIndex: number, tyres: TyreCompound): void {
-    const config: SessionConfig = { car, liveryIndex, tyres, settings: { ...this.settings } };
-    this.lastConfig = config;
-    this.leave(() => this.cb.onStart(config));
+    const go = (): void => {
+      const config: SessionConfig = { car, liveryIndex, tyres, settings: { ...this.settings } };
+      this.lastConfig = config;
+      this.leave(() => this.cb.onStart(config));
+    };
+    // A touch player who has not chosen how to steer is asked once, just before the first race.
+    const steer = this.screens?.steer;
+    if (steer?.required(this.settings)) { steer.ask(go); this.show(steer); } else go();
   }
 
   /** Close the menus, then notify the game (which may open another screen). */

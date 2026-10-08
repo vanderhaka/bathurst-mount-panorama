@@ -2,7 +2,7 @@
 import '@/input/touch.css';
 import { h } from '@/hud/dom';
 import type { GameAction } from '@/input/bindings';
-import { TiltSteering } from '@/input/tilt-steering';
+import { TiltSteering, type TiltStatus } from '@/input/tilt-steering';
 import { TouchInputModel, analogPedal, pedalAt, type TouchOptions } from '@/input/touch-model';
 export { dragSteer } from '@/input/touch-model';
 
@@ -35,7 +35,7 @@ export class TouchControls {
       // Recentres only the tilt: the tap itself registers no finger (onDown skips .tc-sensor),
       // so a pedal the other thumb holds stays held.
       // requestPermission is invoked synchronously here, before any promise continuation.
-      void this.tilt.enableFromTap();
+      void this.enableTilt();
     });
     const button = (action: GameAction, label: string, text: string) => {
       const b = h('button', `tc-btn tc-btn--${action}`, { type: 'button', 'aria-label': label }, [text]);
@@ -61,6 +61,11 @@ export class TouchControls {
     this.configure(this.model.options);
     container.append(this.el);
   }
+
+  /** The one way to ask for motion access: the Enable tilt button and the steering question both
+   * call it synchronously inside a tap. Works while the controls are hidden: listening starts when
+   * they show, centred on the pose held then. */
+  enableTilt(): Promise<TiltStatus> { return this.tilt.enableFromTap(); }
 
   configure(options: Readonly<TouchOptions>): void {
     this.model.configure(options);

@@ -193,7 +193,9 @@ describe('menu models', () => {
   });
 
   it('covers every Settings field', () => {
-    expect(new Set(ALL_FIELDS.map((f) => f.key))).toEqual(new Set(Object.keys(DEFAULT_SETTINGS)));
+    // steerOnboarded is first-run bookkeeping (the steering question was answered), not an option.
+    const options = Object.keys(DEFAULT_SETTINGS).filter((key) => key !== 'steerOnboarded');
+    expect(new Set(ALL_FIELDS.map((f) => f.key))).toEqual(new Set(options));
   });
 
   it('builds the controls help from the shared bindings', () => {

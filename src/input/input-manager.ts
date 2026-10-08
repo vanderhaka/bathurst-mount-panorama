@@ -1,5 +1,6 @@
 import { BINDINGS, PAD_MENU, type GameAction } from '@/input/bindings';
 import { padStyleOf, type PadStyle } from '@/input/pad-style';
+import type { TiltStatus } from '@/input/tilt-steering';
 import type { TouchControls } from '@/input/touch-controls';
 import { DEFAULT_TOUCH_OPTIONS, type TouchOptions } from '@/input/touch-model';
 import type { MenuNav } from '@/types/hud';
@@ -80,6 +81,11 @@ export class InputManager {
   configureTouch(options: TouchOptions): void {
     this.touchOptions = { ...options };
     this.touch?.configure(this.touchOptions);
+  }
+
+  /** Asks the phone for motion access (tilt steering). Call it synchronously inside a tap. */
+  enableTilt(): Promise<TiltStatus> {
+    return this.touch?.enableTilt() ?? Promise.resolve('unavailable');
   }
 
   private readonly onKeyUp = (e: KeyboardEvent) => {

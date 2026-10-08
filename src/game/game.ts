@@ -90,6 +90,7 @@ export class Game {
       onQuitToMenu: () => game?.quitToTitle(),
       onSettingsChange: (s) => game?.applySettings(s),
       onPreviewCar: (car, livery) => game?.preview(car, livery),
+      onEnableTilt: () => game?.input.enableTilt() ?? Promise.resolve('unavailable'),
     }), settings);
     await loadHudFonts();
     menus.showLoading(0.02, 'Starting');
@@ -271,7 +272,6 @@ export class Game {
     this.followCamera(race.player, dt);
   }
   private hudHidden = false;
-
   /** Verification hooks (used by scripts/capture-evidence.mjs). */
   timeScale = 1;
   setDebugAutopilot(on: boolean): void {

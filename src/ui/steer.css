@@ -1,0 +1,40 @@
+/* Steering question (src/ui/screens/steer-onboarding.ts): shown once on touch devices before the
+   first race. Reuses the panel, button and help styles of the other menus. Tokens: src/hud/theme.css */
+.mn-panel--steer {
+  width: min(42em, 94vw);
+}
+.mn-screen--steer [hidden] {
+  display: none;
+}
+.mn-steer__choices {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.6em;
+}
+.mn-steer__choice {
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 0.55em;
+  min-height: 44px;
+  padding: 0.9em 1em 1em 0.95em;
+}
+.mn-steer__choice[aria-disabled='true'] {
+  cursor: default;
+  opacity: 0.55;
+}
+.mn-panel--steer .mn-help {
+  font-size: 1em;
+}
+.mn-panel--steer[data-phase='note'] .mn-panel__head {
+  margin-bottom: 0;
+}
+.mn-steer__help {
+  font-family: var(--hud-font-text);
+  font-size: 0.86em;
+  font-weight: 500;
+  line-height: 1.4;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--hud-text-dim);
+}

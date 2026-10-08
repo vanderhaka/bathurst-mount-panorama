@@ -1,7 +1,7 @@
 import { DEFAULT_SETTINGS, type Settings } from '@/types/session';
 import { headMotionAmount } from '@/camera/head-motion';
 import { loadQualityChoice } from '@/game/quality-store';
-import { touchOptions } from '@/input/touch-model';
+import { steerOnboarded, touchOptions } from '@/input/touch-model';
 
 const KEY = 'bathurst.settings.v1';
 
@@ -20,7 +20,7 @@ export function loadSettings(): Settings {
   const touch = touchOptions(settings);
   return { ...settings, headMotion: headMotionAmount(settings.headMotion), quality: graphics.quality, autoQuality: graphics.automatic,
     touchMode: touch.mode, touchAnalogThrottle: touch.analogThrottle,
-    touchAutoThrottle: touch.autoThrottle, touchLeftHanded: touch.leftHanded };
+    touchAutoThrottle: touch.autoThrottle, touchLeftHanded: touch.leftHanded, steerOnboarded: steerOnboarded(settings) };
 }
 
 export function saveSettings(s: Settings): void {

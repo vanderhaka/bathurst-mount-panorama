@@ -1,6 +1,7 @@
 import type { CarKind } from '@/car/car-specs';
 import type { LapRecord, SessionConfig, Settings } from '@/types/session';
 import type { PadStyle } from '@/input/pad-style';
+import type { TiltStatus } from '@/input/tilt-steering';
 import type { TyreCompound } from '@/physics/tyre-state';
 import type { SessionTelemetry } from '@/types/telemetry';
 import type { BrakeReading } from '@/physics/brake-heat';
@@ -123,6 +124,8 @@ export interface MenuCallbacks {
   onSettingsChange(settings: Settings): void;
   /** The car shown on the car-select screen changed (the game updates the 3D preview). */
   onPreviewCar(car: CarKind, liveryIndex: number): void;
+  /** The steering question's Tilt tap: asks the phone for motion access. Runs synchronously inside the tap. */
+  onEnableTilt?(): Promise<TiltStatus>;
 }
 
 /** DOM menus: title, car select, settings, pause, controls help, results, loading. */

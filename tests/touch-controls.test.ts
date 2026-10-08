@@ -112,3 +112,34 @@ describe('touch overlay event wiring', () => {
     expect(touch.update(1, true).throttle).toBe(0);
   });
 });
+
+describe('steering onboarding hands the permission tap to the touch controls', () => {
+  it('requests sensor access through enableTilt, the path the Enable tilt button uses', async () => {
+    configure({ mode: 'tilt' });
+    const pending = touch.enableTilt();
+    expect(request).toHaveBeenCalledTimes(1); // synchronously, as inside a tap
+    expect(await pending).toBe('granted');
+    root.find('tc-tilt-enable').dispatch('click'); // Centre tilt: access is already granted
+    expect(request).toHaveBeenCalledTimes(1);
+  });
+
+  it('starts centred when access is granted before the controls are showing', async () => {
+    touch.update(0, false);
+    configure({ mode: 'tilt' });
+    await touch.enableTilt();
+    host.dispatchEvent(Object.assign(new Event('deviceorientation'), { beta: 30, gamma: 90 })); // ignored: not driving yet
+    expect(touch.update(0.016, true).steer).toBe(0); // the race starts, the controls show
+    host.dispatchEvent(Object.assign(new Event('deviceorientation'), { beta: 30, gamma: 90 }));
+    expect(touch.update(0.2, true).steer).toBeCloseTo(0); // this pose is the centre
+    expect(root.dataset.tiltReady).toBe('true');
+    expect(root.find('tc-tilt-enable').textContent).toBe('Centre tilt');
+    host.dispatchEvent(Object.assign(new Event('deviceorientation'), { beta: 54, gamma: 90 }));
+    expect(touch.update(0.2, true).steer).toBeGreaterThan(0.9);
+  });
+
+  it('resolves unavailable without asking when the page cannot use sensors', async () => {
+    host.isSecureContext = false;
+    expect(await touch.enableTilt()).toBe('unavailable');
+    expect(request).not.toHaveBeenCalled();
+  });
+});

@@ -22,6 +22,8 @@ export interface Settings {
   touchAnalogThrottle: boolean;
   touchAutoThrottle: boolean;
   touchLeftHanded: boolean;
+  /** The touch player has been asked how to steer (or already changed the mode): ask only once. Not an option row. */
+  steerOnboarded: boolean;
   /** Full = crashes change the car's mechanics; visual = dents only; off = no damage. */
   damage: 'full' | 'visual' | 'off';
   ghost: boolean;
@@ -54,6 +56,7 @@ export const DEFAULT_SETTINGS: Settings = {
   touchAnalogThrottle: false,
   touchAutoThrottle: false,
   touchLeftHanded: false,
+  steerOnboarded: false,
   damage: 'full',
   ghost: true,
   units: 'kmh',

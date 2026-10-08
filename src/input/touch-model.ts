@@ -22,6 +22,12 @@ export function touchOptions(s: {
   };
 }
 
+/** Whether the player has settled how to steer on touch: the saved flag, or a touch mode other
+ * than the default (saved before the question existed, or changed in Settings first). */
+export function steerOnboarded(s: { steerOnboarded?: unknown; touchMode?: unknown }): boolean {
+  return s.steerOnboarded === true || touchOptions(s).mode !== DEFAULT_TOUCH_OPTIONS.mode;
+}
+
 const clamp = (v: number, lo = 0, hi = 1): number => Math.max(lo, Math.min(hi, v));
 const approach = (v: number, target: number, up: number, down: number, dt: number): number =>
   v + clamp(target - v, -down * dt, up * dt);
