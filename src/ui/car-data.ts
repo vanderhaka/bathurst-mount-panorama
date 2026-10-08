@@ -27,6 +27,8 @@ const RATED: Record<CarKind, { kw: number; hp: number; nm: number }> = {
   torana: { kw: 289, hp: 388, nm: 475 },
 };
 
+const CLASS: Record<CarKind, string> = { camaro: 'Gen3 Supercar', mustang: 'Gen3 Supercar', supra: 'Gen3 Supercar', torana: '1979 Group C' };
+
 const nf = new Intl.NumberFormat('en-AU');
 
 export function carSheet(kind: CarKind, circuit: CircuitId): CarSheet {
@@ -38,6 +40,7 @@ export function carSheet(kind: CarKind, circuit: CircuitId): CarSheet {
     name: spec.shortName,
     maker: spec.displayName.split(' ')[0],
     rows: [
+      ['Class', CLASS[kind]],
       ['Engine', spec.engine.label],
       ['Power', `${rated.kw} kW  /  ${rated.hp} hp`],
       ['Torque', `${rated.nm} Nm`],

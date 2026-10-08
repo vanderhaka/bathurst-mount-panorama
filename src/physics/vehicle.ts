@@ -66,6 +66,7 @@ export class Vehicle {
     this.a = d.wheelbase - this.b; // CG to front axle
     this.corners = suspensionCorners(spec, this.a, this.b);
     this.setup = defaultSetup(spec.kind);
+    this.stint.tyreModel.heatGain = spec.tyreHeatGain;
     this.trackGrip = new TrackGrip(track, kerbs.line);
     this.pt = createPowertrain(spec);
     this.wheels = this.corners.map(() => ({ load: 0, slip: 0, slide: 0, surface: 'road' as const, spin: 0, compression: 0, steer: 0 }));

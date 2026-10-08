@@ -46,7 +46,7 @@ export class CarSelectScreen implements Screen {
     this.backBtn = menuButton('Back', () => actions.back());
     this.el.append(
       h('div', 'mn-side mn-side--car', undefined, [
-        kicker('Select car · Gen3 Supercar'),
+        kicker('Select car'),
         this.carRow.el,
         h('div', 'mn-specs-wrap', undefined, [this.specs, this.note]),
         this.liveryRow.el,

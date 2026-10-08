@@ -17,7 +17,7 @@ const kerbs = placeKerbs(track, line);
 // A beginner who only obeys the racing-line colours (full brake on red, lift on
 // yellow, full throttle on green) must lap without hitting a wall or leaving the road.
 describe('racing-line colours are achievable', () => {
-  for (const kind of ['camaro', 'mustang', 'supra'] as CarKind[]) {
+  for (const kind of ['camaro', 'mustang', 'supra', 'torana'] as CarKind[]) {
     it(`a colour-following driver laps cleanly in the ${kind}`, () => {
       const spec = CAR_SPECS[kind];
       // The game's racing line: the line profile for the default handling (world.ts, profile-cache.ts).
@@ -27,7 +27,9 @@ describe('racing-line colours are achievable', () => {
       v.reset(100, line.offset[Math.round(100 / track.spacing)]);
       const inp = { throttle: 0, brake: 0, steer: 0, shiftUp: false, shiftDown: false };
       let maxImpact = 0, worstOff = 0, driven = 0, prevS = v.tp.s;
-      for (let k = 0; k < 360 * 150 && driven < track.length + 200; k++) {
+      // Simulation cap: 150 s, or 1.3 of the car's line-profile lap for a slower car (the 1979 Torana).
+      const capS = Math.max(150, prof.lapTimeS * 1.3);
+      for (let k = 0; k < 360 * capS && driven < track.length + 200; k++) {
         steer.drive(v, inp); // steering only; the pedals come from the line colours
         const s = v.tp.s, sp = Math.max(0, v.speed);
         let r = -Infinity;
@@ -53,7 +55,7 @@ describe('racing-line colours are achievable', () => {
 // (FR about 125 C into Forrest's Elbow on lap 2); guidance cornering on the four-tyre mean promised grip
 // it no longer had, and the car pushed wide at full lock into the wall at 6.3 m/s.
 describe('racing-line colours are achievable on race-warm tyres', () => {
-  for (const kind of ['camaro', 'mustang', 'supra'] as CarKind[]) {
+  for (const kind of ['camaro', 'mustang', 'supra', 'torana'] as CarKind[]) {
     it(`a colour-following driver laps the ${kind} twice cleanly`, () => {
       const run = colourLaps(track, line, kerbs, CAR_SPECS[kind], 2);
       console.log(JSON.stringify({ circuit: 'bathurst', kind, ...run }));

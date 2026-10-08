@@ -1,10 +1,11 @@
 import { CAR_SPECS, type CarKind } from '@/car/car-specs';
 import { defaultSetup, getSetup, resetSetup, setSetup, setupRanges, stepSetup } from '@/config/setup';
 import { h } from '@/hud/dom';
+import { CAR_ORDER } from '@/ui/car-data';
 import { menuButton, valueRow } from '@/ui/screen';
 import { SETUP_FIELDS, setupText, type SetupField } from '@/ui/setup-model';
 
-const CARS: CarKind[] = ['camaro', 'mustang', 'supra'];
+const CARS = CAR_ORDER;
 
 export class SetupPage {
   readonly el: HTMLElement;

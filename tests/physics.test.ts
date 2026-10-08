@@ -87,7 +87,7 @@ describe('vehicle physics', () => {
     });
   }
 
-  for (const kind of ['camaro', 'mustang', 'supra'] as CarKind[]) {
+  for (const kind of ['camaro', 'mustang', 'supra', 'torana'] as CarKind[]) {
     it(`autopilot laps Mount Panorama in the ${kind}`, () => {
       const spec = CAR_SPECS[kind];
       const tuned = tunedSpec(spec, DEFAULT_HANDLING); // the vehicle runs the default handling
@@ -118,8 +118,9 @@ describe('vehicle physics', () => {
       }
       console.log(`${kind}: lap ${lapTime.toFixed(2)} s (profile ${profile.lapTimeS.toFixed(2)} s), top ${maxKmh.toFixed(0)} km/h, max impact ${maxImpact.toFixed(1)} m/s, damage ${JSON.stringify(v.damage)}`);
       expect(crossings).toBeGreaterThanOrEqual(2);
-      expect(lapTime).toBeGreaterThan(118);
-      expect(lapTime).toBeLessThan(145);
+      const [minLap, maxLap] = kind === 'torana' ? [135, 165] : [118, 145];
+      expect(lapTime).toBeGreaterThan(minLap);
+      expect(lapTime).toBeLessThan(maxLap);
       expect(maxImpact).toBeLessThan(1);
     }, 60000);
   }

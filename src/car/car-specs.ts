@@ -79,6 +79,11 @@ export interface CarSpec {
   brakeBiasFront: number;
   /** Max road-wheel steering angle (rad). */
   maxSteerRad: number;
+  /**
+   * Multiplies the tyre temperature rise from the g-force heat model, so each car's tyre reaches its working
+   * window at that car's pace (the model is calibrated on Gen3 cars). Absent = 1. Wear is not scaled.
+   */
+  tyreHeatGain?: number;
 }
 
 // docs/research/car-specs.md: wheelbase 2.766 m (WhichCar), L x W 4.88 x 1.96 m (iRacing
@@ -258,13 +263,14 @@ export const CAR_SPECS: Record<CarKind, CarSpec> = {
     finalDrive: 2.6,
     shiftTimeS: 0.3, // estimate: manual clutch and lever
     drivetrainEfficiency: 0.9, // estimate
-    cdA: 1.1, // estimate, calibrated to the Conrod trap speed
+    cdA: 1.05, // calibrated: Conrod top speed inside the 249-269 km/h trap range, with margin (tests/torana-pace.test.ts)
     clA: 0,
     aeroBalanceFront: 0.5,
-    tyreMu: 1.35, // first value, not yet calibrated against the lap target
+    tyreMu: 1.21, // calibrated: LINE_PROFILE lap at MEASURED = R x 145.5 s (tests/torana-pace.test.ts)
     maxBrakeTorqueNm: 2500, // estimate
     brakeBiasFront: 0.62, // estimate
     maxSteerRad: 0.4, // estimate
+    tyreHeatGain: 1.5, // calibrated: lap-1 tyre temperature at The Cutting about 4.5 C under the Camaro's; 3-lap peak below it; higher gains put the race-warm colour driver into the wall (tests/line-follower.test.ts)
   },
 };
 
