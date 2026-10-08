@@ -5,7 +5,7 @@ import { LIVERY_PRESETS } from '@/car/liveries';
 import { CAR_LOOK, applyCarLook, createCarModel, getCarLook } from '@/car/models';
 import type { CarModel } from '@/types/car-model';
 
-const KINDS: CarKind[] = ['camaro', 'mustang', 'supra'];
+const KINDS: CarKind[] = ['camaro', 'mustang', 'supra', 'torana'];
 const build = (kind: CarKind, detail: 'high' | 'low' = 'high') => createCarModel(kind, { livery: LIVERY_PRESETS[kind][0].livery, detail });
 
 function stats(m: CarModel): { triangles: number; drawCalls: number } {

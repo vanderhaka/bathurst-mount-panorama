@@ -8,6 +8,7 @@ import type { CarModelOptions } from '@/types/car-model';
 import { CAMARO_PROFILE } from '@/car/models/camaro-profile';
 import { MUSTANG_PROFILE } from '@/car/models/mustang-profile';
 import { SUPRA_PROFILE } from '@/car/models/supra-profile';
+import { TORANA_PROFILE } from '@/car/models/torana-profile';
 import { resolveProfile } from '@/car/models/profile-resolve';
 import { buildBodyGrid, type BodyGrid } from '@/car/models/body-grid';
 import { buildBodyMeshes, type BodyMeshes } from '@/car/models/body-mesh';
@@ -25,7 +26,7 @@ import { merge, tint } from '@/car/models/geo-utils';
 import type { BodyProfile } from '@/car/models/profile-types';
 import { buildInterior, type Interior } from '@/car/models/interior';
 
-const PROFILES = { camaro: CAMARO_PROFILE, mustang: MUSTANG_PROFILE, supra: SUPRA_PROFILE } as const;
+const PROFILES = { camaro: CAMARO_PROFILE, mustang: MUSTANG_PROFILE, supra: SUPRA_PROFILE, torana: TORANA_PROFILE } as const;
 
 export interface HingedPart { pivot: THREE.Group; meshes: THREE.Mesh[] }
 

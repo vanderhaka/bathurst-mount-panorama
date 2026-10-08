@@ -27,4 +27,10 @@ export const LIVERY_PRESETS: Record<CarKind, LiveryPreset[]> = {
     { name: 'Ocean', livery: { primary: C.teal, secondary: C.racingWhite, accent: C.yellow, number: 44, banner: 'REID PARK', pattern: 'stripes' } },
     { name: 'Solar', livery: { primary: C.yellow, secondary: C.carbonBlack, accent: C.heritageRed, number: 11, banner: 'MCPHILLAMY', pattern: 'split' } },
   ],
+  torana: [
+    { name: '1979 Bathurst', livery: { primary: C.racingWhite, secondary: C.heritageRed, accent: C.carbonBlack, number: 5, banner: 'PANORAMA', pattern: 'split' } },
+    { name: 'White 05', livery: { primary: C.racingWhite, secondary: C.heritageRed, accent: C.carbonBlack, number: 5, banner: 'CONROD', pattern: 'stripes' } },
+    { name: 'Papaya', livery: { primary: C.sunsetOrange, secondary: C.carbonBlack, accent: C.racingWhite, number: 9, banner: 'MURRAYS', pattern: 'stripes' } },
+    { name: 'Jasmine', livery: { primary: C.yellow, secondary: C.carbonBlack, accent: C.heritageRed, number: 34, banner: 'GRIFFINS', pattern: 'chevron' } },
+  ],
 };

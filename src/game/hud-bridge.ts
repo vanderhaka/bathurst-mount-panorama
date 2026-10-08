@@ -7,7 +7,7 @@ import type { HudState, HudTrackInfo } from '@/types/hud';
 import type { Settings } from '@/types/session';
 
 /** Three-letter car code in the timing tower. */
-const CAR_CODES: Record<CarKind, string> = { camaro: 'CAM', mustang: 'MUS', supra: 'SUP' };
+const CAR_CODES: Record<CarKind, string> = { camaro: 'CAM', mustang: 'MUS', supra: 'SUP', torana: 'A9X' };
 
 export function hudTrackInfo(track: Track): HudTrackInfo {
   const outline: Array<[number, number]> = [];

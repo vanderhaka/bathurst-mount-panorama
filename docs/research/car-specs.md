@@ -340,7 +340,7 @@ The 2026 Bathurst 1000 marks 20 years since Peter Brock's death. The game adds h
 | Front overhang | not published | 0.92 m | Estimate: total overhang 1.923 m split by the side-view photos |
 | Race weight with driver | not published (road car 1,213-1,242 kg) | 1,300 kg | Estimate: light shell and stripped trim, plus cage and a large drop tank ([Shannons](https://club.shannons.com.au/club/news/racing-garage/lx-torana-a9x-too-good-for-its-own-good/)) |
 | Weight split | not published | 52 % front | Estimate: front V8, low rear tank |
-| CG height | not published | 0.44 m | Estimate: higher than Gen3 (0.38 m), but kept under the tip-over limit track / (2 x CG height) against the tuned tyre friction |
+| CG height | not published | 0.42 m | Estimate: higher than Gen3 (0.38 m), but kept under the tip-over limit track / (2 x CG height) against the tuned tyre friction |
 | Engine | Holden 308 V8, 5,044 cc, 101.6 x 77.8 mm, pushrod, two valves per cylinder; L34-based Group C build at 10.5:1 | 5.0 L pushrod V8 | Confirmed ([Wikipedia: Holden V8](https://en.wikipedia.org/wiki/Holden_V8_engine), [Street Machine](https://www.streetmachine.com.au/features/peter-brock-holden-torana-a9x-engine-bathurst)) |
 | Induction | twin Weber 48IDF on the 1979 winner (a Holley on the sister #76 car) | audio: carburettor voice | Confirmed (Street Machine; [CarExpert](https://www.carexpert.com.au/car-news/the-time-i-drove-a-bathurst-legend-and-almost-put-it-into-the-wall)) |
 | Power, torque | 285-290 kW, about 475 Nm (Wheels 1980); builders claim 380-400 hp | peak 289 kW at about 6,100 rpm, 475 Nm at about 5,000 rpm | Confirmed range; rpm of the peaks estimated |
