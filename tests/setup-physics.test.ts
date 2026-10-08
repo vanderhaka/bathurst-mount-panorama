@@ -12,19 +12,25 @@ const kerbs = placeKerbs(track, computeRacingLine(track));
 const DT = 1 / 360;
 const neutral: VehicleInput = { throttle: 0, brake: 0, steer: 0, shiftUp: false, shiftDown: false };
 
-function carAtSpeed(car: CarKind, setup: Partial<CarSetup>, speed = 100 / 3.6): Vehicle {
+function carAtSpeed(car: CarKind, setup: Partial<CarSetup>, speed = 100 / 3.6, s = 4350): Vehicle {
   const v = new Vehicle(CAR_SPECS[car], track, kerbs);
   v.setup = { ...defaultSetup(car), ...setup };
   v.assists.autoGears = false;
-  v.reset(4350, 0); // long straight section of Conrod
-  v.vx = Math.sin(v.heading) * speed;
-  v.vz = Math.cos(v.heading) * speed;
-  v.pt.gear = 3;
+  v.reset(s, 0); // default: long straight section of Conrod
+  // Move along the road, grade included: a purely horizontal start on a downhill launches the car.
+  const i = Math.round(track.wrapS(s) / track.spacing) % track.n;
+  const along = speed * Math.hypot(track.tx[i], track.tz[i]);
+  v.vx = Math.sin(v.heading) * along;
+  v.vz = Math.cos(v.heading) * along;
+  v.vy = track.ty[i] * speed;
+  v.pt.gear = speed > 40 ? 5 : 3;
   return v;
 }
 
 function stoppingDistance(car: CarKind, setup: Partial<CarSetup>): number {
-  const v = carAtSpeed(car, setup);
+  // Murray's braking zone (downhill) from 200 km/h. On level road four-channel ABS holds all four
+  // tyres at their limit with either bias, so bias only shows where one axle is under its limit.
+  const v = carAtSpeed(car, setup, 200 / 3.6, 6000);
   // Keep this intrinsic setup comparison on the pre-rubber surface; track-stint tests the native groove.
   const rubber = vi.spyOn(v.trackGrip, 'at').mockReturnValue(1);
   try {
