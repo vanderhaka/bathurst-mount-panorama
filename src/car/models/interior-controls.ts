@@ -55,6 +55,29 @@ export function steeringWheel(detailed: boolean, glove: number, hands?: GloveCol
   return merge([rim, ...grips, plate, marker, centre, ...buttons, ...rotaries, hands ? gloveHands(hands) : buildHands(glove)]);
 }
 
+/** Classic wheel: rim centre-line radius (outer diameter 0.38 m with the 12.5 mm rim). */
+export const CLASSIC_RIM_R = 0.1775;
+
+/**
+ * Period wheel: a large thin black rim, three flat spokes (3, 9 and 6 o'clock)
+ * with drilled holes, a small black hub, no buttons. Same frame and gloves as the race wheel.
+ */
+export function classicWheel(detailed: boolean, glove: number, hands?: GloveColours): THREE.BufferGeometry {
+  const rim = tint(new THREE.TorusGeometry(CLASSIC_RIM_R, 0.0125, detailed ? 8 : 4, detailed ? 48 : 18), 0x1a1a1b);
+  if (!detailed) return merge([rim, buildHands(glove, CLASSIC_RIM_R)]);
+  const inner = CLASSIC_RIM_R - 0.0125;
+  const len = inner - 0.03;
+  const spokes = [
+    new THREE.BoxGeometry(len, 0.032, 0.006).translate(-(0.03 + len / 2), 0, 0.006),
+    new THREE.BoxGeometry(len, 0.032, 0.006).translate(0.03 + len / 2, 0, 0.006),
+    new THREE.BoxGeometry(0.034, len, 0.006).translate(0, -(0.03 + len / 2), 0.006),
+  ].map((g) => tint(g, 0x3b3d41));
+  const holes = [-0.06, -0.11].map((y) => tint(new THREE.CylinderGeometry(0.0075, 0.0075, 0.002, 8).rotateX(Math.PI / 2).translate(0, y, 0.0025), 0x0a0a0b));
+  const hub = tint(new THREE.CylinderGeometry(0.034, 0.038, 0.028, 16).rotateX(Math.PI / 2).translate(0, 0, 0.012), 0x131314);
+  const cap = tint(new THREE.CylinderGeometry(0.028, 0.028, 0.004, 16).rotateX(Math.PI / 2).translate(0, 0, -0.004), 0x28282a);
+  return merge([rim, ...spokes, ...holes, hub, cap, hands ? gloveHands(hands, CLASSIC_RIM_R) : buildHands(glove, CLASSIC_RIM_R)]);
+}
+
 /**
  * Centre switch panel: a flat carbon plate with rows of rocker switches with
  * coloured caps and a red master switch. `place` maps panel (u across, v up the

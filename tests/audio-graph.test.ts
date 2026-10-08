@@ -93,7 +93,7 @@ class Context {
   createBuffer(_channels: number, length: number, sr: number): Buffer { return new Buffer(length, sr); }
   createPeriodicWave(real: Float32Array, imag: Float32Array): { real: Float32Array; imag: Float32Array } { return { real, imag }; }
 }
-function environment(kind: 'camaro' | 'mustang' | 'supra' = 'camaro') {
+function environment(kind: 'camaro' | 'mustang' | 'supra' | 'torana' = 'camaro') {
   const context = new Context();
   const ctx = context as unknown as BaseAudioContext;
   return { context, env: { ctx, bag: new NodeBag(), noise: buildNoiseSet(ctx), profile: CAR_SOUND_PROFILES[kind] } };
@@ -152,7 +152,7 @@ describe('generated driving sound paths', () => {
     expect(kerb?.gain.value).toBe(0);
   });
 
-  it.each(['camaro', 'mustang', 'supra'] as const)('generates %s shaft-speed gear whine with cockpit gain and neutral silence', (kind) => {
+  it.each(['camaro', 'mustang', 'supra', 'torana'] as const)('generates %s shaft-speed gear whine with cockpit gain and neutral silence', (kind) => {
     const { context, env } = environment(kind);
     const out = context.add('mechanical bus');
     const layer = new MechanicalLayer(env, out as unknown as AudioNode);
@@ -175,7 +175,7 @@ describe('generated driving sound paths', () => {
     expect(whine?.gain.value).toBe(0);
   });
 
-  it.each(['camaro', 'mustang', 'supra'] as const)('%s downshift schedules one generated exhaust backfire and does not repeat it', async (kind) => {
+  it.each(['camaro', 'mustang', 'supra', 'torana'] as const)('%s downshift schedules one generated exhaust backfire and does not repeat it', async (kind) => {
     const context = new Context();
     const audio = createCarAudioDebug(kind, context as unknown as BaseAudioContext, { forceFallback: true });
     await audio.init();

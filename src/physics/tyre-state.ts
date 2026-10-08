@@ -36,6 +36,8 @@ export class TyreModel {
   private readonly carcass = [0, 0, 0, 0];
   private readonly surface = [0, 0, 0, 0];
   private readonly heat = [0, 0, 0, 0];
+  /** Per-car multiplier on the temperature rise only (CarSpec.tyreHeatGain); undefined = the unscaled model. */
+  heatGain?: number;
 
   constructor(public compound: TyreCompound = 'soft', tempC = TYRE_START_C, wear = 0) {
     this.fit(compound, tempC, wear);
@@ -59,10 +61,12 @@ export class TyreModel {
     const cool = COOL_BASE + COOL_SPEED * v;
     const k = 1 - Math.exp(-dt / SURFACE_TAU_S);
     const c = TYRE_COMPOUNDS[this.compound];
+    const gain = this.heatGain;
     for (let i = 0; i < 4; i++) {
       const tyre = this.tyres[i];
-      this.carcass[i] = Math.min(TYRE_MAX_C, this.carcass[i] + (heat[i] - (this.carcass[i] - AMBIENT_C) * cool) * dt);
-      this.surface[i] += (SURFACE_GAIN * heat[i] - this.surface[i]) * k;
+      const rise = gain === undefined ? heat[i] : heat[i] * gain;
+      this.carcass[i] = Math.min(TYRE_MAX_C, this.carcass[i] + (rise - (this.carcass[i] - AMBIENT_C) * cool) * dt);
+      this.surface[i] += (SURFACE_GAIN * rise - this.surface[i]) * k;
       tyre.tempC = Math.min(TYRE_MAX_C, this.carcass[i] + this.surface[i]);
       const overheat = Math.min(OVERHEAT_WEAR_MAX, 1 + Math.max(0, tyre.tempC - 110) / 20);
       if (!wear) { tyre.grip = tyreGrip(this.compound, (c.minC + c.maxC) / 2, 0); continue; }

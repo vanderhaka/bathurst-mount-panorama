@@ -11,7 +11,8 @@ import type { BodyProfile } from '@/car/models/profile-types';
 import { extrude, loft, merge, tint } from '@/car/models/geo-utils';
 import { buildDriver } from '@/car/models/interior-driver';
 import { buildCage, CAGE_DETAIL, CAGE_SIMPLE, tube } from '@/car/models/interior-cage';
-import { steeringWheel, switchPanel } from '@/car/models/interior-controls';
+import { CLASSIC_RIM_R, classicWheel, steeringWheel, switchPanel } from '@/car/models/interior-controls';
+import { classicCockpit } from '@/car/models/interior-classic';
 import { buildInteriorMirror, type InteriorMirror } from '@/car/models/interior-mirror';
 import { displayCowl, mouldedDash, type Dash } from '@/car/models/interior-dash';
 
@@ -85,16 +86,18 @@ function named(name: string, g: THREE.BufferGeometry, mat: THREE.Material, shado
 export function buildInterior(p: BodyProfile, cv: CurveSet, livery: Livery, mat: THREE.Material, displayMat: THREE.Material | null, liner: THREE.BufferGeometry, zTail: number): Interior {
   const eye = new THREE.Vector3(...p.eye);
   const zHoop = eye.z - 0.32;
-  const d = mouldedDash(p, cv, eye);
-  const wheelCentre = new THREE.Vector3(eye.x, eye.y - 0.275, eye.z + 0.42);
-  const column = new THREE.Vector3(0, -0.34, 1).normalize();
+  const cc = p.cockpit === 'classic' ? classicCockpit(p, cv, eye) : null;
+  const d = cc ? cc.dash : mouldedDash(p, cv, eye);
+  // The classic wheel is bigger: its column sits lower, more raked and further from the dash.
+  const wheelCentre = cc ? new THREE.Vector3(eye.x, eye.y - 0.35, eye.z + 0.4) : new THREE.Vector3(eye.x, eye.y - 0.275, eye.z + 0.42);
+  const column = cc ? new THREE.Vector3(0, -0.45, 1).normalize() : new THREE.Vector3(0, -0.34, 1).normalize();
   const glove = 0x18191b;
 
   const cabin = new THREE.Group();
   cabin.name = 'cabin';
   // The liner is merged in as built (one draw call); it stays put when the shell dents.
-  const driver = buildDriver(eye, wheelCentre, { suit: livery.secondary, helmet: livery.primary, stripe: livery.accent, visor: 0x14181c, glove });
-  cabin.add(named('cabin-body', merge([tint(liner.clone(), 0x2b2c30), seat(eye, 0x1d1e21), driver, d.geo, bulkheads(p, zHoop, d.top)]), mat, true));
+  const driver = buildDriver(eye, wheelCentre, { suit: livery.secondary, helmet: livery.primary, stripe: livery.accent, visor: 0x14181c, glove }, cc ? CLASSIC_RIM_R : undefined);
+  cabin.add(named('cabin-body', merge([tint(liner.clone(), 0x2b2c30), seat(eye, cc ? 0x9c8a6a : 0x1d1e21), driver, d.geo, bulkheads(p, zHoop, d.top)]), mat, true));
 
   const wheelPose = (o: THREE.Object3D) => {
     o.position.copy(wheelCentre);
@@ -102,32 +105,40 @@ export function buildInterior(p: BodyProfile, cv: CurveSet, livery: Livery, mat:
   };
   const outside = new THREE.Group();
   outside.name = 'cabin-outside';
-  const simpleWheel = named('wheel-simple', steeringWheel(false, glove), mat, false);
+  const simpleWheel = named('wheel-simple', cc ? classicWheel(false, glove) : steeringWheel(false, glove), mat, false);
   wheelPose(simpleWheel);
   outside.add(named('cage-simple', buildCage(p, cv, zHoop, CAGE, CAGE_SIMPLE), mat, true), simpleWheel);
 
   const group = new THREE.Group();
   group.name = 'interior';
-  const panelPlace = new THREE.Matrix4().makeBasis(new THREE.Vector3(-1, 0, 0), new THREE.Vector3(0, 0.819, 0.574), new THREE.Vector3(0, 0.574, -0.819));
-  panelPlace.setPosition(eye.x + 0.4, d.top - 0.13, d.rearZ - 0.03);
-  const disp = display(d, eye, displayMat);
   const mirror = buildInteriorMirror(p, cv, zTail);
-  const detail = merge([
-    buildCage(p, cv, zHoop, CAGE, CAGE_DETAIL),
-    switchPanel(panelPlace),
-    disp.bezel,
-    displayCowl(d, eye),
-    tube([wheelCentre.clone().addScaledVector(column, 0.03), wheelCentre.clone().addScaledVector(column, 0.4)], 0.022, 0x2a2b2e),
-    tube([new THREE.Vector3(eye.x + 0.27, 0.28, eye.z + 0.3), new THREE.Vector3(eye.x + 0.25, 0.6, eye.z + 0.24)], 0.012, 0x8d9096),
-    mirror.frame,
-  ]);
-  group.add(named('cockpit', detail, mat, true), mirror.glass);
-  if (disp.screen) group.add(disp.screen);
+  const cage = buildCage(p, cv, zHoop, CAGE, CAGE_DETAIL);
+  const columnTube = tube([wheelCentre.clone().addScaledVector(column, 0.03), wheelCentre.clone().addScaledVector(column, 0.4)], 0.022, 0x2a2b2e);
+  if (cc) {
+    group.add(named('cockpit', merge([cage, cc.detail, columnTube, mirror.frame]), mat, true), mirror.glass, named('gear-lever', cc.lever, mat, true));
+    if (displayMat) group.add(named('classic-dials', cc.dials, displayMat, false));
+  } else {
+    const panelPlace = new THREE.Matrix4().makeBasis(new THREE.Vector3(-1, 0, 0), new THREE.Vector3(0, 0.819, 0.574), new THREE.Vector3(0, 0.574, -0.819));
+    panelPlace.setPosition(eye.x + 0.4, d.top - 0.13, d.rearZ - 0.03);
+    const disp = display(d, eye, displayMat);
+    const detail = merge([
+      cage,
+      switchPanel(panelPlace),
+      disp.bezel,
+      displayCowl(d, eye),
+      columnTube,
+      tube([new THREE.Vector3(eye.x + 0.27, 0.28, eye.z + 0.3), new THREE.Vector3(eye.x + 0.25, 0.6, eye.z + 0.24)], 0.012, 0x8d9096),
+      mirror.frame,
+    ]);
+    group.add(named('cockpit', detail, mat, true), mirror.glass);
+    if (disp.screen) group.add(disp.screen);
+  }
 
   const steering = new THREE.Group();
   steering.name = 'steering-wheel';
   wheelPose(steering);
-  steering.add(named('steering-wheel-mesh', steeringWheel(true, glove, { back: livery.secondary, palm: 0x2a2b2e, cuff: 0x1b1c1e }), mat, true));
+  const gloves = { back: livery.secondary, palm: 0x2a2b2e, cuff: 0x1b1c1e };
+  steering.add(named('steering-wheel-mesh', cc ? classicWheel(true, glove, gloves) : steeringWheel(true, glove, gloves), mat, true));
   steering.userData.base = steering.quaternion.clone();
   group.add(steering);
   return { group, cabin, outside, steering, mirror };

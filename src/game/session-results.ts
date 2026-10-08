@@ -10,7 +10,7 @@ import type { CircuitId } from '@/track/circuits';
  */
 export function sessionResults(session: { car: CarKind; laps: readonly LapRecord[]; sessionLaps: readonly LapRecord[]; track?: { id: CircuitId }; level?: DrivingLevel }): [LapRecord[], Partial<Record<CarKind, LapRecord>>, DrivingLevel] {
   const level = session.level ?? 'experienced';
-  const cars: CarKind[] = ['camaro', 'mustang', 'supra'];
+  const cars: CarKind[] = ['camaro', 'mustang', 'supra', 'torana'];
   const history = cars.flatMap((car) => car === session.car ? session.laps : loadRecords(car, session.track?.id, level)?.laps ?? []);
   const best: Partial<Record<CarKind, LapRecord>> = {};
   for (const lap of history) if (lap.valid && (!best[lap.car] || lap.timeS < best[lap.car]!.timeS)) best[lap.car] = lap;

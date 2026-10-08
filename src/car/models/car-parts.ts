@@ -8,6 +8,7 @@ import type { CarModelOptions } from '@/types/car-model';
 import { CAMARO_PROFILE } from '@/car/models/camaro-profile';
 import { MUSTANG_PROFILE } from '@/car/models/mustang-profile';
 import { SUPRA_PROFILE } from '@/car/models/supra-profile';
+import { TORANA_PROFILE } from '@/car/models/torana-profile';
 import { resolveProfile } from '@/car/models/profile-resolve';
 import { buildBodyGrid, type BodyGrid } from '@/car/models/body-grid';
 import { buildBodyMeshes, type BodyMeshes } from '@/car/models/body-mesh';
@@ -25,7 +26,7 @@ import { merge, tint } from '@/car/models/geo-utils';
 import type { BodyProfile } from '@/car/models/profile-types';
 import { buildInterior, type Interior } from '@/car/models/interior';
 
-const PROFILES = { camaro: CAMARO_PROFILE, mustang: MUSTANG_PROFILE, supra: SUPRA_PROFILE } as const;
+const PROFILES = { camaro: CAMARO_PROFILE, mustang: MUSTANG_PROFILE, supra: SUPRA_PROFILE, torana: TORANA_PROFILE } as const;
 
 export interface HingedPart { pivot: THREE.Group; meshes: THREE.Mesh[] }
 
@@ -108,21 +109,27 @@ export function buildCarParts(kind: CarKind, options: CarModelOptions): CarParts
 
   const front = buildFrontAero(grid, profile, cv, dims, l.secondary);
   const rear = buildRearAero(grid, profile, zRear, -dims.wheelbase / 2 - 0.32);
-  const plates = tint(rear.wingPlates, l.accent);
+  const plates = rear.wingPlates ? tint(rear.wingPlates, l.accent) : null;
   let splitter: HingedPart | null = null;
   let wing: HingedPart | null = null;
   const plasticParts = [...front.plastic, ...rear.plastic, ...buildBodyDetails(grid, profile, high)];
   if (fasciaGeo?.strut) plasticParts.push(fasciaGeo.strut);
   const trimParts = [...front.trim];
   if (high) {
-    splitter = hinged('splitter', front.splitterHinge, [mesh(front.splitter, mats.carbon, 'splitter')]);
-    wing = hinged('wing', rear.wingHinge, [mesh(rear.wingCarbon, mats.carbon, 'wing'), mesh(plates, mats.trim, 'wing-endplates')]);
-    wing.pivot.userData.uprightX = profile.wing.uprightX;
-    wing.pivot.userData.wingY = profile.wing.y;
-    body.add(splitter.pivot, wing.pivot);
+    if (front.splitter && front.splitterHinge) {
+      splitter = hinged('splitter', front.splitterHinge, [mesh(front.splitter, mats.carbon, 'splitter')]);
+      body.add(splitter.pivot);
+    }
+    if (rear.wingCarbon && rear.wingHinge && plates && profile.wing) {
+      wing = hinged('wing', rear.wingHinge, [mesh(rear.wingCarbon, mats.carbon, 'wing'), mesh(plates, mats.trim, 'wing-endplates')]);
+      wing.pivot.userData.uprightX = profile.wing.uprightX;
+      wing.pivot.userData.wingY = profile.wing.y;
+      body.add(wing.pivot);
+    }
   } else {
-    plasticParts.push(front.splitter, rear.wingCarbon);
-    trimParts.push(plates);
+    if (front.splitter) plasticParts.push(front.splitter);
+    if (rear.wingCarbon) plasticParts.push(rear.wingCarbon);
+    if (plates) trimParts.push(plates);
   }
   const plastic = mesh(merge(plasticParts), mats.plastic, 'aero');
   const trim = mesh(merge(trimParts), mats.trim, 'trim');
@@ -131,13 +138,13 @@ export function buildCarParts(kind: CarKind, options: CarModelOptions): CarParts
   const lights = buildLights(grid, profile, mats.head, mats.tail, high, fasciaGeo?.face ?? null);
   body.add(lights.head, lights.tail);
 
-  const tyreMap = high ? createTyreTexture(look.tyre.colour) : null;
+  const tyreMap = high ? createTyreTexture(look.tyre.colour, profile.wheel?.kind === 'classic') : null;
   if (tyreMap) {
     mats.tyre.map = tyreMap;
     mats.tyre.userData.bakedColour = look.tyre.colour;
     writeMaterials(mats, look, false, 0);
   }
-  const wheels = createWheels(dims, mats, seg, high, look);
+  const wheels = createWheels(dims, mats, seg, high, look, profile.wheel);
   root.add(wheels.group);
 
   let interior: Interior | null = null;

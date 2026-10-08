@@ -10,6 +10,7 @@ import {
   FLAT_PLANE_LAYOUT,
   firingFrequencyHz,
   FORD_LAYOUT,
+  HOLDEN_LAYOUT,
   TOYOTA_LAYOUT,
 } from '@/audio/dsp/firing';
 import {
@@ -29,7 +30,7 @@ import {
 } from '@/audio/dsp/spectrum';
 
 const SR = 48000;
-const KINDS: readonly CarKind[] = ['camaro', 'mustang', 'supra'];
+const KINDS: readonly CarKind[] = ['camaro', 'mustang', 'supra', 'torana'];
 
 function renderEngine(kind: CarKind, rpm: number, load: number, seconds = 1.5, limiter = 0): Float32Array {
   const synth = new EngineSynth(CAR_SOUND_PROFILES[kind], SR);
@@ -57,7 +58,7 @@ describe('firing geometry', () => {
   });
 
   it('gives each cross-plane bank the uneven 3-2-1-2 pulse gaps (burble source)', () => {
-    for (const layout of [CHEVY_LAYOUT, FORD_LAYOUT, TOYOTA_LAYOUT]) {
+    for (const layout of [CHEVY_LAYOUT, FORD_LAYOUT, TOYOTA_LAYOUT, HOLDEN_LAYOUT]) {
       const slots = buildFiringSlots(layout);
       expect(slots).toHaveLength(8);
       for (const bank of [0, 1] as const) {
@@ -74,7 +75,7 @@ describe('firing geometry', () => {
   });
 
   it('fires every cylinder exactly once per cycle', () => {
-    for (const layout of [CHEVY_LAYOUT, FORD_LAYOUT, TOYOTA_LAYOUT]) {
+    for (const layout of [CHEVY_LAYOUT, FORD_LAYOUT, TOYOTA_LAYOUT, HOLDEN_LAYOUT]) {
       expect([...layout.firingOrder].sort()).toEqual([1, 2, 3, 4, 5, 6, 7, 8]);
     }
   });
@@ -206,6 +207,21 @@ describe('EngineSynth (rendered in node)', () => {
     console.log(`supra band diff: vs camaro ${bandDiff(ss, sc).toFixed(2)} dB, vs mustang ${bandDiff(ss, sm).toFixed(2)} dB; centroids c/m/s ${[sc, sm, ss].map((x) => spectralCentroid(x).toFixed(0)).join('/')}`);
     expect(bandDiff(ss, sc)).toBeGreaterThan(3);
     expect(bandDiff(ss, sm)).toBeGreaterThan(1.5);
+  });
+
+  it('gives the carburetted Torana a rawer voice than the Camaro it is based on', () => {
+    // Not a brightness ordering: the Holden 308 shares the Camaro's pushrod cross-plane base, so it must be at
+    // least as rough and raspy (more scatter, rasp and intake roar) and keep the limiter from its own spec.
+    const t = CAR_SOUND_PROFILES.torana;
+    const c = CAR_SOUND_PROFILES.camaro;
+    expect(t.limiterRpm).toBe(CAR_SPECS.torana.engine.limiterRpm);
+    expect(t.layout).toBe(HOLDEN_LAYOUT);
+    expect(t.rasp.gain).toBeGreaterThanOrEqual(c.rasp.gain);
+    expect(t.timingJitter).toBeGreaterThan(c.timingJitter);
+    expect(t.intake.noiseGain).toBeGreaterThan(c.intake.noiseGain);
+    expect(t.intake.level).toBeGreaterThan(c.intake.level);
+    expect(t.collectorDampHz).toBeLessThan(c.collectorDampHz);
+    expect(t.mechanical.whineGain).toBeGreaterThan(c.mechanical.whineGain);
   });
 
   it('is deterministic for a given seed and differs between seeds', () => {

@@ -23,8 +23,8 @@ function tube(points: THREE.Vector3[], radii: number[], n: number): THREE.Buffer
 }
 
 /** One fist around the grip on side s (+1 = the wheel's +x side). */
-function hand(s: number, c: GloveColours): THREE.BufferGeometry {
-  const gx = s * GRIP_X;
+function hand(s: number, c: GloveColours, gripX: number): THREE.BufferGeometry {
+  const gx = s * gripX;
   // Fist: stacked boxy rings along the grip (y), slightly fuller at the knuckles.
   const rows = [-0.05, -0.03, -0.005, 0.02, 0.04, 0.052];
   const width = [0.6, 0.92, 1, 1, 0.9, 0.55];
@@ -59,7 +59,7 @@ function hand(s: number, c: GloveColours): THREE.BufferGeometry {
   return merge([fist, knuckles, thumb, wrist, cuff]);
 }
 
-/** Both gloved hands (wheel frame). */
-export function gloveHands(c: GloveColours): THREE.BufferGeometry {
-  return merge([hand(1, c), hand(-1, c)]);
+/** Both gloved hands (wheel frame); `gripX` is the grip's distance from the wheel centre. */
+export function gloveHands(c: GloveColours, gripX = GRIP_X): THREE.BufferGeometry {
+  return merge([hand(1, c, gripX), hand(-1, c, gripX)]);
 }

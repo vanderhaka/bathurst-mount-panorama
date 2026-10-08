@@ -8,9 +8,9 @@ import { extrude, loft, merge } from '@/car/models/geo-utils';
 
 export interface RearAero {
   plastic: THREE.BufferGeometry[];
-  wingCarbon: THREE.BufferGeometry;
-  wingPlates: THREE.BufferGeometry;
-  wingHinge: THREE.Vector3;
+  wingCarbon: THREE.BufferGeometry | null;
+  wingPlates: THREE.BufferGeometry | null;
+  wingHinge: THREE.Vector3 | null;
 }
 
 function diffuser(zTail: number, zStart: number): THREE.BufferGeometry[] {
@@ -48,6 +48,7 @@ function airfoil(zLE: number, zTE: number, yc: number, aoa: number, n: number): 
 
 function wing(grid: BodyGrid, p: BodyProfile): Omit<RearAero, 'plastic'> {
   const w = p.wing;
+  if (!w) return { wingCarbon: null, wingPlates: null, wingHinge: null };
   const sec = airfoil(w.zLE, w.zTE, w.y, w.aoa, 8);
   const span = (x: number) => sec.map(([z, y]) => new THREE.Vector3(x, y, z));
   const plane = loft([span(-w.halfSpan), span(w.halfSpan)], true, true);
@@ -74,5 +75,5 @@ function wing(grid: BodyGrid, p: BodyProfile): Omit<RearAero, 'plastic'> {
 }
 
 export function buildRearAero(grid: BodyGrid, p: BodyProfile, zTail: number, zDiffuser: number): RearAero {
-  return { plastic: diffuser(zTail, zDiffuser), ...wing(grid, p) };
+  return { plastic: p.diffuser === false ? [] : diffuser(zTail, zDiffuser), ...wing(grid, p) };
 }

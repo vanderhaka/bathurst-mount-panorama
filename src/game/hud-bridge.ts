@@ -1,4 +1,5 @@
 import type { CarKind } from '@/car/car-specs';
+import { liveryNumber } from '@/car/liveries';
 import type { RaceSession } from '@/game/race-session';
 import type { SpeedProfile } from '@/track/speed-profile';
 import type { Track } from '@/track/track-model';
@@ -7,7 +8,7 @@ import type { HudState, HudTrackInfo } from '@/types/hud';
 import type { Settings } from '@/types/session';
 
 /** Three-letter car code in the timing tower. */
-const CAR_CODES: Record<CarKind, string> = { camaro: 'CAM', mustang: 'MUS', supra: 'SUP' };
+const CAR_CODES: Record<CarKind, string> = { camaro: 'CAM', mustang: 'MUS', supra: 'SUP', torana: 'A9X' };
 
 export function hudTrackInfo(track: Track): HudTrackInfo {
   const outline: Array<[number, number]> = [];
@@ -102,7 +103,7 @@ export function buildHudState(session: RaceSession, profile: SpeedProfile, setti
   state.tyreCompound = v.stint.tyreModel.compound;
   if (!state.entry) {
     const lv = session.entity.livery;
-    state.entry = { number: lv.number, code: CAR_CODES[session.car], colour: `#${lv.primary.toString(16).padStart(6, '0')}` };
+    state.entry = { number: liveryNumber(lv), code: CAR_CODES[session.car], colour: `#${lv.primary.toString(16).padStart(6, '0')}` };
   }
   return state;
 }

@@ -3,10 +3,13 @@
 // back to the livery's primary colour.
 import * as THREE from 'three';
 import type { DashState, Livery } from '@/types/car-model';
+import { liveryNumber } from '@/car/liveries';
 import { paintLivery, type LiveryShape } from '@/car/models/livery-paint';
 import { contrastOn, FONT_STACK, hex, inRegion, type Ctx } from '@/car/models/livery-canvas';
 import type { AtlasRegion } from '@/car/models/livery-layout';
 import { resizeCanvasTexture } from '@/car/models/texture-quality';
+import { CAR_SPECS } from '@/car/car-specs';
+import { paintAnalogue } from '@/car/models/display-analogue';
 
 export interface LiveryTextures {
   paint: THREE.CanvasTexture;
@@ -53,7 +56,7 @@ function paintBanner(ctx: Ctx, l: Livery): void {
   ctx.fillText(text, 0, 0);
   ctx.restore();
   ctx.font = `800 ${h * 0.5}px ${FONT_STACK}`;
-  ctx.fillText(String(l.number), w * 0.93, h * 0.45);
+  ctx.fillText(liveryNumber(l), w * 0.93, h * 0.45);
 }
 
 function paintDisplay(ctx: Ctx): void {
@@ -86,8 +89,9 @@ function paintDisplay(ctx: Ctx): void {
  * Sidewall lettering for the slick (generic text, no brand). Lathe UVs: u runs
  * around the tyre, v along the profile (outer sidewall is v ~0.8..0.93).
  * The background is baked with `base`; see writeMaterials for live recolouring.
+ * `plain`: a period sidewall, dark with a faint lighter ring and no lettering.
  */
-export function createTyreTexture(base: number): THREE.CanvasTexture | null {
+export function createTyreTexture(base: number, plain = false): THREE.CanvasTexture | null {
   const ctx = canvas2d(1024, 256);
   if (!ctx) return null;
   const { width: w, height: h } = ctx.canvas;
@@ -95,6 +99,13 @@ export function createTyreTexture(base: number): THREE.CanvasTexture | null {
   ctx.fillRect(0, 0, w, h);
   const y0 = (1 - 0.925) * h;
   const y1 = (1 - 0.812) * h;
+  if (plain) {
+    ctx.fillStyle = 'rgba(255,255,255,0.06)';
+    ctx.fillRect(0, y0 + (y1 - y0) * 0.3, w, h * 0.012);
+    const t = texture(ctx, 4);
+    t.wrapS = THREE.RepeatWrapping;
+    return t;
+  }
   ctx.font = `700 ${(y1 - y0) * 0.95}px ${FONT_STACK}`;
   ctx.textBaseline = 'middle';
   ctx.textAlign = 'center';
@@ -222,14 +233,17 @@ export function createLiveryTextures(l: Livery, shape: LiveryShape, width: numbe
   // The sun strip is a thin band (about 13:1), so the canvas keeps that aspect.
   const bannerWidth = Math.min(1024, width);
   const bctx = canvas2d(bannerWidth, Math.round(bannerWidth * 80 / 1024));
-  const dctx = canvas2d(256, 128);
+  // Classic cockpit: two square gauge cells, so the canvas is twice as wide as high.
+  const classic = shape.profile.cockpit === 'classic';
+  const dctx = classic ? canvas2d(512, 256) : canvas2d(256, 128);
   if (!ctx || !bctx || !dctx) return null;
   paintLivery(ctx, l, shape);
   paintBanner(bctx, l);
-  paintDisplay(dctx);
+  if (classic) paintAnalogue(dctx, CAR_SPECS[shape.kind].engine.redlineRpm, 0, 0);
+  else paintDisplay(dctx);
   const paint = texture(ctx, 8);
   const banner = texture(bctx, 4);
-  const display = texture(dctx, 1);
+  const display = texture(dctx, classic ? 4 : 1);
   const scars: Array<{ region: AtlasRegion; a: number; b: number; severity: number; seed: number }> = [];
   return {
     paint,

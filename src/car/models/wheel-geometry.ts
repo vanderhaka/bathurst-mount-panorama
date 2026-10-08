@@ -3,9 +3,13 @@
 // of real tapered, dished spokes; the brake disc and caliper sit inside.
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+import type { WheelStyle } from '@/car/models/profile-types';
 
 const RIM_RADIUS = 0.2286; // 18 inch
 const RIM_HALF_WIDTH = 0.1397; // 11 inch
+
+/** The Gen3 18 x 11 inch wheel. */
+export const GEN3_WHEEL: WheelStyle = { kind: 'gen3', rimRadius: RIM_RADIUS, rimHalfWidth: RIM_HALF_WIDTH, discRadius: 0.183 };
 
 /** Lathe around the X axis from (radius, lateral) pairs ordered by increasing lateral. */
 function latheX(points: ReadonlyArray<readonly [number, number]>, segments: number): THREE.BufferGeometry {
@@ -15,9 +19,9 @@ function latheX(points: ReadonlyArray<readonly [number, number]>, segments: numb
 }
 
 /** Slick tyre with a rounded sidewall and shoulder. */
-export function tyreGeometry(radius: number, width: number, segments: number, high: boolean): THREE.BufferGeometry {
+export function tyreGeometry(radius: number, width: number, segments: number, high: boolean, rimRadius = RIM_RADIUS): THREE.BufferGeometry {
   const h = width / 2;
-  const bead = RIM_RADIUS + 0.008;
+  const bead = rimRadius + 0.008;
   const side = high
     ? [[bead, 0.94], [bead + 0.022, 0.985], [(bead + radius) / 2, 1.0], [radius - 0.04, 0.985], [radius - 0.016, 0.935], [radius - 0.004, 0.84], [radius, 0.62], [radius, 0.25]]
     : [[bead, 0.95], [(bead + radius) / 2, 1.0], [radius - 0.014, 0.93], [radius, 0.55]];
@@ -27,12 +31,12 @@ export function tyreGeometry(radius: number, width: number, segments: number, hi
   return latheX(pts, segments);
 }
 
-function spokeGeometry(count: number, high: boolean): THREE.BufferGeometry {
+function spokeGeometry(count: number, high: boolean, rimRadius: number, halfWidth: number): THREE.BufferGeometry {
   const pos: number[] = [];
   const idx: number[] = [];
   const steps = high ? 3 : 1;
   const rIn = 0.068;
-  const rOut = RIM_RADIUS - 0.012;
+  const rOut = rimRadius - 0.012;
   for (let s = 0; s < count; s++) {
     const ang = (s / count) * Math.PI * 2;
     const ca = Math.cos(ang), sa = Math.sin(ang);
@@ -40,7 +44,7 @@ function spokeGeometry(count: number, high: boolean): THREE.BufferGeometry {
     for (let k = 0; k <= steps; k++) {
       const t = k / steps;
       const r = rIn + (rOut - rIn) * t;
-      const w = 0.086 + (RIM_HALF_WIDTH - 0.006 - 0.086) * Math.pow(t, 0.7);
+      const w = 0.086 + (halfWidth - 0.006 - 0.086) * Math.pow(t, 0.7);
       const half = (0.025 - 0.01 * t) * (high ? 1 : 1.25);
       const depth = 0.03;
       // Four corners: front-left, front-right, back-right, back-left (tangent, lateral).
@@ -64,9 +68,9 @@ function spokeGeometry(count: number, high: boolean): THREE.BufferGeometry {
 }
 
 /** Rim: outer lip, inner barrel (seen through the spokes), dished spokes and hub. */
-export function rimGeometry(segments: number, spokes: number, high: boolean): THREE.BufferGeometry {
-  const R = RIM_RADIUS;
-  const W = RIM_HALF_WIDTH;
+export function rimGeometry(segments: number, spokes: number, high: boolean, style: WheelStyle = GEN3_WHEEL): THREE.BufferGeometry {
+  const R = style.rimRadius;
+  const W = style.rimHalfWidth;
   const barrel = latheX(
     high
       ? [[R + 0.01, -W], [R - 0.016, -W + 0.02], [R - 0.02, 0.06], [R - 0.014, W - 0.012], [R - 0.004, W + 0.004], [R + 0.013, W + 0.002], [R + 0.014, W - 0.01]]
@@ -74,7 +78,7 @@ export function rimGeometry(segments: number, spokes: number, high: boolean): TH
     segments,
   );
   const hub = latheX(high ? [[0.074, 0.06], [0.072, 0.088], [0.058, 0.1], [0.03, 0.104], [0.001, 0.104]] : [[0.07, 0.08], [0.001, 0.1]], Math.max(10, segments / 2));
-  const parts = [barrel.toNonIndexed(), hub.toNonIndexed(), spokeGeometry(spokes, high)];
+  const parts = [barrel.toNonIndexed(), hub.toNonIndexed(), spokeGeometry(spokes, high, R, W)];
   for (const p of parts) p.deleteAttribute('uv');
   const g = mergeGeometries(parts.map((p) => { p.deleteAttribute('normal'); return p; }));
   g.computeVertexNormals();
@@ -98,9 +102,9 @@ export function discGeometry(segments: number, outer: number): THREE.BufferGeome
 }
 
 /** Caliper straddling the top of the disc (symmetric, so it works on both sides). */
-export function caliperGeometry(outer: number): THREE.BufferGeometry {
+export function caliperGeometry(outer: number, rimRadius = RIM_RADIUS): THREE.BufferGeometry {
   const r0 = outer - 0.045;
-  const r1 = Math.min(RIM_RADIUS - 0.024, outer + 0.022);
+  const r1 = Math.min(rimRadius - 0.024, outer + 0.022);
   const span = 0.42;
   const s = new THREE.Shape();
   s.absarc(0, 0, r1, Math.PI / 2 - span, Math.PI / 2 + span, false);

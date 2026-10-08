@@ -23,7 +23,9 @@ export function colourLaps(track: Track, line: RacingLine, kerbs: KerbLayout, sp
   const profiles = new SessionProfiles(v, line), prof = profiles.player, steer = new Autopilot(track, line, prof);
   const input: VehicleInput = { throttle: 0, brake: 0, steer: 0, shiftUp: false, shiftDown: false };
   let maxImpact = 0, worstOff = 0, driven = 0, previous = v.tp.s, guidance = 0, refreshes = 0;
-  for (let k = 0; k < 360 * 150 * laps && driven < laps * track.length + 200; k++) {
+  // Simulation cap: 150 s a lap, or 1.3 of the car's line-profile lap for a slower car (the 1979 Torana).
+  const capS = Math.max(150, prof.lapTimeS * 1.3) * laps;
+  for (let k = 0; k < 360 * capS && driven < laps * track.length + 200; k++) {
     profiles.update();
     if (k % 360 === 0) { guidance += prof.lapTimeS; refreshes++; }
     steer.drive(v, input); // steering only; the pedals come from the line colours

@@ -171,7 +171,7 @@ export class RaceController {
       const hs = this.hudState;
       this.player.model.setDash?.({
         gear: v.pt.gear, speedKmh: hs.speedKmh,
-        shiftLights: Math.max(0, (v.pt.rpm - (e.redlineRpm - 1700)) / 1600),
+        shiftLights: Math.max(0, (v.pt.rpm - (e.redlineRpm - 1700)) / 1600), rpm: v.pt.rpm,
         lapS: hs.lap.number > 0 ? hs.lap.currentS : null, deltaS: hs.lap.deltaS,
         waterTempC: 88 + Math.min(14, this.session.timer.lapTime / 20),
       });

@@ -23,7 +23,7 @@ function nativeStop(kind: CarKind, brakeBiasFront: number, mockRubber = false): 
   const s = 6000, i = Math.round(s / track.spacing) % track.n, speed = 200 / 3.6;
   v.reset(s, 0);
   const along = speed * Math.hypot(track.tx[i], track.tz[i]);
-  v.vx = Math.sin(v.heading) * along; v.vz = Math.cos(v.heading) * along; v.vy = track.ty[i] * speed; v.pt.gear = 5;
+  v.vx = Math.sin(v.heading) * along; v.vz = Math.cos(v.heading) * along; v.vy = track.ty[i] * speed; v.pt.gear = Math.min(5, v.spec.gearRatios.length);
   const rubber = mockRubber ? vi.spyOn(v.trackGrip, 'at').mockReturnValue(1) : null;
   try {
     const x = v.x, z = v.z;
@@ -34,7 +34,7 @@ function nativeStop(kind: CarKind, brakeBiasFront: number, mockRubber = false): 
 }
 
 describe('track grip with the setup and brake stint', () => {
-  for (const kind of ['camaro', 'mustang', 'supra'] as CarKind[]) {
+  for (const kind of ['camaro', 'mustang', 'supra', 'torana'] as CarKind[]) {
     it(`${kind}: native rubber retains the shorter stop from increased front bias`, () => {
       const gain = nativeStop(kind, .6) - nativeStop(kind, .68);
       const mockedGain = nativeStop(kind, .6, true) - nativeStop(kind, .68, true);

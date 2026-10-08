@@ -1,5 +1,5 @@
 // Cars harness. URL params:
-//   car=camaro|mustang|supra|both|all   (both = Camaro and Mustang side by side; all = the three)
+//   car=camaro|mustang|supra|torana|both|all   (both = Camaro and Mustang side by side; all = all four)
 //   livery=0..3               preset index from LIVERY_PRESETS
 //   view=front|rear|side|threequarter|rearthreequarter|top|low|cockpit|bonnet
 //   dist=<m>                  camera distance (harness)
@@ -26,7 +26,7 @@ icon.href = 'data:,';
 document.head.appendChild(icon);
 
 const carParam = params.get('car') ?? 'camaro';
-const SINGLE: CarKind[] = ['camaro', 'mustang', 'supra'];
+const SINGLE: CarKind[] = ['camaro', 'mustang', 'supra', 'torana'];
 const kinds: CarKind[] = carParam === 'all' ? SINGLE : carParam === 'both' ? ['camaro', 'mustang'] : [SINGLE.find((k) => k === carParam) ?? 'camaro'];
 const liveryIndex = Number(params.get('livery') ?? 0);
 const detail = params.get('detail') === 'low' ? 'low' : 'high';
