@@ -351,14 +351,18 @@ The 2026 Bathurst 1000 marks 20 years since Peter Brock's death. The game adds h
 | Tyres | Bridgestone slicks ([Motor Sport, Dec 1979](https://www.motorsportmagazine.com/archive/article/december-1979/55/the-great-race-2/)) | 0.31 m radius, 0.27 m wide | Radius calibrated from 44.8 km/h per 1,000 rpm in top on the 2.60 axle; width estimated for 10-inch rims |
 | Wheels | about 15 x 10 in, five studs, dark face, polished deep-dish lip | 15 in classic rim | Estimate from photos and the 10-inch rim limit |
 | Brakes | four-wheel discs, 276 mm vented front | disc radius 0.138 m | Front disc confirmed (parts listing); race data not found |
-| Aero | no published Cd; a fibreglass air dam, a tailgate spoiler and a rear-facing bonnet scoop | CdA 1.10 m², no downforce | Estimate: calibrated so 260 kW at the wheels gives the 249-269 km/h Conrod trap speed |
+| Aero | no published Cd; a fibreglass air dam, a tailgate spoiler and a rear-facing bonnet scoop | CdA 1.05 m², no downforce | Estimate: calibrated so the game car reaches 250.9 km/h on Conrod, inside the 249-269 km/h trap speed |
+| Tyre friction | not published | tyreMu 1.21 | Calibrated: the game lap at the measured handling matches the lap target below |
+| Tyre heat gain | not applicable | tyreHeatGain 1.5 | Calibrated: the tyre heat model is driven by g-forces and is tuned on Gen3 cars, so the slower Torana's tyres stayed 10-15 °C cold. With 1.5 the Torana is within 4.5 °C of the Camaro at The Cutting on lap 1, and its 3-lap peak (104 °C) stays below the Camaro's (122 °C) |
 | Steering | manual rack, large wheel, 10.97 m turning circle (road car) | 0.40 rad max road-wheel angle | Estimate |
 | 1979 pole | 2:20.500, Brock | — | Confirmed ([Wikipedia: 1979 Hardie-Ferodo 1000](https://en.wikipedia.org/wiki/1979_Hardie-Ferodo_1000)) |
 | 1979 lap record | 2:21.1, Brock, lap 163 (the final lap) | — | Confirmed (Wikipedia) |
 | Conrod trap speed | 249-269 km/h (155-167 mph) for the V8 Toranas | — | Confirmed (Motor Sport) |
 | Effect of the Chase (added 1987) | about 3-5 s per lap | about +5 s for this car | [Supercars: evolution of the lap record](https://www.supercars.com/news/championship/faster-and-faster-evolution-of-bathursts-best-lap-time/) |
 
-Lap target in the game: 2:25-2:27 at Bathurst with the measured handling (MEASURED_HANDLING in src/config/handling.ts). The game's default handling adds grip to every car, so the player's laps are faster than that.
+Lap target in the game: the 1979 pole plus the Chase is about 145.5 s. The game's Camaro laps 1.041 times the real Gen3 pole (129.07 s against 124.0 s), so the target is 1.041 x 145.5 = 151.45 s with the measured handling (MEASURED_HANDLING in src/config/handling.ts). The game car laps 150.98 s at 250.9 km/h on Conrod (tests/torana-pace.test.ts). The game's default handling adds grip to every car, so the player's laps are faster: 142.29 s.
+
+Risk: the wall-clearance pass window for the tyre heat gain is narrow. Values from 1.40 to 1.52 pass every driving test; above about 1.54 the race-warm colour-following test touches the wall. Change tyreMu, cdA or the gain only with the torana driving tests (tests/physics.test.ts, tests/line-follower.test.ts) and tests/debug/torana-impacts.test.ts.
 
 Least certain: race weight, CG height, flared track, tyre sizes, gear set, Cd, steering lock. A copy of Dr Terry's A9X book or the 1979 CAMS Group C regulations would close most of these gaps.
 
