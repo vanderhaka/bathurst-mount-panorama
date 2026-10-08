@@ -19,30 +19,42 @@ const MAX_SETBACK = 10;
 /** Offset of the sloped upper wall face at height h (matches WALL_PROFILE in barriers.ts). */
 const faceOffset = (h: number) => 0.07 + ((h - 0.3) / 0.75) * 0.06;
 
+/** One run of a single circuit sponsor on the left (sign 1) or right (-1) wall, starting at lap distance `start`. */
+export interface SignRun { start: number; sign: 1 | -1; sponsor: number }
+
+/** Every sign run of the lap with its sponsor (index into the circuit's own sponsor set), left wall then right. */
+export function wallSignRuns(track: Track): SignRun[] {
+  const runs: SignRun[] = [];
+  for (const sign of [1, -1] as const) {
+    const phase = sign > 0 ? 0 : (RUN + GAP) / 2;
+    for (let c = 0; c * (RUN + GAP) + phase < track.length; c++) {
+      const start = c * (RUN + GAP) + phase;
+      runs.push({ start, sign, sponsor: sponsorAt(start, c * 3 + (sign > 0 ? 0 : 1), track.id) });
+    }
+  }
+  return runs;
+}
+
 export function buildWallSigns(track: Track, quality: QualityPreset = 'high'): THREE.Mesh {
   const pos: number[] = [], uv: number[] = [];
   const a: [number, number, number] = [0, 0, 0], b: [number, number, number] = [0, 0, 0];
-  for (const sign of [1, -1] as const) {
+  for (const { start: runStart, sign, sponsor } of wallSignRuns(track)) {
     const side = sign > 0 ? track.left : track.right;
-    const phase = sign > 0 ? 0 : (RUN + GAP) / 2;
-    for (let c = 0; c * (RUN + GAP) + phase < track.length; c++) {
-      const runStart = c * (RUN + GAP) + phase;
-      const cell = sponsorCell(sponsorAt(runStart, c * 3 + (sign > 0 ? 0 : 1)));
-      for (let s0 = runStart; s0 + PANEL_LEN <= runStart + RUN; s0 += PANEL_LEN + 0.15) {
-        if (!concreteWall(track, side, s0) || !concreteWall(track, side, s0 + PANEL_LEN)) continue;
-        // Text reads left to right from the road: along +s on the left wall, -s on the right.
-        const [uA, uB] = sign > 0 ? [cell.u0, cell.u1] : [cell.u1, cell.u0];
-        const quad = (h: number, s: number, out: [number, number, number]) => {
-          const f = track.wrapS(s) / track.spacing;
-          const d = sampleArray(track, side.wall, Math.floor(f) % track.n, f - Math.floor(f)) + faceOffset(h) - 0.012;
-          pointAt(track, s, sign * d, out);
-          out[1] += h;
-          return out;
-        };
-        const corners = [quad(Y0, s0, a).slice(), quad(Y0, s0 + PANEL_LEN, b).slice(), quad(Y1, s0 + PANEL_LEN, a).slice(), quad(Y1, s0, b).slice()];
-        const uvs = [[uA, cell.v0], [uB, cell.v0], [uB, cell.v1], [uA, cell.v1]];
-        for (const k of [0, 1, 2, 0, 2, 3]) { pos.push(...corners[k]); uv.push(...uvs[k]); }
-      }
+    const cell = sponsorCell(sponsor, track.id);
+    for (let s0 = runStart; s0 + PANEL_LEN <= runStart + RUN; s0 += PANEL_LEN + 0.15) {
+      if (!concreteWall(track, side, s0) || !concreteWall(track, side, s0 + PANEL_LEN)) continue;
+      // Text reads left to right from the road: along +s on the left wall, -s on the right.
+      const [uA, uB] = sign > 0 ? [cell.u0, cell.u1] : [cell.u1, cell.u0];
+      const quad = (h: number, s: number, out: [number, number, number]) => {
+        const f = track.wrapS(s) / track.spacing;
+        const d = sampleArray(track, side.wall, Math.floor(f) % track.n, f - Math.floor(f)) + faceOffset(h) - 0.012;
+        pointAt(track, s, sign * d, out);
+        out[1] += h;
+        return out;
+      };
+      const corners = [quad(Y0, s0, a).slice(), quad(Y0, s0 + PANEL_LEN, b).slice(), quad(Y1, s0 + PANEL_LEN, a).slice(), quad(Y1, s0, b).slice()];
+      const uvs = [[uA, cell.v0], [uB, cell.v0], [uB, cell.v1], [uA, cell.v1]];
+      for (const k of [0, 1, 2, 0, 2, 3]) { pos.push(...corners[k]); uv.push(...uvs[k]); }
     }
   }
   const geo = new THREE.BufferGeometry();
@@ -50,7 +62,7 @@ export function buildWallSigns(track: Track, quality: QualityPreset = 'high'): T
   geo.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
   geo.computeVertexNormals();
   const base = new THREE.MeshStandardMaterial({
-    map: sponsorAtlas(), roughness: 0.85, side: THREE.DoubleSide,
+    map: sponsorAtlas(track.id), roughness: 0.85, side: THREE.DoubleSide,
     polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2,
   });
   const ratio = QUALITY[quality].wallWeather / 0.45;
