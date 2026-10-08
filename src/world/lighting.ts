@@ -21,7 +21,7 @@ export function createLighting(scene: THREE.Scene, quality: QualityPreset = 'hig
   const cfg0 = getGraphics();
   const fog = new THREE.FogExp2(cfg0.fogColour, cfg0.fogDensity);
   scene.fog = fog;
-  const aerial = createAerialPerspective(scene);
+  const aerial = createAerialPerspective();
   const previousRender = scene.onBeforeRender;
   scene.onBeforeRender = (renderer, renderedScene, camera, ...rest) => {
     previousRender.call(scene, renderer, renderedScene, camera, ...rest);
@@ -37,7 +37,7 @@ export function createLighting(scene: THREE.Scene, quality: QualityPreset = 'hig
     hemi,
     // Haze owns the inner shader hook (installed as the shadow rig registers a material); CSM wraps it,
     // so changing cascades cannot erase it.
-    follow(focus) { aerial.prepare(camera); shadows.update(focus); },
+    follow(focus) { shadows.update(focus); },
     resize() { shadows.resize(); },
     dispose() { shadows.dispose(); scene.remove(hemi); scene.onBeforeRender = previousRender; },
     setQuality(q) {

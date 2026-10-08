@@ -9,6 +9,7 @@ export function heightDensity(height: number, falloff: number): number {
 
 export interface AerialPerspective {
   apply(cfg: GraphicsConfig): void;
+  /** Per render: the density at the camera's height. Nothing to do while the haze is off. */
   prepare(camera: THREE.Camera): void;
   /** Adds the haze hook to a fog material (once). Install it before outer hooks such as the shadow cascades. */
   install(material: THREE.Material): void;
@@ -48,8 +49,9 @@ const fragment = /* glsl */ `
 /**
  * Adds height/distance haze to existing fog materials. Uniforms are shared, and
  * existing fence/material hooks survive. Fog blends in linear HDR before output.
+ * The owner installs each material (the shadow rig's scene walk does, before it adds CSM).
  */
-export function createAerialPerspective(scene: THREE.Scene): AerialPerspective {
+export function createAerialPerspective(): AerialPerspective {
   const cfg0 = getGraphics();
   const uniforms = {
     hazeFalloff: { value: cfg0.hazeHeightFalloff },
@@ -95,14 +97,9 @@ export function createAerialPerspective(scene: THREE.Scene): AerialPerspective {
   return {
     install,
     prepare(camera) {
+      if (!enabled) return;
       camera.getWorldPosition(position);
       uniforms.hazeCameraDensity.value = heightDensity(position.y, uniforms.hazeFalloff.value);
-      // Also catches rebuilt worlds, cars and particles added after scene setup.
-      scene.traverseVisible((object) => {
-        if (!('material' in object)) return;
-        const value = object.material as THREE.Material | THREE.Material[];
-        if (Array.isArray(value)) value.forEach(install); else install(value);
-      });
     },
     apply(cfg) {
       uniforms.hazeFalloff.value = cfg.hazeHeightFalloff;

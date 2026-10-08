@@ -95,6 +95,7 @@ export function createPostChain(renderer: THREE.WebGLRenderer, msaa = 4): PostCh
   let tierAo = false;
   let tierCamera = false;
   const aa = new CameraAntialias();
+  const sunView = { visible: false, uv: new THREE.Vector2() };
   const updateAa = () => aa.configure(enabled && tierCamera && cfg.smaa, width, height);
   let ao: GTAOPass | null = null;
   let Gtao: typeof GTAOPass | null = null;
@@ -185,7 +186,7 @@ export function createPostChain(renderer: THREE.WebGLRenderer, msaa = 4): PostCh
       updateAa();
     },
     setCameraEffects(speed, blur, camera, direction) {
-      const sun = sunInView(camera, direction);
+      const sun = sunInView(camera, direction, sunView);
       material.uniforms.motionBlur.value = motionBlurAmount(speed, cfg.cameraBlurStrength, blur, tierCamera);
       material.uniforms.sunUv.value.copy(sun.uv);
       material.uniforms.flareStrength.value = tierCamera && sun.visible ? cfg.sunFlareStrength : 0;

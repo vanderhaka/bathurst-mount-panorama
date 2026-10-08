@@ -7,14 +7,16 @@ export function motionBlurAmount(speedMs: number, strength: number, enabled: boo
   return velocity * THREE.MathUtils.clamp(strength, 0, 1) * 0.002;
 }
 
-/** Infinite-distance projection: translating the car cannot move the sun in the sky. */
-export function sunInView(camera: THREE.Camera, direction: THREE.Vector3): { visible: boolean; uv: THREE.Vector2 } {
-  const forward = camera.getWorldDirection(new THREE.Vector3());
-  const ndc = direction.clone().normalize().multiplyScalar(1000).add(camera.position).project(camera);
-  return {
-    visible: direction.y > 0 && direction.dot(forward) > 0 && Math.abs(ndc.x) < 1 && Math.abs(ndc.y) < 1,
-    uv: new THREE.Vector2(ndc.x * 0.5 + 0.5, ndc.y * 0.5 + 0.5),
-  };
+const forward = new THREE.Vector3(), ndc = new THREE.Vector3();
+
+/** Infinite-distance projection: translating the car cannot move the sun in the sky. Pass `out` to reuse it per frame. */
+export function sunInView(camera: THREE.Camera, direction: THREE.Vector3,
+  out: { visible: boolean; uv: THREE.Vector2 } = { visible: false, uv: new THREE.Vector2() }): { visible: boolean; uv: THREE.Vector2 } {
+  camera.getWorldDirection(forward);
+  ndc.copy(direction).normalize().multiplyScalar(1000).add(camera.position).project(camera);
+  out.visible = direction.y > 0 && direction.dot(forward) > 0 && Math.abs(ndc.x) < 1 && Math.abs(ndc.y) < 1;
+  out.uv.set(ndc.x * 0.5 + 0.5, ndc.y * 0.5 + 0.5);
+  return out;
 }
 
 export const CAMERA_EFFECT_GLSL = /* glsl */ `

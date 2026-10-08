@@ -23,5 +23,9 @@ describe('camera effects', () => {
     camera.position.set(800, 500, 300);
     camera.updateMatrixWorld();
     expect(sunInView(camera, new THREE.Vector3(0, 0.1, -1)).uv.y).toBeCloseTo(inView.uv.y);
+    const out = { visible: false, uv: new THREE.Vector2() };
+    expect(sunInView(camera, new THREE.Vector3(0, 0.1, -1), out)).toBe(out);
+    expect(out.visible).toBe(true);
+    expect(out.uv.y).toBeCloseTo(inView.uv.y);
   });
 });

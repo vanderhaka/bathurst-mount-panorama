@@ -87,8 +87,8 @@ describe('atmosphere tiers and live updates', () => {
     const mat = new THREE.MeshStandardMaterial();
     mat.onBeforeCompile = (shader) => { shader.uniforms.existing = { value: 42 }; };
     scene.add(new THREE.Mesh(new THREE.BoxGeometry(), mat));
-    const haze = createAerialPerspective(scene);
-    haze.prepare(new THREE.PerspectiveCamera());
+    const haze = createAerialPerspective();
+    scene.traverse(o => { if (o instanceof THREE.Mesh) haze.install(o.material as THREE.Material); });
     const shader = { vertexShader: THREE.ShaderLib.standard.vertexShader, fragmentShader: THREE.ShaderLib.standard.fragmentShader, uniforms: {} as Record<string, THREE.IUniform> };
     mat.onBeforeCompile(shader as Parameters<THREE.Material['onBeforeCompile']>[0], {} as THREE.WebGLRenderer);
     expect(shader.uniforms.existing.value).toBe(42);

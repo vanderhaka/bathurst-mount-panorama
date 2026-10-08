@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { createShadowRig } from '@/world/shadows';
 import { createLighting } from '@/world/lighting';
 import { DEFAULT_GRAPHICS, QUALITY } from '@/config/graphics';
@@ -68,6 +68,19 @@ it('keeps haze on a material first seen while hidden (the ghost car) across tier
     expect(shader.uniforms, tier).toHaveProperty('CSM_cascades');
     expect('hazeFalloff' in shader.uniforms, tier).toBe(tier !== 'low');
   }
+  lighting.dispose();
+});
+
+it('walks the scene once per frame and leaves the haze to a camera uniform', () => {
+  const scene = new THREE.Scene(), camera = new THREE.PerspectiveCamera();
+  for (let i = 0; i < 20; i++) scene.add(new THREE.Mesh(new THREE.BoxGeometry(), new THREE.MeshStandardMaterial()));
+  const lighting = createLighting(scene, 'medium', camera);
+  lighting.apply(DEFAULT_GRAPHICS);
+  const walk = vi.spyOn(scene, 'traverse'), visibleWalk = vi.spyOn(scene, 'traverseVisible');
+  lighting.follow(new THREE.Vector3());
+  scene.onBeforeRender({} as THREE.WebGLRenderer, scene, camera, new THREE.BufferGeometry(), new THREE.MeshBasicMaterial(), new THREE.Group());
+  expect(walk).toHaveBeenCalledTimes(1);
+  expect(visibleWalk).not.toHaveBeenCalled();
   lighting.dispose();
 });
 
