@@ -3,7 +3,7 @@ import { installAndroidPresentation } from '@/phone/android-presentation';
 import { installTouchGuards } from '@/input/touch-guards';
 import { ACTIVE_CIRCUIT, CIRCUITS } from '@/track/circuits';
 
-if (ACTIVE_CIRCUIT === 'adelaide') document.title = `${CIRCUITS.adelaide.name} — Gen3 time trial`;
+if (ACTIVE_CIRCUIT !== 'bathurst') document.title = `${CIRCUITS[ACTIVE_CIRCUIT].name} — Gen3 time trial`;
 
 declare global {
   interface Window { __game?: Game; __shotReady?: boolean }

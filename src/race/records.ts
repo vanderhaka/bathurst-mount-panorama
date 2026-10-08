@@ -6,8 +6,8 @@ import { CIRCUITS, type CircuitId } from '@/track/circuits';
 
 // v2: v1 records could hold ghosts that replayed fast and fake bests from reversing over the line.
 const KEY = (car: CarKind, circuit: CircuitId) => `${circuit}.records.v2.${car}`;
-/** Reject corrupt/impossible times while allowing Adelaide's shorter laps. */
-const MIN_PLAUSIBLE_LAP_S = { bathurst: 100, adelaide: 50 } as const;
+/** Per circuit; rejects corrupt or impossible times. */
+const MIN_PLAUSIBLE_LAP_S: Record<CircuitId, number> = { bathurst: 100, adelaide: 50 };
 
 export interface CarRecords {
   bestS: number;

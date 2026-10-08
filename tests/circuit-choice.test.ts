@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { circuitFromSearch, circuitUrl, loadSavedCircuit, resolveCircuit, saveCircuit, switchCircuit, type CircuitStorage } from '@/track/circuits';
+import { CIRCUIT_IDS, circuitFromSearch, circuitUrl, nextCircuit, loadSavedCircuit, resolveCircuit, saveCircuit, switchCircuit, type CircuitStorage } from '@/track/circuits';
 
 /** In-memory stand-in for localStorage. */
 function memoryStorage(initial: Record<string, string> = {}): CircuitStorage & { data: Record<string, string> } {
@@ -103,5 +103,29 @@ describe('switching circuit', () => {
   it('keeps circuitUrl behaviour: other options survive, Bathurst drops the parameter unless asked to keep it', () => {
     expect(circuitUrl('https://example.com/?track=adelaide&quality=low#race', 'bathurst')).toBe('https://example.com/?quality=low#race');
     expect(circuitUrl('https://example.com/?quality=low#race', 'bathurst', true)).toBe('https://example.com/?quality=low&track=bathurst#race');
+  });
+});
+
+describe('N-way circuit choice', () => {
+  const n = CIRCUIT_IDS.length;
+
+  it('steps forward and back through CIRCUIT_IDS and wraps at both ends', () => {
+    CIRCUIT_IDS.forEach((id, i) => {
+      expect(nextCircuit(id, 1)).toBe(CIRCUIT_IDS[(i + 1) % n]);
+      expect(nextCircuit(id, -1)).toBe(CIRCUIT_IDS[(i + n - 1) % n]);
+    });
+    expect(nextCircuit(CIRCUIT_IDS[n - 1], 1)).toBe(CIRCUIT_IDS[0]);
+    expect(nextCircuit(CIRCUIT_IDS[0], -1)).toBe(CIRCUIT_IDS[n - 1]);
+  });
+
+  it('round-trips every id through ?track=', () => {
+    for (const id of CIRCUIT_IDS) expect(circuitFromSearch(`?track=${id}`), id).toBe(id);
+  });
+
+  it('keeps track= in the address for every non-default id and drops it for Bathurst', () => {
+    for (const id of CIRCUIT_IDS) {
+      const url = new URL(circuitUrl('https://example.com/?quality=low', id));
+      expect(url.searchParams.get('track'), id).toBe(id === 'bathurst' ? null : id);
+    }
   });
 });

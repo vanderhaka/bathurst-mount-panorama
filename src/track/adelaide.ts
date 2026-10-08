@@ -1,4 +1,5 @@
 import data from '@/track/data/adelaide.json';
+import { adelaideSides } from '@/track/adelaide-layout';
 import { sampleCircuit } from '@/track/sample-circuit';
 import { Track, type Corner, type TrackSource } from '@/track/track-model';
 
@@ -9,6 +10,7 @@ export function createAdelaideTrack(): Track {
     // The circuit model is flat (py = 0). The base is only the altitude the HUD adds: SRTM 30 m at the
     // start line (docs/research/adelaide.md). It does not touch physics, terrain or the road.
     meta: { id: 'adelaide', lengthM: 3219, elevationBaseM: 52, elevationMinM: 52, elevationMaxM: 52, finishLineS: 0, startLineS: 100 },
+    buildSides: adelaideSides,
     points: sampleCircuit(data.points, 3219), sections: [], corners, sectorStarts: [1280, 2310],
     // Each stretch starts just after the junction it is named for, so a turn belongs to the street it leaves:
     // T1-T2 Senna Chicane, T3-T4 Wakefield Road, T5 East Terrace ... T14 Final Hairpin. A name that holds a
