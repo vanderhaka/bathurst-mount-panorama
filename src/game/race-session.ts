@@ -143,6 +143,7 @@ export class RaceSession {
     if (res) {
       // The standing-start lap is shorter than a flying lap: kept in the history, never valid.
       const rec: LapRecord = { car: this.car, timeS: res.timeS, sectorsS: res.sectorsS, valid: res.valid && !res.standing, dateIso: new Date().toISOString() };
+      if (res.standing) rec.standing = true;
       this.laps.push(rec);
       const prevBest = this.records?.bestS ?? null;
       const isBest = res.valid && (prevBest === null || res.timeS < prevBest) && this.timer.bestS === res.timeS;
@@ -180,7 +181,7 @@ export class RaceSession {
   }
 
   telemetrySnapshot(): SessionTelemetry {
-    return { laps: this.telemetryLaps.slice(), best: this.bestTelemetry,
+    return { laps: this.telemetryLaps.slice(), best: this.bestTelemetry, untracedBest: this.timer.bestS !== null && !this.bestTelemetry,
       corners: this.track.corners.map((c) => ({ distanceM: this.track.wrapS(c.s - this.track.startLineS), turn: c.turn, name: c.name })) };
   }
 

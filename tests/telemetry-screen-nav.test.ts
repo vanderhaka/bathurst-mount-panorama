@@ -16,7 +16,7 @@ function lap(lapNumber: number, pace: number): LapTelemetry {
 /** Bathurst has 23 named turns; the screen lists one row per turn. */
 function data(): SessionTelemetry {
   const best = lap(2, 1.24);
-  return { laps: [best, lap(3, 1.25)], best, corners: Array.from({ length: 23 }, (_, i) => ({ distanceM: 100 + i * 260, turn: i + 1, name: `Corner ${i + 1}` })) };
+  return { laps: [best, lap(3, 1.25)], best, untracedBest: false, corners: Array.from({ length: 23 }, (_, i) => ({ distanceM: 100 + i * 260, turn: i + 1, name: `Corner ${i + 1}` })) };
 }
 
 const text = (el: HTMLElement): string => (el as unknown as MenuNode).textContent;
@@ -38,6 +38,19 @@ describe('telemetry screen keyboard and gamepad reach', () => {
     expect(text(rows[22])).toMatch(/^T23 Corner 23/);
     for (const el of items.slice(2, -1)) expect(el.getAttribute('tabindex')).toBe('0');
     expect(text(items.at(-1)!)).toBe('Back');
+  });
+
+  it('explains a missing pedal trace only when the best lap really has none', () => {
+    const only = lap(2, 1.24);
+    const note = /no pedal trace/;
+    const shown = (d: SessionTelemetry): boolean => {
+      const screen = new TelemetryScreen(() => d, () => {}, () => 'kmh');
+      screen.onShow();
+      return note.test((screen.el as unknown as MenuNode).textContent);
+    };
+    expect(shown({ ...data(), laps: [only], best: only, untracedBest: false })).toBe(false); // best set this session, with its trace
+    expect(shown({ ...data(), laps: [only], best: null, untracedBest: false })).toBe(false); // no best lap at all
+    expect(shown({ ...data(), laps: [only], best: null, untracedBest: true })).toBe(true); // older saved best without a trace
   });
 
   it('reaches the last corner with down presses alone and scrolls it into view', () => {

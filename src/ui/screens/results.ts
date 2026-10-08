@@ -76,8 +76,11 @@ export class ResultsScreen implements Screen {
     const rows = laps.slice(start).map((lap, k) => {
       const isOverall = lap === overall;
       const isCarBest = !isOverall && lap === bestByCar[lap.car];
-      const timeCls = !lap.valid ? 'is-invalid' : isOverall ? 'is-ob' : isCarBest ? 'is-pb' : '';
-      return h('tr', lap.valid ? '' : 'is-invalid', undefined, [
+      // The standing-start lap can never be valid: it is labelled, not struck through.
+      const invalid = !lap.valid && !lap.standing;
+      const timeCls = invalid ? 'is-invalid' : isOverall ? 'is-ob' : isCarBest ? 'is-pb' : '';
+      const tag = lap.standing ? h('span', 'mn-tag mn-tag--plain', undefined, ['Standing start']) : invalid ? h('span', 'mn-tag mn-tag--bad', undefined, ['Invalid']) : '';
+      return h('tr', invalid ? 'is-invalid' : '', undefined, [
         h('td', 'mn-num', undefined, [String(start + k + 1)]),
         h('td', undefined, undefined, [CAR_SPECS[lap.car].shortName]),
         h('td', `mn-time ${timeCls}`, undefined, [formatLapTime(lap.timeS)]),
@@ -85,7 +88,7 @@ export class ResultsScreen implements Screen {
           const t = lap.sectorsS[i] ?? null;
           return h('td', `mn-num ${lap.valid && t !== null && t === sectorBest[i] ? 'is-ob' : ''}`, undefined, [formatSectorTime(t)]);
         }),
-        h('td', undefined, undefined, [lap.valid ? '' : h('span', 'mn-tag mn-tag--bad', undefined, ['Invalid'])]),
+        h('td', undefined, undefined, [tag]),
       ]);
     });
     this.body.replaceChildren(...rows);

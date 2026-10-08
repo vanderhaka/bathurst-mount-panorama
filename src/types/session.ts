@@ -84,4 +84,6 @@ export interface LapRecord {
   sectorsS: number[];
   valid: boolean;
   dateIso: string;
+  /** The standing-start lap, timed from lights out: never valid by design (absent in older saves). */
+  standing?: boolean;
 }

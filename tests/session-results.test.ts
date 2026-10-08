@@ -42,3 +42,20 @@ describe('results after a session', () => {
     expect(overall[0]).toMatch(/^GR Supra/);
   });
 });
+
+describe('standing-start laps in Results', () => {
+  it('labels the standing lap as a standing start, not as an invalid lap', () => {
+    stubMenuDom();
+    const screen = new ResultsScreen({ again() {}, changeCar() {}, menu() {}, telemetry() {}, backToSession() {} });
+    const standing: LapRecord = { ...lap('camaro', 131, '2026-10-08T10:00:00Z', false), standing: true };
+    const invalid = lap('camaro', 127, '2026-10-08T10:04:00Z', false);
+    screen.set([standing, lap('camaro', 126, '2026-10-08T10:02:00Z'), invalid], {});
+    const rows = (screen.el as unknown as MenuNode).querySelectorAll('tr').slice(1);
+    expect(findText(rows[0], 'Standing start')).not.toBeNull();
+    expect(findText(rows[0], 'Invalid')).toBeNull();
+    expect(rows[0].classList.contains('is-invalid')).toBe(false);
+    expect(rows[0].querySelectorAll('.is-invalid')).toHaveLength(0); // no strikethrough
+    expect(findText(rows[2], 'Invalid')).not.toBeNull();
+    expect(rows[2].classList.contains('is-invalid')).toBe(true);
+  });
+});

@@ -120,3 +120,7 @@
   color: #fff;
   background: var(--hud-bad);
 }
+.mn-tag--plain {
+  color: var(--hud-text);
+  background: rgb(255 255 255 / 0.14);
+}

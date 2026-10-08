@@ -89,7 +89,7 @@ export class TelemetryScreen implements Screen {
     this.referenceRow.value.textContent = reference ? `${reference.name} · ${formatLapTime(reference.lap.timeS)}` : 'No second lap yet';
     if (!reference) {
       this.summary.textContent = 'Complete another flying lap to compare two recorded laps.';
-      this.body.append(h('p', 'mn-help', undefined, ['Older saved best laps and ghosts have no pedal trace. A new best lap saves all three traces with its ghost.']));
+      if (this.data!.untracedBest) this.body.append(h('p', 'mn-help', undefined, ['Older saved best laps and ghosts have no pedal trace. A new best lap saves all three traces with its ghost.']));
       return;
     }
     const result = compareLaps(lap, reference.lap, this.data!.corners);

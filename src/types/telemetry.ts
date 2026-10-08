@@ -25,6 +25,8 @@ export interface SessionTelemetry {
   laps: readonly LapTelemetry[];
   /** The best lap, which the ghost replays; null when it has no pedal trace (saved by older versions). */
   best: LapTelemetry | null;
+  /** A best lap exists but has no pedal trace (saved by an older version), so it cannot be compared. */
+  untracedBest: boolean;
   corners: TelemetryCorner[];
 }
 

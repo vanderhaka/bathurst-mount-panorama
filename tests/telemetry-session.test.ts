@@ -99,6 +99,17 @@ describe('session telemetry and its ghost', () => {
     expect(seen.slice(0, -1)).toEqual(['Best lap', 'Lap 3']);
   });
 
+  it('marks the standing-start lap in the lap history (never valid by design)', () => {
+    const { session, vehicle } = fixture();
+    completeLap(session, vehicle, 50, 1, 0);
+    completeLap(session, vehicle, 50, 1, 0);
+    expect(session.laps[0]).toMatchObject({ valid: false, standing: true });
+    expect(session.laps[1].valid).toBe(true);
+    expect(session.laps[1].standing).toBeUndefined();
+    vi.runAllTimers();
+    expect(loadRecords('camaro')?.laps[0].standing).toBe(true); // saved with the flag
+  });
+
   it('hides the ghost and the delta on the standing lap after Restart, as on the first standing lap', () => {
     const { session, vehicle } = fixture();
     expect(session.ghostVisible).toBe(false);
