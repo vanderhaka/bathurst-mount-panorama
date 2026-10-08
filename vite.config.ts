@@ -6,7 +6,8 @@ const production = process.env.VERCEL_ENV === 'production';
 
 export default defineConfig({
   // Dev tools on everywhere except the Vercel production deployment (src/config/build-flags.ts).
-  define: { __DEV_TOOLS__: JSON.stringify(!production) },
+  // Anonymous usage events only on the Vercel production deployment (src/config/build-flags.ts).
+  define: { __DEV_TOOLS__: JSON.stringify(!production), __USAGE_ANALYTICS__: JSON.stringify(production) },
   resolve: { alias: { '@': resolve(root, 'src') } },
   build: {
     target: 'es2022',
