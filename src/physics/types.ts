@@ -47,7 +47,7 @@ export interface VehicleTelemetry {
   flatSpots: readonly FlatSpotReading[];
   speed: number; // m/s, signed along heading
   rpm: number;
-  gear: number; // -1 R, 0 N, 1..6
+  gear: number; // -1 R, 0 N, 1..spec.gearRatios.length
   throttle: number;
   brake: number;
   steer: number;

@@ -100,10 +100,10 @@ export class LapSimulator {
     if (!this.started) {
       this.started = true;
       this.gear = 1;
-      while (this.gear < 6 && this.rpmIn(this.gear, speed) > 6800) this.gear++;
+      while (this.gear < this.spec.gearRatios.length && this.rpmIn(this.gear, speed) > 6800) this.gear++;
     }
     let shifted = false;
-    if (this.rpmIn(this.gear, speed) > UPSHIFT_RPM && this.gear < 6) {
+    if (this.rpmIn(this.gear, speed) > UPSHIFT_RPM && this.gear < this.spec.gearRatios.length) {
       this.gear++;
       shifted = true;
     } else if (this.rpmIn(this.gear, speed) < DOWNSHIFT_RPM && this.gear > 1 && this.rpmIn(this.gear - 1, speed) < 7000) {

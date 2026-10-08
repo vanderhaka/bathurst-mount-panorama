@@ -27,7 +27,7 @@ export function teleport(race: RaceController, world: World, profile: SpeedProfi
   v.vx = Math.sin(v.heading) * sp;
   v.vz = Math.cos(v.heading) * sp;
   v.vy = sp * track.grade[i];
-  v.pt.gear = Math.max(1, Math.min(6, Math.round(sp / 14)));
+  v.pt.gear = Math.max(1, Math.min(v.spec.gearRatios.length, Math.round(sp / 14)));
   const pilot = new Autopilot(track, world.line, profile);
   const input: VehicleInput = { throttle: 0, brake: 0, steer: 0, shiftUp: false, shiftDown: false };
   const driven = () => {

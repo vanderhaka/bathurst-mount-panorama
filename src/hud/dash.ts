@@ -74,7 +74,8 @@ export class Dash {
     this.scaleFor = { max: maxRpm, start: startRpm, shift: shiftRpm };
     this.rpmTrack.style.setProperty('--warn', String(startRpm / maxRpm));
     this.rpmTrack.style.setProperty('--red', String(shiftRpm / maxRpm));
-    this.rpmScale.replaceChildren();
+    // The numbers are rpm x 1000, not gears: say so at the left end of the scale.
+    this.rpmScale.replaceChildren(h('span', 'hud-rpm__unit', undefined, ['×1000']));
     for (let k = 1; k * 1000 <= maxRpm; k++) {
       const x = ((k * 1000) / maxRpm) * 100;
       this.rpmScale.append(h('span', k * 1000 >= shiftRpm ? 'is-red' : '', { style: `left:${x.toFixed(2)}%` }, [String(k)]));

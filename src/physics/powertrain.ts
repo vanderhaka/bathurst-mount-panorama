@@ -14,7 +14,7 @@ export function engineTorque(spec: CarSpec, rpm: number): number {
 }
 
 export interface PowertrainState {
-  gear: number; // -1, 0, 1..6
+  gear: number; // -1, 0, 1..spec.gearRatios.length
   rpm: number;
   shiftTimer: number;
   onLimiter: boolean;

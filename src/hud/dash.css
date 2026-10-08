@@ -138,6 +138,12 @@
 .hud-rpm__scale span.is-red {
   color: var(--hud-rpm-red);
 }
+.hud-rpm__scale span.hud-rpm__unit {
+  left: 0;
+  transform: none;
+  font-size: calc(var(--hud-fs-label) * 0.8);
+  letter-spacing: 0.02em;
+}
 .hud-dash__main {
   display: grid;
   grid-template-columns: 1fr auto 1fr;

@@ -51,6 +51,6 @@ export class Telemetry {
     this.brake.fill.set(Math.max(0, Math.min(1, st.brake)));
     this.throttle.fill.set(Math.max(0, Math.min(1, st.throttle)));
     this.steer.set(Math.round(-Math.max(-1, Math.min(1, st.steer)) * STEER_LOCK_DEG));
-    this.damage.update(st.damage);
+    this.damage.update(st.damage, st.car);
   }
 }

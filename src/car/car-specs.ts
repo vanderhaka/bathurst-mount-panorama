@@ -258,8 +258,12 @@ export const CAR_SPECS: Record<CarKind, CarSpec> = {
       crank: 'crossplane',
       valvetrain: 'pushrod',
     },
-    gearRatios: [2.43, 1.61, 1.23, 1.0], // Super T10, one period set (estimate)
-    reverseRatio: 2.6,
+    // Borg-Warner Super T10. One of the two sets CAMS homologated for the A9X (2.43 and 2.64 first gears;
+    // gmh-torana.com forum, "Borg Warner Super T10", 2008); which one #05 ran at Bathurst in 1979 is not recorded.
+    gearRatios: [2.43, 1.61, 1.23, 1.0],
+    reverseRatio: 2.35, // the same 2.43 set in the Richmond Gear Super T10 catalogue (RG25)
+    // Salisbury axle: "2.6:1 final drive Bathurst" and 44.8 km/h per 1000 rpm (QTCC LX specifications). Disputed:
+    // the 1979 team manager later thought 2.78 "maybe"; kept at 2.60 (user decision, 2026-10-08).
     finalDrive: 2.6,
     shiftTimeS: 0.3, // estimate: manual clutch and lever
     drivetrainEfficiency: 0.9, // estimate

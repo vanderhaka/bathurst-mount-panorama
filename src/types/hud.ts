@@ -18,7 +18,7 @@ export interface HudState {
   shiftLightStartRpm: number;
   /** RPM for the final (flashing) shift light. */
   shiftRpm: number;
-  /** -1 = R, 0 = N, 1..6. */
+  /** -1 = R, 0 = N, 1..number of forward gears (6 on Gen3, 4 on the Torana). */
   gear: number;
   gearMode: 'auto' | 'manual';
   onLimiter: boolean;
@@ -77,6 +77,8 @@ export interface HudState {
   tyreCompound?: TyreCompound;
   /** Actual disc temperatures and remaining brake-force multipliers, FL/FR/RL/RR. */
   brakes?: readonly BrakeReading[];
+  /** The player's car; the damage schematic draws its outline. Omit = Gen3 outline. */
+  car?: CarKind;
   /** Real fuel values; when present they replace the HUD's display-only estimate. lapsLeft null = not known yet. */
   fuel?: { litres: number; lapsLeft: number | null };
 }
