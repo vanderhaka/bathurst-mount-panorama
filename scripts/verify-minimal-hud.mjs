@@ -174,7 +174,29 @@ async function main() {
       assert.ok(Math.abs((b.mapAngle - b.expectedAngle + 540) % 360 - 180) < 1.2);
       await page.screenshot({ path: resolve(output, `${engine}-minimal-${view}-${units}.png`), scale: 'css' });
     }
-    await display([['hudSize', 'HUD size', 'full']], 'settings-restored-full');
+    // Small phones: Minimal sizes follow the game height (cqh), so it stays under a tenth there too.
+    report.small = [];
+    for (const [width, height] of [[568, 320], [667, 331], [667, 375]]) {
+      await page.setViewportSize({ width, height }); await page.waitForTimeout(400);
+      const s = await page.evaluate(readHud), coverage = unionArea(s.rects) / (width * height);
+      report.small.push({ viewport: s.viewport, coverage, rects: s.rects });
+      assert.ok(s.rects.every(r => r.fullyInside) && coverage < .1, `HUD covers ${(coverage * 100).toFixed(2)}% at ${width}×${height}`);
+      await page.screenshot({ path: resolve(output, `${engine}-minimal-${width}x${height}.png`), scale: 'css' });
+    }
+    await page.setViewportSize({ width: 844, height: 390 });
+    // Minimal still shows the FPS readout when it is on, the start lights and race messages.
+    const shown = name => page.evaluate(n => readHud().rects.some(r => r.name.split(' ').includes(n)), name);
+    await page.evaluate(`window.readHud = ${readHud}`);
+    await display([['showFps', 'Frame rate counter', true]]);
+    assert.ok(await shown('hud-fps'), 'FPS readout hidden in Minimal');
+    await page.locator('.tc-btn--pause').tap();
+    await page.locator('.mn-screen--pause .mn-btn:has-text("Restart")').tap();
+    await page.waitForFunction(() => window.__game.race.session.lights >= 1);
+    assert.ok(await shown('hud-lights'), 'Start lights hidden in Minimal');
+    await page.screenshot({ path: resolve(output, `${engine}-minimal-start-lights.png`), scale: 'css' });
+    await page.waitForFunction(() => window.__game.race.session.lights < 0); await page.waitForTimeout(400);
+    assert.ok(await shown('hud-banner'), 'Race message hidden in Minimal');
+    await display([['showFps', 'Frame rate counter', false], ['hudSize', 'HUD size', 'full']], 'settings-restored-full');
     assert.equal(await page.locator('.bx-hud').getAttribute('data-size'), 'full');
     assert.equal(await page.locator('.hud-minimal').isVisible(), false);
     await page.screenshot({ path: resolve(output, `${engine}-full-restored.png`), scale: 'css' });
@@ -187,6 +209,7 @@ async function main() {
     await writeFile(resolve(output, `${engine}-minimal-hud.json`), JSON.stringify(report, null, 2) + '\n');
     await browser.close();
   }
-  console.log(JSON.stringify({ engine, status: report.status, samples: report.samples.map(x => ({ name: x.name, coverage: x.coverage })) }));
+  console.log(JSON.stringify({ engine, status: report.status, samples: report.samples.map(x => ({ name: x.name, coverage: x.coverage })),
+    small: report.small.map(x => ({ viewport: x.viewport.join('×'), coverage: x.coverage })) }));
 }
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) await main();

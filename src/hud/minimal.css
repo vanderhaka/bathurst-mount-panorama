@@ -1,18 +1,29 @@
-/* Fixed compact bounds keep the phone layout clear of the two touch-control corners. */
+/* Compact HUD: track map top right, speed / gear / lap bottom centre, clear of the two
+   touch-control corners. Every size is in em of --hud-min, which follows the height of the
+   game area (cqh: #game is a size container), so map and panel stay under a tenth of any
+   landscape phone (568x320 to 932x430); 12px caps it on desktop. Start lights, in-race
+   messages and the FPS readout (when Show FPS is on) stay; timing, delta and panels hide. */
 .hud-minimal { display: none; }
-.bx-hud[data-size='minimal'] .hud-region:not(.hud-region--tr) { display: none; }
+.bx-hud[data-size='minimal'] {
+  --hud-min: clamp(7px, 2.7cqh, 12px);
+}
+.bx-hud[data-size='minimal'] .hud-region--bl,
+.bx-hud[data-size='minimal'] .hud-region--br,
+.bx-hud[data-size='minimal'] .hud-timing,
+.bx-hud[data-size='minimal'] .hud-delta { display: none; }
+.bx-hud[data-size='minimal'] .hud-region--tl { font-size: var(--hud-min); }
 .bx-hud[data-size='minimal'] .hud-region--tr {
   top: max(8px, env(safe-area-inset-top));
   right: max(8px, env(safe-area-inset-right));
-  font-size: 10px;
+  font-size: var(--hud-min);
 }
 .bx-hud[data-size='minimal'] .hud-map {
-  width: 126px;
-  height: 84px;
+  width: 11.4em;
+  height: 7.6em;
   padding-top: 0;
   box-shadow: none;
 }
-.bx-hud[data-size='minimal'] .hud-map__view { height: 84px; }
+.bx-hud[data-size='minimal'] .hud-map__view { height: 7.6em; }
 .bx-hud[data-size='minimal'] .hud-map .hud-panel__head,
 .bx-hud[data-size='minimal'] .hud-map__foot,
 .bx-hud[data-size='minimal'] .hud-map__ghost { display: none; }
@@ -22,26 +33,26 @@
   left: 50%;
   transform: translateX(-50%);
   display: grid;
-  grid-template-columns: 60px 32px 1fr;
-  gap: 8px;
-  width: min(232px, 70vw);
-  height: 56px;
-  padding: 6px 10px;
+  grid-template-columns: 6em 3.2em 1fr;
+  gap: 0.8em;
+  width: min(22em, 70cqw);
+  height: 5.6em;
+  padding: 0.6em 1em;
   overflow: hidden;
   background: var(--hud-panel-bg);
   border-top: 2px solid var(--hud-accent);
   clip-path: var(--hud-panel-clip);
-  font-size: 10px;
+  font-size: var(--hud-min);
 }
 .hud-minimal > div {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 3px;
+  gap: 0.3em;
 }
 .hud-minimal b { font-weight: 800; white-space: nowrap; }
-.hud-minimal span { color: var(--hud-text-dim); font-size: 9px; letter-spacing: 0.06em; }
-.hud-minimal__speed b { font-size: 28px; }
+.hud-minimal span { color: var(--hud-text-dim); font-size: 0.9em; letter-spacing: 0.06em; }
+.hud-minimal__speed b { font-size: 2.8em; }
 .hud-minimal__gear { text-align: center; }
-.hud-minimal__gear b { font-size: 32px; }
-.hud-minimal__lap b { font: 500 16px var(--hud-font-mono); }
+.hud-minimal__gear b { font-size: 3.2em; }
+.hud-minimal__lap b { font: 500 1.6em var(--hud-font-mono); }
