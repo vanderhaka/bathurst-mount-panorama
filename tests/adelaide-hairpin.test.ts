@@ -10,6 +10,7 @@ import { placeKerbs } from '@/track/kerbs';
 import { computeRacingLine } from '@/track/racing-line';
 import { computeSpeedProfile, LINE_PROFILE } from '@/track/speed-profile';
 import { brakeRatio, LINE_RED, LINE_YELLOW } from '@/world/racing-line-mesh';
+import { colourLaps } from './colour-driver-fixture';
 
 const track = createAdelaideTrack(), line = computeRacingLine(track), kerbs = placeKerbs(track, line);
 const DT = 1 / 360;
@@ -82,5 +83,19 @@ describe('Adelaide racing-line colours are achievable', () => {
       expect(maxImpact).toBeLessThan(1);
       expect(worstOff).toBeLessThan(1);
     });
+  }
+});
+
+// Race-warm tyres, on the race's live guidance: two laps heat the outside front-left past 120 C, and on the
+// third pass of the Final Hairpin guidance cornering on the four-tyre mean ran the car wide into the wall.
+describe('Adelaide racing-line colours are achievable on race-warm tyres', () => {
+  for (const kind of ['camaro', 'mustang', 'supra'] as CarKind[]) {
+    it(`a colour-following driver laps the ${kind} three times cleanly`, () => {
+      const run = colourLaps(track, line, kerbs, circuitCarSpec(kind, 'adelaide'), 3);
+      console.log(JSON.stringify({ circuit: 'adelaide', kind, ...run }));
+      expect(run.driven).toBeGreaterThan(3 * track.length);
+      expect(run.maxImpact).toBeLessThan(1);
+      expect(run.worstOff).toBeLessThan(1);
+    }, 60000);
   }
 });

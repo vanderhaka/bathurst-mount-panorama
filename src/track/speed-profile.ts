@@ -1,4 +1,4 @@
-import type { CarSpec } from '@/car/car-specs';
+import type { CarSpec, WheelGrip } from '@/car/car-specs';
 import type { RacingLine } from '@/track/racing-line';
 import type { Track } from '@/track/track-model';
 
@@ -27,8 +27,9 @@ export interface ProfileOptions {
    */
   trailBrakeExp: number;
   /**
-   * Corner on the weaker axle's grip (spec.limitingGrip) instead of the mean of both axles. With
-   * more rear grip the car understeers at the front's limit; a mean promises cornering speed it cannot hold.
+   * Corner on the weaker axle's grip (spec.wheelGrip) instead of the mean of all four tyres. With more
+   * rear grip the car understeers at the front's limit, and a hot outside front tyre limits every corner
+   * that loads it; a mean promises cornering speed the car cannot hold.
    */
   limitingAxle: boolean;
 }
@@ -48,7 +49,10 @@ export function computeSpeedProfile(track: Track, line: RacingLine, spec: CarSpe
   const trailExp = opts.trailBrakeExp ?? 1;
   const m = spec.massKg;
   const mu = spec.tyreMu * grip;
-  const muCorner = mu * (opts.limitingAxle ? spec.limitingGrip ?? 1 : 1);
+  // Curvature + = left turn, where the right-hand tyres are on the outside.
+  const muLeft = mu * (opts.limitingAxle ? turnGrip(spec.wheelGrip, 1) : 1);
+  const muRight = mu * (opts.limitingAxle ? turnGrip(spec.wheelGrip, 0) : 1);
+  const muTurn = (i: number) => (line.curvature[i] >= 0 ? muLeft : muRight);
   const kAero = 0.5 * RHO * spec.clA; // downforce = kAero v^2
   const kDrag = 0.5 * RHO * spec.cdA;
   const peakPower = enginePeakPowerW(spec);
@@ -58,6 +62,7 @@ export function computeSpeedProfile(track: Track, line: RacingLine, spec: CarSpe
   const limit = new Float32Array(n);
   for (let i = 0; i < n; i++) {
     const k = Math.abs(line.curvature[i]);
+    const muCorner = muTurn(i);
     // Crossfall: + helps (road rises to the outside), - is off-camber. bank + = left side higher,
     // curvature + = left turn, so a left turn is helped by the right side being higher.
     const help = -track.bank[i] * Math.sign(line.curvature[i]);
@@ -70,7 +75,7 @@ export function computeSpeedProfile(track: Track, line: RacingLine, spec: CarSpe
   const v = Float32Array.from(limit);
   const lateralUse = (i: number, vv: number) => {
     const aLat = vv * vv * Math.abs(line.curvature[i]);
-    const aMax = (muCorner * (m * (G - vv * vv * Math.max(0, vertK[i])) + kAero * vv * vv)) / m;
+    const aMax = (muTurn(i) * (m * (G - vv * vv * Math.max(0, vertK[i])) + kAero * vv * vv)) / m;
     return Math.min(1, aLat / Math.max(0.1, aMax));
   };
   // Two laps of passes so that the wrap-around point converges.
@@ -103,6 +108,16 @@ export function computeSpeedProfile(track: Track, line: RacingLine, spec: CarSpe
     top = Math.max(top, v[i]);
   }
   return { speed: v, cornerLimit: limit, lapTimeS: t, topSpeed: top };
+}
+
+/**
+ * Grip of the weaker axle in a turn, relative to tyreMu. The outside tyre carries at least half of its
+ * axle's load (all of it once the inside wheel lifts), so an axle holds at least min(outside, axle mean).
+ */
+function turnGrip(wheel: WheelGrip | undefined, outside: 0 | 1): number {
+  if (!wheel) return 1;
+  const axle = (o: number, i: number) => Math.min(o, (o + i) / 2);
+  return Math.min(axle(wheel[outside], wheel[1 - outside]), axle(wheel[2 + outside], wheel[3 - outside]));
 }
 
 /** Peak engine power from the torque curve (W). */

@@ -8,6 +8,7 @@ import { computeRacingLine } from '@/track/racing-line';
 import { computeSpeedProfile, LINE_PROFILE } from '@/track/speed-profile';
 import { Track } from '@/track/track-model';
 import { brakeRatio, LINE_RED, LINE_YELLOW } from '@/world/racing-line-mesh';
+import { colourLaps } from './colour-driver-fixture';
 
 const track = new Track();
 const line = computeRacingLine(track);
@@ -45,5 +46,20 @@ describe('racing-line colours are achievable', () => {
       expect(maxImpact).toBeLessThan(1);
       expect(worstOff).toBeLessThan(1);
     });
+  }
+});
+
+// Race-warm tyres over two laps from the grid, on the race's live guidance. The outside front runs hot
+// (FR about 125 C into Forrest's Elbow on lap 2); guidance cornering on the four-tyre mean promised grip
+// it no longer had, and the car pushed wide at full lock into the wall at 6.3 m/s.
+describe('racing-line colours are achievable on race-warm tyres', () => {
+  for (const kind of ['camaro', 'mustang', 'supra'] as CarKind[]) {
+    it(`a colour-following driver laps the ${kind} twice cleanly`, () => {
+      const run = colourLaps(track, line, kerbs, CAR_SPECS[kind], 2);
+      console.log(JSON.stringify({ circuit: 'bathurst', kind, ...run }));
+      expect(run.driven).toBeGreaterThan(2 * track.length);
+      expect(run.maxImpact).toBeLessThan(1);
+      expect(run.worstOff).toBeLessThan(1);
+    }, 60000);
   }
 });

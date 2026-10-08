@@ -37,7 +37,12 @@ export function pressureGrip(kpa: number): number {
   return 1 - 0.08 * deviation * deviation;
 }
 
-/** Mean pressure grip for the existing approximate racing-line speed profile. */
+/** Pressure grip for the racing-line speed profile: the mean on tyreMu, each axle's share of it on wheelGrip. */
 export function setupSpec(spec: CarSpec, setup: Readonly<CarSetup>): CarSpec {
-  return { ...spec, tyreMu: spec.tyreMu * (pressureGrip(setup.frontPressureKpa) + pressureGrip(setup.rearPressureKpa)) / 2 };
+  const front = pressureGrip(setup.frontPressureKpa), rear = pressureGrip(setup.rearPressureKpa), mean = (front + rear) / 2;
+  const next = { ...spec, tyreMu: spec.tyreMu * mean };
+  // Equal pressures leave every tyre's share of the mean as it was.
+  if (front === rear) return next;
+  const w = spec.wheelGrip ?? [1, 1, 1, 1], f = front / mean, r = rear / mean;
+  return { ...next, wheelGrip: [w[0] * f, w[1] * f, w[2] * r, w[3] * r] };
 }

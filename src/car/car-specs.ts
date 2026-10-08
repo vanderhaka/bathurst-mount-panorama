@@ -4,6 +4,8 @@
 import { CIRCUITS, type CircuitId } from '@/track/circuits';
 
 export type CarKind = 'camaro' | 'mustang' | 'supra';
+/** Per-tyre values in wheel order FL, FR, RL, RR. */
+export type WheelGrip = readonly [number, number, number, number];
 
 export interface CarDimensions {
   /** Metres. */
@@ -68,8 +70,11 @@ export interface CarSpec {
   aeroBalanceFront: number;
   /** Peak tyre friction coefficient (dry, warm slicks). */
   tyreMu: number;
-  /** Friction of the weaker axle relative to tyreMu (the axle mean), from the handling tuner. Absent = 1. */
-  limitingGrip?: number;
+  /**
+   * Profile input only: each tyre's friction relative to tyreMu, from the handling tuner's axle split,
+   * the setup pressures and the stint's tyre state (handling.ts, setup-forces.ts, stint-spec.ts). Absent = all equal.
+   */
+  wheelGrip?: WheelGrip;
   maxBrakeTorqueNm: number;
   brakeBiasFront: number;
   /** Max road-wheel steering angle (rad). */
