@@ -100,7 +100,7 @@ export function checkScreen(view, data) {
   const bounds = [0, ...corners.slice(1).map((c, i) => (corners[i].distanceM + c.distanceM) / 2), lap.lengthM];
   const boundary = bounds.map(distance => Math.round((at(lap, distance) - at(reference, distance)) * 1000));
   const milliseconds = text => Math.round(Number(text) * 1000);
-  assert.equal(view.rows.length, 23);
+  assert.equal(view.rows.length, data.corners.length);
   for (const [i, row] of view.rows.entries()) {
     assert.equal(row[0], `T${corners[i].turn} ${corners[i].name}`);
     assert.equal(row[1], `${Math.round(bounds[i])}–${Math.round(bounds[i + 1])}`);
@@ -109,7 +109,7 @@ export function checkScreen(view, data) {
   assert.equal(milliseconds(view.total), Math.round((lap.timeS - reference.timeS) * 1000));
   assert.equal(view.rows.reduce((sum, row) => sum + milliseconds(row[2]), 0), milliseconds(view.total));
   assert.ok(view.backVisible, 'Back must stay reachable inside the viewport');
-  return { lapNumber: lap.lapNumber, reference: view.reference, cornerCount: 23, totalMs: milliseconds(view.total), graphsMatched: 6 };
+  return { lapNumber: lap.lapNumber, reference: view.reference, cornerCount: data.corners.length, totalMs: milliseconds(view.total), graphsMatched: 6 };
 }
 
 async function main() {
@@ -172,6 +172,7 @@ async function main() {
   try {
     await page.goto(url);
     await page.waitForFunction(() => window.__shotReady && window.__game, null, { timeout: 90000 });
+    report.circuit = await page.evaluate(() => ({ id: window.__game.world.track.id, lengthM: window.__game.world.track.length }));
     await button('title', 'Time trial').tap(); await button('car', 'Start time trial').tap();
     await page.waitForFunction(() => window.__game.state === 'race' && window.__game.race);
     await page.evaluate(() => { window.__game.setDebugAutopilot(true); window.__game.timeScale = 3; });
@@ -185,6 +186,7 @@ async function main() {
     report.telemetry = captured.data;
     report.captureSource = { observedUpdates: captured.probe.live.length, completions: captured.probe.completions };
     report.capture = checkCapture(captured.data, captured.probe);
+    assert.ok(captured.data.laps.every(lap => lap.lengthM === report.circuit.lengthM));
     await pause(); await button('pause', 'Telemetry').tap();
     const nonBest = text => Number(/^Lap (\d+)/.exec(text)?.[1]) !== report.telemetry.best.lapNumber;
     await choose('Lap to inspect', nonBest);
@@ -222,7 +224,29 @@ async function main() {
     await resume('results-telemetry'); await pause(); await button('pause', 'Results').tap();
     await page.keyboard.press('Escape'); await page.locator('.mn-screen--pause').waitFor({ state: 'visible' });
     assert.ok(await page.evaluate(() => window.__game.race.session === window.__telemetrySession));
-    report.escapeReturnsToSession = true; assert.deepEqual(report.errors, []); report.status = 'passed';
+    report.escapeReturnsToSession = true;
+    if (report.circuit.id === 'adelaide') {
+      await page.reload(); await page.waitForFunction(() => window.__shotReady && window.__game.state === 'title', null, { timeout: 90000 });
+      await button('title', 'Time trial').tap(); await button('car', 'Start time trial').tap();
+      await page.waitForFunction(() => window.__game.state === 'race');
+      report.restored = await page.evaluate(() => { const session = window.__game.race.session;
+        return { bestS: session.records?.bestS, ghostDuration: session.ghost?.duration,
+          lengthM: session.telemetrySnapshot().best?.lengthM, circuit: session.track.id }; });
+      assert.equal(report.restored.bestS, report.telemetry.best.timeS);
+      assert.equal(report.restored.lengthM, 3219); assert.ok(Math.abs(report.restored.ghostDuration - report.restored.bestS) < 0.5);
+      await pause(); await button('pause', 'Quit to menu').tap();
+      await page.waitForFunction(() => window.__game.state === 'title');
+      await Promise.all([page.waitForURL(next => !next.searchParams.has('track')),
+        page.locator('.mn-screen--title [aria-label="Next circuit"]').tap()]);
+      await page.waitForFunction(() => window.__shotReady && window.__game.world.track.id === 'bathurst', null, { timeout: 90000 });
+      await button('title', 'Time trial').tap(); await button('car', 'Start time trial').tap();
+      await page.waitForFunction(() => window.__game.state === 'race');
+      report.separateBathurst = await page.evaluate(() => ({ records: window.__game.race.session.records,
+        circuit: window.__game.race.session.track.id, adelaideSaved: !!localStorage.getItem('adelaide.records.v2.camaro') }));
+      assert.equal(report.separateBathurst.circuit, 'bathurst'); assert.equal(report.separateBathurst.records, null);
+      assert.equal(report.separateBathurst.adelaideSaved, true);
+    }
+    assert.deepEqual(report.errors, []); report.status = 'passed';
   } catch (error) {
     report.status = 'failed'; report.failure = String(error);
     report.atFailure = await page.evaluate(() => { const game = window.__game, session = game?.race?.session;

@@ -2,7 +2,7 @@ import type { CarKind } from '@/car/car-specs';
 import type { RaceSession } from '@/game/race-session';
 import type { SpeedProfile } from '@/track/speed-profile';
 import type { Track } from '@/track/track-model';
-import { CORNERS, SECTOR_STARTS_S } from '@/track/layout';
+import { CIRCUITS } from '@/track/circuits';
 import type { HudState, HudTrackInfo } from '@/types/hud';
 import type { Settings } from '@/types/session';
 
@@ -18,9 +18,10 @@ export function hudTrackInfo(track: Track): HudTrackInfo {
     outline.push([track.px[i], track.pz[i]]);
   }
   return {
+    name: track.name, city: CIRCUITS[track.id].city, elevationEstimated: track.id === 'adelaide',
     outline,
-    sectorStarts: SECTOR_STARTS_S.map((s) => track.lapFraction(s)),
-    corners: CORNERS.map((c) => ({ progress: track.lapFraction(c.s), name: c.name, turn: c.turn })),
+    sectorStarts: track.sectorStarts.map((s) => track.lapFraction(s)),
+    corners: track.corners.map((c) => ({ progress: track.lapFraction(c.s), name: c.name, turn: c.turn })),
     lengthM: track.length,
   };
 }

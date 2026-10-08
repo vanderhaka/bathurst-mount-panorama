@@ -121,7 +121,10 @@ describe('saved telemetry and rendered trace data', () => {
     expect(restoreTelemetry({ ...lap, samples: [lap.samples[0], { ...lap.samples[1], brake: 2 }, lap.samples[2]] }, 100)).toBeNull();
     expect(restoreTelemetry({ ...lap, samples: [lap.samples[0], lap.samples[2], lap.samples[1]] }, 100)).toBeNull();
     saveRecords('camaro', { bestS: 100, bestSectors: [30, 30, 40], laps: [], telemetry: lap });
-    expect(loadRecords('camaro')?.telemetry).toEqual(lap);
+    expect(loadRecords('camaro')?.telemetry).toBeUndefined(); // a 1 km trace cannot belong to Bathurst
+    const bathurst = { ...lap, lengthM: 6213, samples: lap.samples.map(s => ({ ...s, distanceM: s.distanceM * 6.213 })) };
+    saveRecords('camaro', { bestS: 100, bestSectors: [30, 30, 40], laps: [], telemetry: bathurst });
+    expect(loadRecords('camaro')?.telemetry).toEqual(bathurst);
     store.set('bathurst.records.v2.camaro', JSON.stringify({ bestS: 101, bestSectors: [], laps: [], telemetry: lap }));
     expect(loadRecords('camaro')?.telemetry).toBeUndefined();
   });

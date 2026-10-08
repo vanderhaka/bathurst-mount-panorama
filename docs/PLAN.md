@@ -225,13 +225,20 @@ Status: blocked — the official 2025 pole’s second and third sector splits re
 - **Do:** a "2025 pole" target ghost (2:04.03, first sector 50.847 s) built from the AI line and timed to the real sector splits; it shows as a target in time trial.
 - **Done when:** the ghost crosses the sector lines at the real split times.
 ### 3.10 Head movement and sound detail — S
-Status: done (commit recorded by the next item; exact SHA and preview deployment in HANDOFF.md).
+Status: done (commit 07acd21562bbf8c5e0477f9e88a8ead9954e4284).
 - **Do:** the cockpit camera leans and moves with g-forces (amount in Settings); tyre scrub, kerb rumble, gear whine and downshift backfires in the audio.
 - **Done when:** each sound shows in an audio test; the head movement setting turns it off.
 ### 3.11 Weather and time of day — L
+Status: blocked — three focused wet-film, reflection and cloud/ground fixes reach only 4.608/10 against the fixed 7.205 wet-view gate. All weather-owned changes discarded; physics/lifecycle proof and source snapshot remain in `artifacts/review/item-3.11/`.
 - **Depends on:** 1.2, 3.2, 3.7.
 - **Do:** time of day as a session setting (morning to sunset); rain with a wet track (darker, reflective), spray behind cars, less grip, wet tyres, wipers in the cockpit, and a drying line.
 - **Done when:** a wet lap is slower by a realistic amount; the look passes the scorecard for a wet viewpoint.
+## Follow-up — Adelaide Parklands circuit
+Status: done — awaiting the user's physical phone check (commit Adelaide implementation commit; evidence `artifacts/review/adelaide/`).
+- **Depends on:** all Bathurst items processed; blockers recorded above.
+- **Do:** add the current 2026 Supercars 3.219 km clockwise, 14-turn circuit with generated street/parkland scenery; retain the three cars, handling, controls and default Bathurst circuit.
+- **Done when:** all cars complete valid laps; native desktop/phone/WebKit flows, all five cameras, records/ghost/telemetry isolation, generated scenery and all measurable tier budgets pass; exact Preview revision is Ready with clean live checks. Physical phone behavior remains a user check.
+- **Sources and estimates:** `docs/research/adelaide.md`; OSM geometry retained and attributed. Elevation, widths, sectors, timing loops and surroundings are preview estimates.
 ## Appendix A — Realism Index
 - **Viewpoints:** 12 corner viewpoints (as `scripts/capture-evidence.mjs`) and 3 car close-ups. Each viewpoint has one real reference photo from `docs/references/` taken from a similar place and angle.
 - **Aspects (0–10 each):** light and atmosphere; road surface and kerbs; terrain and grass; trees and bush; trackside structures and distance; cars (close-ups only); image quality (aliasing, shimmer, artefacts).

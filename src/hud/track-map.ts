@@ -45,12 +45,13 @@ export class TrackMap {
       h('span', 'hud-map__next', undefined, ['NEXT']),
       this.turn.el,
       this.corner.el,
-      h('span', 'hud-map__alt', { title: 'Altitude above sea level' }, [this.alt.el, h('span', 'hud-micro', undefined, ['M ASL'])]),
+      h('span', 'hud-map__alt', { title: track.elevationEstimated ? 'Estimated elevation; flat circuit model' : 'Altitude above sea level' },
+        [this.alt.el, h('span', 'hud-micro', undefined, [track.elevationEstimated ? 'M (EST)' : 'M ASL'])]),
     ]);
     this.cornerKind = new AttrSlot(foot, 'data-kind');
     this.el = h('section', 'hud-panel hud-map', { 'aria-label': 'Track map' }, [
       h('header', 'hud-panel__head', undefined, [
-        h('span', 'hud-micro hud-micro--strong', undefined, ['MOUNT PANORAMA']),
+        h('span', 'hud-micro hud-micro--strong', undefined, [(track.name ?? 'Mount Panorama').toUpperCase()]),
         h('span', 'hud-micro', undefined, [`${(track.lengthM / 1000).toFixed(3)} KM`]),
       ]),
       this.view,

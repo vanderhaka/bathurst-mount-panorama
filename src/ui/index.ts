@@ -30,6 +30,7 @@ import { ResultsScreen } from '@/ui/screens/results';
 import { SettingsScreen } from '@/ui/screens/settings';
 import { TitleScreen } from '@/ui/screens/title';
 import { TelemetryScreen } from '@/ui/screens/telemetry';
+import { ACTIVE_CIRCUIT, CIRCUITS } from '@/track/circuits';
 
 const KEYS: Record<string, MenuNav> = {
   ArrowUp: 'up',
@@ -135,7 +136,7 @@ class MenuController implements Menus {
   }
 
   private sessionLine(): string {
-    if (!this.lastConfig) return 'Mount Panorama · Practice';
+    if (!this.lastConfig) return `${CIRCUITS[ACTIVE_CIRCUIT].name} · Practice`;
     const preset = LIVERY_PRESETS[this.lastConfig.car][this.lastConfig.liveryIndex];
     return `${CAR_SPECS[this.lastConfig.car].shortName} · #${preset?.livery.number ?? ''} ${preset?.name ?? ''}`.trim();
   }

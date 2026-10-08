@@ -30,6 +30,9 @@ await page.getByRole('button', { name: 'Start time trial', exact: true }).click(
 await page.waitForFunction(() => window.__game?.race?.session.lights < 0, null, { timeout: 30000 });
 
 const result = { url, device: mobile ? 'Chrome phone emulation (not an iPhone)' : 'desktop Chrome', tiers: {}, errors };
+const evidencePoints = await page.evaluate(() => window.__game.world.track.id === 'adelaide'
+  ? [['pitStraight', 60], ['sennaChicane', 240], ['staircase', 840], ['turn8', 1790]]
+  : [['pitStraight', 200], ['mountain', 1200], ['skyline', 3330], ['conrod', 4600]]);
 for (const tier of mobile ? ['medium', 'low'] : ['high', 'medium', 'low']) {
   await page.evaluate(async tier => {
     const g = window.__game;
@@ -39,7 +42,7 @@ for (const tier of mobile ? ['medium', 'low'] : ['high', 'medium', 'low']) {
     await g.graphics.applySettings(g.settings);
   }, tier);
   const points = {};
-  for (const [name, s] of [['pitStraight', 200], ['mountain', 1200], ['skyline', 3330], ['conrod', 4600]]) {
+  for (const [name, s] of evidencePoints) {
     await page.evaluate(s => {
       const g = window.__game;
       g.state = 'race';

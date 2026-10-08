@@ -83,10 +83,12 @@ export function buildRoad(track: Track, line: RacingLine, kerbs: KerbLayout, ren
     group.add(mesh);
   }
   if (settings.skids) {
-    const scuffs = new THREE.Mesh(buildWallScuffs(track), materials.skid);
-    scuffs.name = 'wall-tyre-scuffs';
-    scuffs.receiveShadow = true;
-    group.add(scuffs);
+    if (track.id === 'bathurst') {
+      const scuffs = new THREE.Mesh(buildWallScuffs(track), materials.skid);
+      scuffs.name = 'wall-tyre-scuffs';
+      scuffs.receiveShadow = true;
+      group.add(scuffs);
+    }
     if (options.profile) {
       const skids = new THREE.Mesh(buildBrakingSkids(track, line, options.profile), materials.skid);
       skids.name = 'braking-skids';
@@ -97,14 +99,14 @@ export function buildRoad(track: Track, line: RacingLine, kerbs: KerbLayout, ren
   return group;
 }
 
-function buildStartMarkings(track: Track, mat: THREE.Material): THREE.Group {
+export function buildStartMarkings(track: Track, mat: THREE.Material): THREE.Group {
   const g = new THREE.Group();
   g.name = 'start-markings';
   const white = linearColour(ROAD.lineWhite);
-  const i0 = Math.round(track.startLineS / track.spacing);
+  const i0 = track.wrap(Math.round(track.startLineS / track.spacing));
   // Start line: one sample long band across the road.
   const line = buildStrip(track, {
-    include: (i) => i === i0 || i === i0 + 1,
+    include: (i) => i === i0 || i === track.wrap(i0 + 1),
     from: (i) => -track.right.edge[i],
     to: (i) => track.left.edge[i],
     segments: 1,
@@ -120,15 +122,15 @@ function buildStartMarkings(track: Track, mat: THREE.Material): THREE.Group {
     pos.setXYZ(v, pos.getX(k) + (pos.getX(v) - pos.getX(k)) * lineLength, pos.getY(k) + (pos.getY(v) - pos.getY(k)) * lineLength, pos.getZ(k) + (pos.getZ(v) - pos.getZ(k)) * lineLength);
     lineUv.setY(v, lineUv.getY(k) + (lineUv.getY(v) - lineUv.getY(k)) * lineLength);
   }
-  // Grid slot markings behind the line (staggered, 8 m apart): short white bars.
+  // Adelaide uses its estimated grid line; retain the existing Bathurst markings.
   const bars: THREE.BufferGeometry[] = [line];
   for (let slot = 0; slot < 12; slot++) {
-    const s = track.startLineS - 10 - slot * 8;
-    const i = Math.round(s / track.spacing);
+    const s = (track.id === 'adelaide' ? track.gridLineS : track.startLineS) - 10 - slot * 8;
+    const i = track.wrap(Math.round(s / track.spacing));
     const side = slot % 2 === 0 ? 1 : -1;
     bars.push(
       buildStrip(track, {
-        include: (k) => k === i || k === i + 1,
+        include: (k) => k === i || k === track.wrap(i + 1),
         from: () => (side > 0 ? 0.8 : -4.6),
         to: () => (side > 0 ? 4.6 : -0.8),
         segments: 1,

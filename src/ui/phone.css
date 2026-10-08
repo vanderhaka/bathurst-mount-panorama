@@ -30,3 +30,7 @@
   line-height: 1.4;
   color: var(--hud-text-dim);
 }
+.mn-tip a {
+  color: inherit;
+  text-underline-offset: 0.15em;
+}

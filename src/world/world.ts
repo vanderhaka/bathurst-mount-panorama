@@ -13,6 +13,7 @@ import { buildScenery, type Scenery } from '@/world/scenery';
 import type { QualityPreset } from '@/render/renderer';
 import { getGraphics, QUALITY } from '@/config/graphics';
 import { disposeUnusedTextures } from '@/world/dispose-textures';
+import { ACTIVE_CIRCUIT, CIRCUITS } from '@/track/circuits';
 
 export interface World {
   track: Track;
@@ -38,8 +39,8 @@ export async function buildWorld(
 ): Promise<World> {
   const root = new THREE.Group();
   root.name = 'world';
-  await progress(0.05, 'Reading Mount Panorama survey data');
-  const track = reuse?.track ?? new Track();
+  await progress(0.05, `Reading ${CIRCUITS[ACTIVE_CIRCUIT].name} circuit data`);
+  const track = reuse?.track ?? (ACTIVE_CIRCUIT === 'adelaide' ? (await import('@/track/adelaide')).createAdelaideTrack() : new Track());
   await progress(0.12, 'Computing the racing line');
   const line = reuse?.line ?? computeRacingLine(track);
   const profile = reuse?.profile ?? computeSpeedProfile(track, line, tunedSpec(CAR_SPECS.camaro, DEFAULT_HANDLING), LINE_PROFILE);
@@ -56,11 +57,11 @@ export async function buildWorld(
   await progress(0.4, 'Building concrete walls and catch fences');
   root.add(buildBarriers(track, renderer, quality));
   root.add(buildWallSigns(track, quality));
-  await progress(0.55, 'Shaping the mountain');
-  const terrain = buildTerrain(track, undefined, quality);
+  await progress(0.55, track.id === 'adelaide' ? 'Laying out Victoria Park' : 'Shaping the mountain');
+  const terrain = track.id === 'adelaide' ? (await import('@/world/adelaide-terrain')).buildAdelaideTerrain(track, quality) : buildTerrain(track, undefined, quality);
   root.add(terrain.group);
-  await progress(0.7, 'Planting gum trees and pitching tents');
-  const scenery = buildScenery(track, terrain, profile, quality);
+  await progress(0.7, track.id === 'adelaide' ? 'Building city streets and pit facilities' : 'Planting gum trees and pitching tents');
+  const scenery = track.id === 'adelaide' ? (await import('@/world/adelaide-scenery')).buildAdelaideScenery(track, terrain, profile, quality) : buildScenery(track, terrain, profile, quality);
   scenery.contactAo.bake(terrain.group, tier.bakedAo ? cfg.bakedAo : 0);
   // Grass has instance-local geometry; keep it outside the terrain's AO bake.
   terrain.group.add(terrain.grass.group);

@@ -39,7 +39,7 @@ interface Parts {
 }
 
 function build(track: HudTrackInfo): Parts {
-  const timing = new TimingPanel();
+  const timing = new TimingPanel(track.city);
   const minimal = new MinimalReadout();
   const map = new TrackMap(track);
   const dash = new Dash();

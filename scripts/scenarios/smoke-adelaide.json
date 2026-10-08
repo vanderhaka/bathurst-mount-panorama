@@ -1,0 +1,37 @@
+[
+  {
+    "eval": "(() => { if (!document.title.includes('Adelaide') || window.__game.state !== 'title' || window.__game.world.track.id !== 'adelaide') throw new Error('Adelaide title did not load'); return {title:document.title,circuit:window.__game.world.track.id,lengthM:window.__game.world.track.length}; })()"
+  },
+  {
+    "key": "Enter"
+  },
+  {
+    "wait": 500
+  },
+  {
+    "clickOn": "[aria-label='Start time trial']"
+  },
+  {
+    "waitFor": "window.__game?.state === 'race' && window.__game.race.session.lights < 0",
+    "timeout": 30000
+  },
+  {
+    "waitFor": "!window.__game.input.menusOpen",
+    "timeout": 10000
+  },
+  {
+    "wait": 100
+  },
+  {
+    "down": "ArrowUp"
+  },
+  {
+    "wait": 1500
+  },
+  {
+    "up": "ArrowUp"
+  },
+  {
+    "eval": "(() => { const g = window.__game; if (g.state !== 'race' || g.race.player.vehicle.speed < 1) throw new Error('Race did not drive'); return { state: g.state, speed: g.race.player.vehicle.speed, quality: g.settings.quality }; })()"
+  }
+]

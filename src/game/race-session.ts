@@ -5,7 +5,6 @@ import { formatLapTime } from '@/hud/format';
 import { LapTimer, type LapResult } from '@/race/lap-timer';
 import { loadRecords, saveRecords, type CarRecords } from '@/race/records';
 import { TelemetryRecorder } from '@/race/telemetry-recorder';
-import { SECTOR_STARTS_S } from '@/track/layout';
 import type { RacingLine } from '@/track/racing-line';
 import type { Track } from '@/track/track-model';
 import type { HudState } from '@/types/hud';
@@ -37,10 +36,10 @@ export class RaceSession {
   ghostVisible = false;
 
   constructor(readonly car: CarKind, readonly track: Track, readonly line: RacingLine, readonly entity: CarEntity, readonly tyres: TyreCompound = 'soft') {
-    this.records = loadRecords(car);
+    this.records = loadRecords(car, track.id);
     this.telemetryRecorder = new TelemetryRecorder(track.length);
     this.bestTelemetry = restoreTelemetry(this.records?.telemetry, this.records?.bestS ?? Infinity, track.length);
-    const sectorStarts = SECTOR_STARTS_S.map((s) => track.wrapS(s - track.startLineS));
+    const sectorStarts = track.sectorStarts.map((s) => track.wrapS(s - track.startLineS));
     const saved = this.records && Number.isFinite(this.records.bestS) ? this.records : null;
     this.timer = new LapTimer(track.length, sectorStarts, saved ? { bestS: saved.bestS, bestSectors: saved.bestSectors, trace: saved.trace } : null);
     if (this.records?.ghost) this.ghost = new GhostPlayer(this.records.ghost);
@@ -52,7 +51,7 @@ export class RaceSession {
     this.entity.vehicle.stint.reset({ compound: this.tyres });
     this.entity.vehicle.trackGrip.reset();
     const s = this.track.gridLineS - 7;
-    const i = Math.round(s / this.track.spacing);
+    const i = this.track.wrap(Math.round(s / this.track.spacing));
     this.entity.reset(s, Math.max(-this.track.right.edge[i] + 2, Math.min(this.track.left.edge[i] - 2, -2.2)));
     this.entity.repair();
     this.lights = 0;
@@ -160,7 +159,7 @@ export class RaceSession {
       laps: this.laps.slice(-50),
     };
     // Save when the browser is idle: a synchronous localStorage write at the line costs a frame.
-    if (Number.isFinite(next.bestS) || next.laps.length) whenIdle(() => saveRecords(this.car, next));
+    if (Number.isFinite(next.bestS) || next.laps.length) whenIdle(() => saveRecords(this.car, next, this.track.id));
     this.records = next;
   }
 

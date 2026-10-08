@@ -2,6 +2,7 @@
 import { h, s, TextSlot } from '@/hud/dom';
 import { type Screen, screenEl } from '@/ui/screen';
 import { OUTLINE_VIEWBOX, trackOutlinePath } from '@/ui/track-outline';
+import { ACTIVE_CIRCUIT, CIRCUITS } from '@/track/circuits';
 
 export class LoadingScreen implements Screen {
   readonly id = 'loading' as const;
@@ -32,8 +33,8 @@ export class LoadingScreen implements Screen {
     this.el.append(
       art,
       h('div', 'mn-loading__body', undefined, [
-        h('p', 'mn-kicker', undefined, [h('i', 'mn-kicker__bar', { 'aria-hidden': 'true' }), 'Bathurst · New South Wales']),
-        h('h1', 'mn-loading__title', undefined, ['Mount Panorama']),
+        h('p', 'mn-kicker', undefined, [h('i', 'mn-kicker__bar', { 'aria-hidden': 'true' }), CIRCUITS[ACTIVE_CIRCUIT].location]),
+        h('h1', 'mn-loading__title', undefined, [CIRCUITS[ACTIVE_CIRCUIT].name]),
         this.bar,
         h('div', 'mn-loading__meta', undefined, [this.label.el, this.pct.el]),
       ]),

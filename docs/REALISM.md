@@ -194,3 +194,30 @@ and light/material response as the largest gaps. Photo camera position and cockp
 obstruction remain limitations. Car geometry and materials stay at the shipped
 baseline after item 1.8 was rejected. The user can accept this result or request a
 focused follow-up; lower measured performance tiers and physics work proceed.
+
+## Weather viewpoint — item 3.11
+
+A single wet Hell/pit view uses the unchanged player/photographer briefs and six
+Appendix A environment aspects, narrowed to this item only. Briefs are saved in
+`artifacts/review/item-3.11/round-{1,2,3,4}/`; each round has two fresh reviewers.
+The original wet photograph and the same 915×611 camera fixture stay fixed.
+The view directions differ, and the 2022 reference contains extreme sediment
+flooding: both are comparison limitations and earn no points. User score: pending.
+This isolated wet score does not replace the latest complete 51.92/100 index.
+
+| Round / focused fix | Player mean | Photographer mean | Combined mean | Gate |
+|---|---:|---:|---:|---:|
+| 1 / original | 4.250 | 3.417 | 3.833 | 7.205 |
+| 2 / wet film and ambient light | 4.000 | 4.083 | 4.042 | 7.205 |
+| 3 / High screen-space reflections | 4.600 | 4.583 | 4.592 | 7.205 |
+| 4 / cloud layers and moist ground | 4.750 | 4.467 | 4.608 | 7.205 |
+
+Raw aspect scores, stills, fixed briefs and arithmetic:
+`artifacts/review/item-3.11/wet-scorecard.json` and each round directory.
+The first SSR image rendered black and was rejected before review; separate
+repaired evidence and per-instance shader regression tests preserve that failure.
+
+After three focused fixes the wet view remains below the unchanged gate. Item
+3.11 is blocked; all 41 weather-owned files were restored or removed after a
+hashed source snapshot. Native wet laps/lifecycle and valid frozen performance
+results remain candidate evidence, not a shipped weather feature.

@@ -1,4 +1,3 @@
-import { KERB_CORNERS } from '@/track/kerb-data';
 import { taperedKerbWidths } from '@/track/kerb-profile';
 import type { RacingLine } from '@/track/racing-line';
 import type { Track } from '@/track/track-model';
@@ -51,7 +50,7 @@ export function placeKerbs(track: Track, line: RacingLine, width = 1.05): KerbLa
   };
   const l = grow(left), r = grow(right);
   const leftType = new Uint8Array(n), rightType = new Uint8Array(n);
-  for (const data of KERB_CORNERS) {
+  for (const data of track.kerbCorners) {
     const corner = track.corners.find((c) => c.turn === data.turn);
     if (!corner) continue;
     const widths = corner.dir === 'L' ? l : r, types = corner.dir === 'L' ? leftType : rightType;

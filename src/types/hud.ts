@@ -81,6 +81,10 @@ export interface HudState {
 }
 
 export interface HudTrackInfo {
+  /** Omit these labels in legacy harnesses to retain Mount Panorama. */
+  name?: string;
+  city?: string;
+  elevationEstimated?: boolean;
   /** Circuit centreline in world x/z, in race order (about 1500 points). */
   outline: Array<[number, number]>;
   /** Lap fractions (0..1) where sectors 2 and 3 start. Sector 1 starts at 0 (start/finish). */

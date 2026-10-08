@@ -16,6 +16,7 @@ await authenticatePreview(page, url);
 const errors = [];
 page.on('pageerror', e => errors.push(e.message));
 page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
+try {
 await page.addInitScript(() => {
   const allocations = new Map(), bindings = new Map();
   let unit = 0, rb = null;
@@ -71,9 +72,10 @@ await page.addInitScript(() => {
 });
 await page.goto(url);
 await page.waitForFunction(() => window.__shotReady, null, { timeout: 120000 });
-await page.keyboard.press('Enter');
+await page.getByRole('button', { name: 'Time trial', exact: true }).tap();
 await page.waitForTimeout(400);
-await page.getByRole('button', { name: 'Start time trial', exact: true }).click();
+await page.getByRole('button', { name: 'Start time trial', exact: true }).tap();
+await page.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))));
 await page.waitForFunction(() => window.__game?.race?.session.lights < 0, null, { timeout: 30000 });
 await page.waitForTimeout(1000);
 const result = await page.evaluate(() => {
@@ -90,5 +92,12 @@ result.method = 'Live texImage2D/texStorage2D/renderbuffer allocations, deletion
 mkdirSync(dirname(out), { recursive: true });
 writeFileSync(out, JSON.stringify(result, null, 2));
 console.log(JSON.stringify({ ...result, resources: result.resources.length }));
-await browser.close();
 if (errors.length || !Number.isFinite(result.estimatedGpuBytes)) process.exitCode = 1;
+} catch (error) {
+  mkdirSync(dirname(out), { recursive: true });
+  await page.screenshot({ path: out.replace(/\.json$/, '-failure.png'), scale: 'css' }).catch(() => {});
+  console.error(JSON.stringify({ failure: String(error), errors,
+    state: await page.evaluate(() => ({ state: window.__game?.state, lights: window.__game?.race?.session.lights,
+      screen: document.querySelector('.bx-menus')?.dataset.screen, ready: window.__shotReady })).catch(() => null) }));
+  throw error;
+} finally { await browser.close(); }

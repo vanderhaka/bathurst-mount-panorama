@@ -24,6 +24,7 @@ export interface DetailPlacement {
 
 /** Scuffs follow mapped protection walls rather than random dark spots along the whole lap. */
 export function wallImpactScuffs(track: Track): WallScuff[] {
+  if (track.id !== 'bathurst') return [];
   const out: [number, number, number] = [0, 0, 0];
   return TYRE_WALLS.map(range => {
     const s = (range.from + range.to) / 2, i = Math.floor(track.wrapS(s) / track.spacing);

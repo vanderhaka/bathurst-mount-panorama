@@ -2,11 +2,12 @@ import type { CarKind } from '@/car/car-specs';
 import { decodeGhost, encodeGhost, GhostPlayer } from '@/race/ghost';
 import type { LapRecord } from '@/types/session';
 import { restoreTelemetry, type LapTelemetry } from '@/types/telemetry';
+import { CIRCUITS, type CircuitId } from '@/track/circuits';
 
 // v2: v1 records could hold ghosts that replayed fast and fake bests from reversing over the line.
-const KEY = (car: CarKind) => `bathurst.records.v2.${car}`;
-/** No lap of the 6.2 km circuit is faster than this (a 223 km/h average). */
-const MIN_PLAUSIBLE_LAP_S = 100;
+const KEY = (car: CarKind, circuit: CircuitId) => `${circuit}.records.v2.${car}`;
+/** Reject corrupt/impossible times while allowing Adelaide's shorter laps. */
+const MIN_PLAUSIBLE_LAP_S = { bathurst: 100, adelaide: 50 } as const;
 
 export interface CarRecords {
   bestS: number;
@@ -27,18 +28,18 @@ interface Stored {
 }
 
 /** Best lap, sectors, delta trace, ghost and lap history per car (localStorage, best effort). */
-export function loadRecords(car: CarKind): CarRecords | null {
+export function loadRecords(car: CarKind, circuit: CircuitId = 'bathurst'): CarRecords | null {
   try {
-    const raw = localStorage.getItem(KEY(car));
+    const raw = localStorage.getItem(KEY(car, circuit));
     if (!raw) return null;
     const s = JSON.parse(raw) as Stored;
-    const laps = (s.laps ?? []).filter((l) => l.timeS >= MIN_PLAUSIBLE_LAP_S);
-    if (!(typeof s.bestS === 'number' && s.bestS >= MIN_PLAUSIBLE_LAP_S)) return { bestS: Infinity, bestSectors: [], laps };
+    const laps = (s.laps ?? []).filter((l) => l.timeS >= MIN_PLAUSIBLE_LAP_S[circuit]);
+    if (!(typeof s.bestS === 'number' && s.bestS >= MIN_PLAUSIBLE_LAP_S[circuit])) return { bestS: Infinity, bestSectors: [], laps };
     const ghost = s.ghost ? decodeGhost(s.ghost) ?? undefined : undefined;
     // The ghost must last as long as the best lap it belongs to.
     const ghostOk = ghost && Math.abs(new GhostPlayer(ghost).duration - s.bestS) < 0.5;
     return { bestS: s.bestS, bestSectors: s.bestSectors, trace: s.trace, ghost: ghostOk ? ghost : undefined,
-      telemetry: restoreTelemetry(s.telemetry, s.bestS) ?? undefined, laps };
+      telemetry: restoreTelemetry(s.telemetry, s.bestS, CIRCUITS[circuit].lengthM) ?? undefined, laps };
   } catch {
     return null;
   }
@@ -52,11 +53,11 @@ function encodeCached(g: Float32Array): string {
   return e;
 }
 
-export function saveRecords(car: CarKind, r: CarRecords): void {
+export function saveRecords(car: CarKind, r: CarRecords, circuit: CircuitId = 'bathurst'): void {
   try {
     const s: Stored = { bestS: r.bestS, bestSectors: r.bestSectors, trace: r.trace, ghost: r.ghost ? encodeCached(r.ghost) : undefined,
       telemetry: r.telemetry, laps: r.laps.slice(-50) };
-    localStorage.setItem(KEY(car), JSON.stringify(s));
+    localStorage.setItem(KEY(car, circuit), JSON.stringify(s));
   } catch {
     /* storage full or unavailable: records stay for this session only */
   }

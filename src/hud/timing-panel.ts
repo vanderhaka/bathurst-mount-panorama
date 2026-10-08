@@ -27,11 +27,11 @@ export class TimingPanel {
   private readonly sectorWrap = h('div', 'hud-sectors');
   private readonly tower = new PositionTower();
 
-  constructor() {
+  constructor(city = 'Bathurst') {
     this.el = h('section', 'hud-panel hud-timing', { 'aria-label': 'Lap timing', 'data-valid': 'true' }, [
       h('header', 'hud-timing__head', undefined, [
         h('span', 'hud-laptab', undefined, [this.lapWord.el, this.lapNo.el]),
-        h('span', 'hud-timing__title', undefined, [h('b', undefined, undefined, ['BATHURST']), h('span', undefined, undefined, ['PRACTICE'])]),
+        h('span', 'hud-timing__title', undefined, [h('b', undefined, undefined, [city.toUpperCase()]), h('span', undefined, undefined, ['PRACTICE'])]),
         h('span', 'hud-chip hud-chip--bad', undefined, ['INVALID']),
       ]),
       this.tower.el,

@@ -1,14 +1,23 @@
 import trackJson from '@/track/data/mount-panorama.json';
 import { computeSides, type OsmSides, type SideArrays } from '@/track/apply-layout';
-import { CORNERS, NAMED_PLACES } from '@/track/layout';
+import { CORNERS, NAMED_PLACES, SECTOR_STARTS_S } from '@/track/layout';
+import { KERB_CORNERS, type CornerKerb } from '@/track/kerb-data';
+import { adelaideSides } from '@/track/adelaide-layout';
+import { CIRCUITS, type CircuitId } from '@/track/circuits';
 
 export type { SideArrays } from '@/track/apply-layout';
 
+export interface Corner { turn: number; name: string; s: number; dir: 'L' | 'R' }
+
 export interface TrackSource {
-  meta: { lengthM: number; elevationBaseM: number; elevationMinM: number; elevationMaxM: number; finishLineS?: number; startLineS?: number };
+  meta: { id?: CircuitId; lengthM: number; elevationBaseM: number; elevationMinM: number; elevationMaxM: number; finishLineS?: number; startLineS?: number };
   points: number[][];
   sections: Array<{ name: string; startIndex: number }>;
   sides?: OsmSides;
+  corners?: readonly Corner[];
+  places?: ReadonlyArray<{ s: number; name: string }>;
+  sectorStarts?: readonly number[];
+  kerbCorners?: readonly CornerKerb[];
 }
 
 /**
@@ -16,6 +25,8 @@ export interface TrackSource {
  * (3D), unit LEFT normal (horizontal), crossfall. Lateral offset d > 0 = left.
  */
 export class Track {
+  readonly id: CircuitId;
+  readonly name: string;
   readonly n: number;
   readonly length: number;
   readonly spacing: number;
@@ -40,7 +51,9 @@ export class Track {
   readonly left: SideArrays;
   readonly right: SideArrays;
   readonly places: ReadonlyArray<{ s: number; name: string }>;
-  readonly corners = CORNERS;
+  readonly corners: readonly Corner[];
+  readonly sectorStarts: readonly number[];
+  readonly kerbCorners: readonly CornerKerb[];
   private readonly grid = new Map<number, number[]>();
   private static readonly CELL = 40;
 
@@ -48,12 +61,17 @@ export class Track {
     const pts = src.points;
     const n = pts.length;
     this.n = n;
+    this.id = src.meta.id ?? 'bathurst';
+    this.name = CIRCUITS[this.id].name;
     this.length = src.meta.lengthM;
     this.spacing = this.length / n;
     this.startLineS = src.meta.finishLineS ?? 92;
     this.gridLineS = src.meta.startLineS ?? 245;
     this.elevationBaseM = src.meta.elevationBaseM;
-    this.places = NAMED_PLACES;
+    this.places = src.places ?? NAMED_PLACES;
+    this.corners = src.corners ?? CORNERS;
+    this.sectorStarts = src.sectorStarts ?? SECTOR_STARTS_S;
+    this.kerbCorners = src.kerbCorners ?? KERB_CORNERS;
     const f = () => new Float32Array(n);
     this.px = f(); this.py = f(); this.pz = f();
     this.tx = f(); this.ty = f(); this.tz = f();
@@ -90,7 +108,7 @@ export class Track {
       for (let j = -2; j <= 2; j++) acc += k[(i + j + n) % n];
       this.curvature[i] = acc / 5;
     }
-    const sides = computeSides(n, this.spacing, this.length, src.sides);
+    const sides = this.id === 'adelaide' ? adelaideSides(n, this.spacing, this.length, this.corners) : computeSides(n, this.spacing, this.length, src.sides);
     this.left = sides.left;
     this.right = sides.right;
     this.bank = sides.bank;
