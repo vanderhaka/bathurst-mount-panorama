@@ -146,7 +146,8 @@ describe('queued record saves', () => {
     vi.useFakeTimers();
     stubMenuDom();
     let savedBeforeLeaving: boolean | null = null;
-    vi.stubGlobal('location', { href: 'http://127.0.0.1/', assign: () => { savedBeforeLeaving = store.has(KEY); } });
+    // The circuit switch leaves with location.replace (no history entry).
+    vi.stubGlobal('location', { href: 'http://127.0.0.1/', replace: () => { savedBeforeLeaving = store.has(KEY); } });
     const title = new TitleScreen({ race() {}, settings() {}, controls() {} });
     queueRecordsSave('camaro', record(), 'bathurst');
     adjust(title.items()[1], 1);
