@@ -12,6 +12,16 @@
     "clickOn": "[aria-label='Start time trial']"
   },
   {
+    "waitFor": "(() => { const s = document.querySelector('.mn-screen--onboarding'); return !!s && !s.hidden; })()",
+    "timeout": 10000
+  },
+  {
+    "clickOn": "[data-onboarding-next]"
+  },
+  {
+    "clickOn": "[data-onboarding-start]"
+  },
+  {
     "waitFor": "window.__game?.state === 'race' && window.__game.race.session.lights < 0",
     "timeout": 30000
   },

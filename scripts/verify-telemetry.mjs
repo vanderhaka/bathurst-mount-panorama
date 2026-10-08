@@ -226,7 +226,7 @@ async function main() {
     report.escapeReturnsToSession = true;
     if (report.circuit.id === 'adelaide') {
       await page.reload(); await page.waitForFunction(() => window.__shotReady && window.__game.state === 'title', null, { timeout: 90000 });
-      await button('title', 'Time trial').tap(); await button('car', 'Start time trial').tap();
+      await button('title', 'Time trial').tap(); await button('car', 'Start time trial').tap(); await answerSteerQuestion(page);
       await page.waitForFunction(() => window.__game.state === 'race');
       report.restored = await page.evaluate(() => { const session = window.__game.race.session;
         return { bestS: session.records?.bestS, ghostDuration: session.ghost?.duration,
@@ -238,7 +238,7 @@ async function main() {
       await Promise.all([page.waitForURL(next => !next.searchParams.has('track')),
         page.locator('.mn-screen--title [aria-label="Next circuit"]').tap()]);
       await page.waitForFunction(() => window.__shotReady && window.__game.world.track.id === 'bathurst', null, { timeout: 90000 });
-      await button('title', 'Time trial').tap(); await button('car', 'Start time trial').tap();
+      await button('title', 'Time trial').tap(); await button('car', 'Start time trial').tap(); await answerSteerQuestion(page);
       await page.waitForFunction(() => window.__game.state === 'race');
       report.separateBathurst = await page.evaluate(() => ({ records: window.__game.race.session.records,
         circuit: window.__game.race.session.track.id, adelaideSaved: !!localStorage.getItem('adelaide.records.v2.camaro') }));

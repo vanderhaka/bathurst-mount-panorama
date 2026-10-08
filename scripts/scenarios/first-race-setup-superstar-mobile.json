@@ -1,0 +1,44 @@
+[
+  {
+    "eval": "(() => { if (window.__game.state !== 'title') throw new Error('Title did not load'); return document.title; })()"
+  },
+  {
+    "tapOn": ".mn-screen--title .mn-btn--primary"
+  },
+  {
+    "wait": 500
+  },
+  {
+    "tapOn": "[aria-label='Start time trial']"
+  },
+  {
+    "waitFor": "(() => { const s = document.querySelector('.mn-screen--onboarding'); return !!s && !s.hidden; })()",
+    "timeout": 10000
+  },
+  {
+    "tapOn": "[data-level-card='superstar']"
+  },
+  {
+    "tapOn": "[data-onboarding-next]"
+  },
+  {
+    "eval": "(() => { const b = document.querySelector('[data-onboarding-start]'); const t = b.textContent.trim(); if (t !== 'Continue') throw new Error('Start button reads ' + t); return t; })()"
+  },
+  {
+    "tapOn": "[data-onboarding-start]"
+  },
+  {
+    "waitFor": "(() => { const s = document.querySelector('.mn-screen--steer'); return !!s && !s.hidden; })()",
+    "timeout": 10000
+  },
+  {
+    "tapOn": "[data-steer-choice='drag']"
+  },
+  {
+    "waitFor": "window.__game?.state === 'race' && window.__game.race.session.lights < 0",
+    "timeout": 30000
+  },
+  {
+    "eval": "(() => { const saved = JSON.parse(localStorage.getItem('bathurst.settings.v1')), live = window.__game.settings, want = {\"racingLine\": \"off\", \"autoGears\": false, \"tractionControl\": false, \"abs\": false, \"steeringAssist\": false, \"damage\": \"full\", \"trackLimits\": true, \"wear\": true, \"autoRecover\": false}; if (saved.onboarded !== true || saved.steerOnboarded !== true) throw new Error('Not saved: ' + JSON.stringify(saved)); for (const [k, v] of Object.entries(want)) { if (saved[k] !== v) throw new Error('Saved ' + k + ' is ' + saved[k] + ', want ' + v); if (live[k] !== v) throw new Error('Live ' + k + ' is ' + live[k] + ', want ' + v); } return { level: 'superstar', onboarded: saved.onboarded }; })()"
+  }
+]

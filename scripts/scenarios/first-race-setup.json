@@ -1,0 +1,71 @@
+[
+  {
+    "eval": "(() => { if (!document.title.includes('Panorama') || window.__game.state !== 'title') throw new Error('Title did not load'); return document.title; })()"
+  },
+  {
+    "key": "Enter"
+  },
+  {
+    "wait": 500
+  },
+  {
+    "clickOn": "[aria-label='Start time trial']"
+  },
+  {
+    "waitFor": "(() => { const s = document.querySelector('.mn-screen--onboarding'); return !!s && !s.hidden; })()",
+    "timeout": 10000
+  },
+  {
+    "eval": "(() => { const g = window.__game, s = document.querySelector('.mn-screen--onboarding'); const card = s.querySelector('[data-level-card=\"experienced\"]'); if (g.state === 'race') throw new Error('The race started before the setup'); if (document.activeElement !== card) throw new Error('Focus is not on the Experienced card'); if (card.getAttribute('aria-pressed') !== 'true') throw new Error('Experienced is not selected'); for (const t of ['You can change all of these at any time in Settings.', 'Each level keeps its own best laps and ghost.']) if (!s.textContent.includes(t)) throw new Error('Missing text: ' + t); if (g.settings.onboarded !== false) throw new Error('Marked onboarded too early'); return { focus: 'experienced', onboarded: g.settings.onboarded }; })()"
+  },
+  {
+    "clickOn": "[data-level-card='casual']"
+  },
+  {
+    "eval": "(() => { const c = document.querySelector('[data-level-card=\"casual\"]'); if (c.getAttribute('aria-pressed') !== 'true') throw new Error('Casual is not selected'); return c.getAttribute('aria-pressed'); })()"
+  },
+  {
+    "shot": "artifacts/first-race-setup/step1-casual.png"
+  },
+  {
+    "clickOn": "[data-onboarding-next]"
+  },
+  {
+    "eval": "(() => { const s = document.querySelector('.mn-screen--onboarding'); for (const r of ['camera', 'graphics']) { const row = s.querySelector('[data-onboarding-row=\"' + r + '\"]'); if (!row || row.offsetParent === null) throw new Error('Step 2 is missing the ' + r + ' row'); } for (const t of ['Settings > Display', 'Settings > Graphics and audio']) if (!s.textContent.includes(t)) throw new Error('Missing text: ' + t); return 'step 2'; })()"
+  },
+  {
+    "shot": "artifacts/first-race-setup/step2.png"
+  },
+  {
+    "clickOn": "[data-onboarding-start]"
+  },
+  {
+    "waitFor": "window.__game?.state === 'race' && window.__game.race.session.lights < 0",
+    "timeout": 30000
+  },
+  {
+    "eval": "(() => { const saved = JSON.parse(localStorage.getItem('bathurst.settings.v1')), live = window.__game.settings, want = {\"racingLine\": \"full\", \"autoGears\": true, \"tractionControl\": true, \"abs\": true, \"steeringAssist\": true, \"damage\": \"off\", \"trackLimits\": false, \"wear\": false, \"autoRecover\": true}; if (saved.onboarded !== true) throw new Error('Not onboarded: ' + JSON.stringify(saved)); for (const [k, v] of Object.entries(want)) { if (saved[k] !== v) throw new Error('Saved ' + k + ' is ' + saved[k] + ', want ' + v); if (live[k] !== v) throw new Error('Live ' + k + ' is ' + live[k] + ', want ' + v); } return { level: 'casual', onboarded: saved.onboarded }; })()"
+  },
+  {
+    "reload": true
+  },
+  {
+    "eval": "(() => { if (window.__game.state !== 'title') throw new Error('Title did not load after the reload'); return JSON.parse(localStorage.getItem('bathurst.settings.v1')).onboarded; })()"
+  },
+  {
+    "key": "Enter"
+  },
+  {
+    "wait": 500
+  },
+  {
+    "clickOn": "[aria-label='Start time trial']"
+  },
+  {
+    "waitFor": "window.__game?.state === 'race' && window.__game.race.session.lights < 0",
+    "timeout": 30000
+  },
+  {
+    "eval": "(() => { const s = document.querySelector('.mn-screen--onboarding'); if (!s.hidden) throw new Error('Asked a second time'); return 'no first race setup the second time'; })()"
+  }
+]

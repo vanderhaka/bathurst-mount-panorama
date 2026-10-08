@@ -12,6 +12,16 @@
     "tapOn": "[aria-label='Start time trial']"
   },
   {
+    "waitFor": "(() => { const s = document.querySelector('.mn-screen--onboarding'); return !!s && !s.hidden; })()",
+    "timeout": 10000
+  },
+  {
+    "tapOn": "[data-onboarding-next]"
+  },
+  {
+    "tapOn": "[data-onboarding-start]"
+  },
+  {
     "waitFor": "(() => { const s = document.querySelector('.mn-screen--steer'); return !!s && !s.hidden; })()",
     "timeout": 10000
   },

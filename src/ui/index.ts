@@ -17,7 +17,7 @@ import { LIVERY_PRESETS } from '@/car/liveries';
 import { h } from '@/hud/dom';
 import type { PadStyle } from '@/input/pad-style';
 import type { MenuCallbacks, MenuNav, Menus } from '@/types/hud';
-import type { LapRecord, SessionConfig, Settings } from '@/types/session';
+import type { DrivingLevel, LapRecord, SessionConfig, Settings } from '@/types/session';
 import type { TyreCompound } from '@/physics/tyre-state';
 import { LIVERY_COUNT } from '@/ui/car-data';
 import { applyPadStyle } from '@/ui/pad-glyphs';
@@ -25,6 +25,7 @@ import { adjust, itemBeside, type Screen } from '@/ui/screen';
 import { CarSelectScreen } from '@/ui/screens/car-select';
 import { ControlsScreen } from '@/ui/screens/controls';
 import { LoadingScreen } from '@/ui/screens/loading';
+import { OnboardingScreen } from '@/ui/screens/onboarding';
 import { PauseScreen } from '@/ui/screens/pause';
 import { ResultsScreen } from '@/ui/screens/results';
 import { SettingsScreen } from '@/ui/screens/settings';
@@ -57,6 +58,7 @@ interface ScreenSet {
   loading: LoadingScreen;
   title: TitleScreen;
   car: CarSelectScreen;
+  onboarding: OnboardingScreen;
   steer: SteerOnboardingScreen;
   settings: SettingsScreen;
   pause: PauseScreen;
@@ -92,6 +94,7 @@ class MenuController implements Menus {
       loading: new LoadingScreen(),
       title: new TitleScreen({ race: () => this.showCarSelect(), settings: () => sub(screens.settings), controls: () => sub(screens.controls) }),
       car: new CarSelectScreen({ preview: (c, l) => this.cb.onPreviewCar(c, l), start: (c, l, t) => this.start(c, l, t), back: () => this.showTitle() }),
+      onboarding: new OnboardingScreen({ get: () => this.settings, set: (s) => this.applySettings(s), back: () => this.showCarSelect() }),
       steer: new SteerOnboardingScreen({ get: () => this.settings, set: (s) => this.applySettings(s), enableTilt: () => this.cb.onEnableTilt?.() ?? Promise.resolve('unavailable'), back: () => this.showCarSelect() }),
       settings: new SettingsScreen({ get: () => this.settings, set: (s) => this.applySettings(s), back: backFromSub, toggleTuner: () => this.cb.onToggleTuner(), car: () => this.lastConfig?.car ?? 'camaro' }),
       pause: new PauseScreen({
@@ -139,9 +142,10 @@ class MenuController implements Menus {
       this.lastConfig = config;
       this.leave(() => this.cb.onStart(config));
     };
-    // A touch player who has not chosen how to steer is asked once, just before the first race.
-    const steer = this.screens?.steer;
-    if (steer?.required(this.settings)) { steer.ask(go); this.show(steer); } else go();
+    // First race setup (everyone, once; it opens on its selected card, not a remembered button), then the steering question (touch players, once).
+    const { steer, onboarding } = this.screens ?? {};
+    const steerThenGo = (): void => { if (steer?.required(this.settings)) { steer.ask(go); this.show(steer); } else go(); };
+    if (onboarding?.required(this.settings)) { onboarding.ask(steerThenGo, steer?.required(this.settings) ? 'Continue' : 'Start'); this.lastFocus.delete(onboarding); this.show(onboarding); } else steerThenGo();
   }
 
   /** Close the menus, then notify the game (which may open another screen). */
@@ -262,10 +266,10 @@ class MenuController implements Menus {
     applyPadStyle(this.root, style);
   }
 
-  showResults(laps: LapRecord[], bestByCar: Partial<Record<CarKind, LapRecord>>): void {
+  showResults(laps: LapRecord[], bestByCar: Partial<Record<CarKind, LapRecord>>, level?: DrivingLevel): void {
     if (!this.screens) return;
     this.screens.results.setSessionReturn(this.current === this.screens.pause);
-    this.screens.results.set(laps, bestByCar);
+    this.screens.results.set(laps, bestByCar, level);
     this.show(this.screens.results);
   }
 

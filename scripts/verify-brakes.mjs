@@ -228,7 +228,7 @@ async function main() {
         return result;
       };
     });
-    await button('car', 'Start time trial').tap(); await ready(); await page.evaluate(observeBrakes);
+    await button('car', 'Start time trial').tap(); await answerSteerQuestion(page); await ready(); await page.evaluate(observeBrakes);
     const hard = await checkpoint('fresh-hard'); assert.equal(hard.sessionCompound, 'hard');
     report.newRaceFresh = await page.evaluate(() => window.__brakesNewRace); checkFresh(report.newRaceFresh, 'hard');
     assert.ok(hard.discs.every(d => d.tempC < 23 && d.energyJ === 0)); assert.ok(hard.spots.every(t => t.severity === 0));

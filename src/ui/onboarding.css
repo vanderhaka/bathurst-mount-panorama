@@ -1,0 +1,185 @@
+/* First race setup (src/ui/screens/onboarding.ts): shown once before the first race. Reuses the
+   panel, value row and help styles of Settings and the card look of the steering question
+   (steer.css). Tokens: src/hud/theme.css */
+.mn-panel--onboarding {
+  width: min(58em, 94vw);
+}
+.mn-screen--onboarding [hidden] {
+  display: none;
+}
+/* Anchored to the top: the panel grows downward when a card shows rules, so the cards stay put
+   under the pointer instead of jumping as the panel re-centres. */
+.bx-menus .mn-screen--onboarding {
+  align-items: flex-start;
+  padding-top: min(8vh, 4em);
+}
+.mn-onb__step {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/* ---- step 1: level cards */
+.mn-onb__cards {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.6em;
+  /* Room for the focus ring; the negative margin keeps the cards where they were. */
+  padding: var(--menu-focus-room);
+  margin: calc(-1 * var(--menu-focus-room));
+}
+.mn-onb__card {
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 0.45em;
+  min-height: 44px;
+  padding: 0.8em 0.9em 0.9em 0.85em;
+  font-size: 1.05em;
+  line-height: 1.15;
+}
+.mn-onb__card:hover {
+  background: var(--menu-item-bg-focus);
+}
+/* Selected is a left and top accent bar plus a lighter fill, so it does not rely on colour alone. */
+.mn-onb__card.is-selected {
+  background: var(--menu-item-bg-focus);
+  border-left-color: var(--hud-accent);
+  box-shadow: inset 0 0.2em 0 var(--hud-accent);
+}
+.mn-onb__tagline,
+.mn-onb__facts {
+  font-family: var(--hud-font-text);
+  font-size: 0.8em;
+  font-weight: 500;
+  line-height: 1.35;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--hud-text-dim);
+}
+.mn-onb__tagline {
+  color: var(--hud-text);
+}
+.mn-onb__facts {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3em;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.mn-onb__facts li::before {
+  content: '·';
+  margin-right: 0.45em;
+  color: var(--hud-accent);
+  font-weight: 800;
+}
+.mn-onb__notes {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1.2em;
+  margin: 0.9em 0 0.2em;
+}
+.mn-onb__notes .mn-help {
+  font-size: 0.86em;
+}
+.mn-onb__laps {
+  font-weight: 600;
+  color: var(--hud-text);
+}
+
+/* ---- rows */
+.mn-onb__rows {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7em;
+  min-height: 0;
+  overflow-y: auto;
+  /* Room for the focus ring on every side; the negative margin keeps the rows where they were. */
+  padding: var(--menu-focus-room);
+  margin: 0 calc(-1 * var(--menu-focus-room));
+}
+.mn-onb__row .mn-value--setting {
+  margin-bottom: 0;
+}
+.mn-onb__note {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1.2em;
+  padding: 0.5em 0.95em 0;
+}
+.mn-onb__help {
+  font-size: 0.86em;
+}
+.mn-onb__where {
+  flex: none;
+  font-size: 0.72em;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--hud-text-dim);
+}
+.mn-onb__buttons {
+  display: flex;
+  flex: none;
+  gap: 0.6em;
+}
+.mn-panel--onboarding .mn-panel__foot .mn-help {
+  font-size: 0.86em;
+}
+
+@media (pointer: coarse) and (max-height: 540px) {
+  .bx-menus .mn-screen--onboarding {
+    padding-top: 0.5em;
+  }
+  .mn-panel--onboarding {
+    width: min(58em, 96%);
+    padding: 0.8em 1.2em 0.7em;
+  }
+  .mn-panel--onboarding .mn-panel__head {
+    margin-bottom: 0.5em;
+  }
+  .mn-panel--onboarding .mn-h2 {
+    font-size: 1.9em;
+  }
+  .mn-onb__rows {
+    gap: 0.35em;
+  }
+  .mn-onb__cards {
+    gap: 0.4em;
+  }
+  .mn-onb__card {
+    gap: 0.3em;
+    padding: 0.55em 0.65em 0.6em 0.65em;
+    font-size: 0.95em;
+  }
+  .mn-onb__tagline,
+  .mn-onb__facts {
+    font-size: 0.74em;
+    line-height: 1.25;
+  }
+  .mn-onb__facts {
+    gap: 0.2em;
+  }
+  .mn-onb__notes {
+    margin: 0.5em 0 0;
+  }
+  /* Step 1 rows: the Settings tag only; the help returns on step 2, which has room. */
+  .mn-onb__step:not(.mn-onb__rows) .mn-onb__help {
+    display: none;
+  }
+  .mn-onb__step:not(.mn-onb__rows) .mn-onb__note {
+    justify-content: flex-end;
+    padding-top: 0.2em;
+  }
+  .mn-panel--onboarding .mn-value--setting {
+    padding-top: 0.3em;
+    padding-bottom: 0.3em;
+  }
+  .mn-panel--onboarding .mn-panel__foot {
+    margin-top: 0.6em;
+    padding-top: 0.6em;
+  }
+}

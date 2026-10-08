@@ -30,7 +30,7 @@ function open({ touch, settings, tilt }: Options) {
     ...(tilt ? { onEnableTilt: () => { asked(); return Promise.resolve(tilt); } } : {}),
   } as unknown as MenuCallbacks;
   const menus: Menus = createMenus();
-  menus.mount(doc.body as unknown as HTMLElement, callbacks, { ...DEFAULT_SETTINGS, ...settings });
+  menus.mount(doc.body as unknown as HTMLElement, callbacks, { ...DEFAULT_SETTINGS, onboarded: true, ...settings });
   menus.showCarSelect();
   const screen = (): string | undefined => doc.body.children[0].dataset.screen;
   const startRace = (): void => findText(doc.body, 'Start time trial')!.parent!.click();
@@ -76,8 +76,10 @@ describe('Start time trial on a touch device that has not chosen', () => {
     expect(started).toHaveLength(0);
     expect(menus.isOpen()).toBe(true);
     expect(changes.at(-1)).toMatchObject({ touchMode: 'drag', steerOnboarded: true });
-    expect(findText(doc.body, 'Start')).not.toBeNull();
-    findText(doc.body, 'Start')!.parent!.click();
+    // The first race setup also has a Start button, so look only inside the steering question.
+    const steer = doc.body.querySelectorAll('.mn-screen--steer')[0];
+    expect(findText(steer, 'Start')).not.toBeNull();
+    findText(steer, 'Start')!.parent!.click();
     expect(started).toHaveLength(1);
     expect(started[0].settings).toMatchObject({ touchMode: 'drag', steerOnboarded: true });
   });

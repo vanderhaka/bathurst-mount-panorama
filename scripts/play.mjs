@@ -33,6 +33,8 @@ try {
   const context = await browser.newContext(mobile
     ? { viewport: { width: w, height: h }, isMobile: true, hasTouch: true, deviceScaleFactor: 3, userAgent: args.includes('--android') ? ANDROID_UA : IPHONE_UA }
     : { viewport: { width: w, height: h } });
+  // Chrome shows the page any controller on this computer: a person playing at the same time would steer the test.
+  await context.addInitScript(() => { navigator.getGamepads = () => []; });
   const page = await context.newPage();
   await authenticatePreview(page, url);
   const cdp = mobile && engine === 'chromium' ? await context.newCDPSession(page) : null;

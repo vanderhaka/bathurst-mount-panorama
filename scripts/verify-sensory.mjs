@@ -5,6 +5,7 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { chromium } from 'playwright';
 import { authenticatePreview } from './browser-auth.mjs';
+import { answerSteerQuestion } from './steer-question.mjs';
 
 const url = process.argv[2] ?? 'http://127.0.0.1:5181/';
 const out = process.argv[3] ?? 'artifacts/review/item-3.10';
@@ -157,6 +158,7 @@ try {
   await page.locator('.mn-screen--title').getByRole('button', { name: 'Time trial', exact: true }).click();
   await page.getByRole('button', { name: 'Next tyres', exact: true }).click();
   await page.getByRole('button', { name: 'Start time trial', exact: true }).click();
+  await answerSteerQuestion(page);
   await page.waitForFunction(() => window.__game.race.session.lights < 0 && !window.__game.input.menusOpen);
   await settleInputs();
   await page.evaluate(() => {
