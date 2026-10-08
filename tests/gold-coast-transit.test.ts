@@ -72,7 +72,7 @@ describe('Gold Coast transit', { timeout: 120000 }, () => {
           // Ramps run 15 m off each deck; only test deck points and points clear of any deck.
           // A neighbouring way's deck can also span the ground here, so keep 8 m clear of every deck.
           const clear = q.deck || (pts.slice(Math.max(0, i - 16), i + 17).every(o => !o.deck) && decks.every(o => Math.hypot(o.x - q.x, o.z - q.z) > 8));
-          if (clear) picks.push({ x: q.x, z: q.z, y: q.deck ? 0.02 : terrain.heightAt(q.x, q.z) + 0.02 });
+          if (clear) picks.push({ x: q.x, z: q.z, y: q.deck ? 0.02 : terrain.heightAt(q.x, q.z) + 0.06 });
         });
       }
       expect(picks.length).toBeGreaterThanOrEqual(40);
@@ -84,6 +84,26 @@ describe('Gold Coast transit', { timeout: 120000 }, () => {
         expect(Math.abs(hit.point.y - q.y), `${hit.object.name} at ${q.x.toFixed(1)}, ${q.z.toFixed(1)} hit ${hit.point.y} want ${q.y}`).toBeLessThan(0.1);
       }
     }
+  });
+
+  it('keeps the paving above the coarse terrain mesh (no grass through the road or tram bed)', () => {
+    const ray = new THREE.Raycaster(), down = new THREE.Vector3(0, -1, 0), targets = [terrain.group, high.group];
+    const check = (ways: TransitWay[], keep: number) => {
+      let n = 0;
+      for (const way of ways) walk(way).forEach((p, i) => {
+        if (i % 5 || terrain.clearance(p.x, p.z) < keep) return;
+        // Half a metre along, so the ray never lands exactly on a shared way node (a triangle edge).
+        const q = walk(way)[i + 1] ?? p;
+        ray.set(new THREE.Vector3((p.x + q.x) / 2, 20, (p.z + q.z) / 2), down);
+        const hit = ray.intersectObjects(targets, true)[0];
+        let o: THREE.Object3D | null = hit?.object ?? null;
+        while (o && o !== high.group) o = o.parent;
+        expect(o, `(${p.x.toFixed(1)}, ${p.z.toFixed(1)}) first hit ${hit?.object.name}`).toBe(high.group); n++;
+      });
+      return n;
+    };
+    expect(check(GOLD_COAST_TRACKSIDE.highway, HIGHWAY_HALF + 2)).toBeGreaterThan(100);
+    expect(check(GOLD_COAST_TRACKSIDE.tram, 3)).toBeGreaterThan(100);
   });
 
   it('places deterministic cars on the carriageway', () => {

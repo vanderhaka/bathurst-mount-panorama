@@ -29,7 +29,9 @@ export function buildGoldCoastTerrain(track: Track, quality: QualityPreset): Ter
     const c = corridor(x, z);
     const below = heightAt(track, c.index, c.t, c.sign * Math.min(c.lateral, c.wall)) - 0.5;
     // The cell-diagonal guard prevents a coarse triangle interpolating up through a narrow street.
-    const land = below + (0 - below) * smooth((c.clearance - cell * 1.5 - 2) / 15);
+    let land = below + (0 - below) * smooth((c.clearance - cell * 1.5 - 2) / 15);
+    // The same guard keeps the public road and the tram bed on flat ground, level with the street dip.
+    land += (below - land) * (1 - smooth((transitDistance(x, z) - cell * 1.5 - 2) / 15));
     const away = smooth((c.clearance - 4) / 4);
     if (away <= 0) return land;
     const past = x - coastXAt(z);

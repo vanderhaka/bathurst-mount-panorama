@@ -17,7 +17,8 @@ describe('Gold Coast tram, highway and footbridge data', () => {
   it('has the expected shape with finite coordinates', () => {
     const t = GOLD_COAST_TRACKSIDE;
     expect(t.tram.length).toBeGreaterThanOrEqual(10);
-    expect(t.highway).toHaveLength(7);
+    // The 7 ways beside the pit straight, then both carriageways onward to 380 m from the race line.
+    expect(t.highway.map(w => w.osmId)).toEqual(expect.arrayContaining([22915204, 22915203, 22915021, 578653982, 22915041, 22915042, 424230703]));
     expect(t.highway.filter(w => w.bridge)).toHaveLength(2);
     expect(t.stations.map(s => s.name).sort()).toEqual(['Main Beach', 'Surfers Paradise North']);
     expect(t.footBridges.map(b => b.id)).toEqual(['A', 'C', 'D']);

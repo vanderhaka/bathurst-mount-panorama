@@ -18,7 +18,8 @@ export interface GoldCoastTransit {
 
 type Ground = Pick<Terrain, 'heightAt' | 'clearance'>;
 interface Band { d0: number; d1: number; colour: number; minC: number; lift: number; shrink?: boolean; dash?: boolean }
-const DECK_Y = 0.02, RAIL_TOP = 0.035, STEP = 1.5, RAMP = 15;
+// Off-deck paving floats LIFT over the analytic ground: the coarse terrain mesh can sit a few cm above it.
+const DECK_Y = 0.02, LIFT = 0.06, RAIL_TOP = 0.035, STEP = 1.5, RAMP = 15;
 const TINTS = [0xd9d9d6, 0x2b2f36, 0x8a1f1f, 0x1f3f6b, 0x9aa1a6, 0x5a5f4a];
 
 /** Resamples a way to <= 1.5 m, with tangents, mitred normals, surface heights (ramped onto decks over 15 m) and wall clearance. */
@@ -26,7 +27,7 @@ function sampleWay(way: TransitWay, ground: Ground): WayNode[] {
   const nodes: WayNode[] = [], pts = way.points;
   const add = (x: number, z: number, s: number) => {
     const deck = way.bridge || inWater(x, z);
-    nodes.push({ x, z, y: deck ? DECK_Y : ground.heightAt(x, z) + DECK_Y, s, deck, tx: 1, tz: 0, mx: 0, mz: -1, c: ground.clearance(x, z) });
+    nodes.push({ x, z, y: deck ? DECK_Y : ground.heightAt(x, z) + LIFT, s, deck, tx: 1, tz: 0, mx: 0, mz: -1, c: ground.clearance(x, z) });
   };
   let s = 0;
   for (let i = 0; i + 1 < pts.length; i++) {
