@@ -22,5 +22,19 @@ export function goldCoastSides(n: number, spacing: number, length: number, corne
       outside.wall[i] += runoff(corner.turn) * blend(s, corner.s, 30);
     }
   }
+  // G:link light rail runs beside the run into the Pizza Hut Hairpin (T4); the run was narrowed in 2013. Cap = nearest rail - 0.65 m,
+  // measured every 5 m (minimum over +-5 m) from the OSM tram ways in gold-coast-trackside.json against this centreline.
+  const caps = [10.53, 9.41, 8.81, 8.37, 7.51, 6.87, 6.59, 6.37, 6.33, 6.33, 6.53, 6.67, 6.83, 6.47, 6.11, 5.93, 5.91, 5.91, 5.91, 5.91, 5.91, 5.91, 6.17, 6.87, 8.11, 9.97, 23.97];
+  const tramCap = (s: number) => {
+    if (s < 640 || s >= 770) return Infinity;
+    const f = (s - 640) / 5, k = Math.floor(f);
+    return caps[k] + (caps[k + 1] - caps[k]) * (f - k);
+  };
+  for (let i = 0; i < n; i++) {
+    const cap = tramCap(i * spacing);
+    if (cap === Infinity) continue;
+    right.wall[i] = Math.min(right.wall[i], cap);
+    right.edge[i] = Math.max(4.9, Math.min(right.edge[i], right.wall[i] - 1.0));
+  }
   return { left, right, bank: new Float32Array(n) };
 }

@@ -1,4 +1,5 @@
 import data from '@/track/data/gold-coast-environment.json';
+import trackside from '@/track/data/gold-coast-trackside.json';
 
 export interface GoldCoastBuilding { x: number; z: number; levels: number; heightM: number | null; name: string | null; osmId: number }
 export interface GoldCoastEnvironment {
@@ -64,4 +65,62 @@ export function shoreDistance(x: number, z: number): number {
     }
   }
   return best;
+}
+
+export interface TransitWay { osmId: number; bridge: boolean; points: ReadonlyArray<readonly [number, number]> }
+export interface GoldCoastTrackside {
+  tram: TransitWay[]; highway: TransitWay[]; stations: { name: string; x: number; z: number }[];
+  footBridges: { id: string; s: number; ends: [[number, number], [number, number]]; widthM: number }[];
+}
+/** G:Link light rail, the public Gold Coast Highway carriageway and the three temporary footbridges (OSM + Qld aerial photos). */
+export const GOLD_COAST_TRACKSIDE: GoldCoastTrackside = trackside as unknown as GoldCoastTrackside;
+export const TRAM_GAUGE = 1.435, TRAM_BED_HALF = 1.6, HIGHWAY_HALF = 5.6;
+
+// Uniform grid of 25 m cells; each segment is listed in every cell its bounding box touches. Built lazily once.
+const CELL = 25, REACH = 40, SPAN = Math.ceil(REACH / CELL);
+interface SegmentGrid { seg: Float64Array; cells: Map<number, number[]> }
+const cellKey = (cx: number, cz: number) => cx * 100003 + cz;
+
+function buildGrid(ways: TransitWay[]): SegmentGrid {
+  const list: number[] = [], cells = new Map<number, number[]>();
+  for (const w of ways) for (let i = 1; i < w.points.length; i++) {
+    const [ax, az] = w.points[i - 1], [bx, bz] = w.points[i], at = list.length / 4;
+    list.push(ax, az, bx, bz);
+    for (let cx = Math.floor(Math.min(ax, bx) / CELL); cx <= Math.floor(Math.max(ax, bx) / CELL); cx++) {
+      for (let cz = Math.floor(Math.min(az, bz) / CELL); cz <= Math.floor(Math.max(az, bz) / CELL); cz++) {
+        const k = cellKey(cx, cz), bucket = cells.get(k);
+        if (bucket) bucket.push(at); else cells.set(k, [at]);
+      }
+    }
+  }
+  return { seg: Float64Array.from(list), cells };
+}
+
+function nearest(g: SegmentGrid, x: number, z: number): number {
+  const cx = Math.floor(x / CELL), cz = Math.floor(z / CELL), seg = g.seg;
+  let best = Infinity;
+  for (let i = -SPAN; i <= SPAN; i++) for (let j = -SPAN; j <= SPAN; j++) {
+    const bucket = g.cells.get(cellKey(cx + i, cz + j));
+    if (!bucket) continue;
+    for (const at of bucket) {
+      const o = at * 4, ax = seg[o], az = seg[o + 1], dx = seg[o + 2] - ax, dz = seg[o + 3] - az, l2 = dx * dx + dz * dz;
+      const t = l2 === 0 ? 0 : Math.max(0, Math.min(1, ((x - ax) * dx + (z - az) * dz) / l2));
+      best = Math.min(best, Math.hypot(x - ax - t * dx, z - az - t * dz));
+    }
+  }
+  return best > REACH ? Infinity : best;
+}
+
+let grids: { tram: SegmentGrid; highway: SegmentGrid } | null = null;
+
+/** Distances (m) from (x, z) to the nearest tram-track centreline and the nearest highway centreline (Infinity if none within 40 m). */
+export function transitCentreDistance(x: number, z: number): { tram: number; highway: number } {
+  grids ??= { tram: buildGrid(GOLD_COAST_TRACKSIDE.tram), highway: buildGrid(GOLD_COAST_TRACKSIDE.highway) };
+  return { tram: nearest(grids.tram, x, z), highway: nearest(grids.highway, x, z) };
+}
+
+/** Signed distance (m) to the nearest transit corridor edge: min(tram - TRAM_BED_HALF, highway - HIGHWAY_HALF); negative inside a corridor. */
+export function transitDistance(x: number, z: number): number {
+  const c = transitCentreDistance(x, z);
+  return Math.min(c.tram - TRAM_BED_HALF, c.highway - HIGHWAY_HALF);
 }
