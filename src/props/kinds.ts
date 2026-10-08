@@ -2,6 +2,7 @@ import type * as THREE from 'three';
 import type { InstancedPropKind } from '@/types/props';
 import type { BuiltProp, KindBuilder } from '@/props/kinds-types';
 import { treeMaterial } from '@/props/core/materials';
+import { buildPalm, PALM_VARIANTS } from '@/props/trees/palm';
 import { buildEucalyptus, buildPineTree, buildYoungEucalyptus, TREE_VARIANTS } from '@/props/trees';
 import { buildFallenBark, buildGumShrub } from '@/props/trees/gum-undergrowth';
 import { buildGrassTuft, buildRock, buildShrub, VEGETATION_VARIANTS } from '@/props/builders/vegetation';
@@ -28,6 +29,7 @@ export const KIND_BUILDERS: Record<InstancedPropKind, KindBuilder> = {
   eucalyptus: { variants: TREE_VARIANTS.eucalyptus, tintable: false, castShadow: true, foliage: true, gumSurface: true, material: treeMaterial, build: tree(buildEucalyptus) },
   eucalyptusYoung: { variants: TREE_VARIANTS.eucalyptusYoung, tintable: false, castShadow: true, foliage: true, gumSurface: true, material: treeMaterial, build: tree(buildYoungEucalyptus) },
   pine: { variants: TREE_VARIANTS.pine, tintable: false, castShadow: true, foliage: true, build: tree(buildPineTree) },
+  palm: { variants: PALM_VARIANTS, tintable: false, castShadow: true, foliage: true, build: tree(buildPalm) },
   shrub: { variants: VEGETATION_VARIANTS.shrub, tintable: false, castShadow: true, foliage: true, build: buildShrub },
   gumShrub: { variants: 6, tintable: false, castShadow: true, foliage: true, gumSurface: true, build: tree(buildGumShrub) },
   fallenBark: { variants: 6, tintable: false, castShadow: false, gumSurface: true, build: v => ({ geometry: buildFallenBark(v) }) },
