@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { GROUND } from '@/art/palette';
-import { grassLayout, type GrassGround, type GrassSettings } from '@/world/grass-layout';
+import { createGrassLayout, type GrassGround, type GrassSettings } from '@/world/grass-layout';
 
 export interface NearGrass {
   group: THREE.Group;
@@ -62,6 +62,7 @@ export function createNearGrass(ground: (x: number, z: number) => GrassGround, s
   group.add(mesh);
   const transform = new THREE.Object3D(), colour = new THREE.Color();
   const green = new THREE.Color(GROUND.grass), dry = new THREE.Color(GROUND.grassDry);
+  const relayout = createGrassLayout(ground, { ...settings, radius, capacity });
   let patchX = Infinity, patchZ = Infinity, disposed = false;
   const update = (x: number, z: number, seconds: number) => {
     if (disposed) return;
@@ -70,7 +71,7 @@ export function createNearGrass(ground: (x: number, z: number) => GrassGround, s
     const px = Math.round(x / 8) * 8, pz = Math.round(z / 8) * 8;
     if (px === patchX && pz === patchZ) return;
     patchX = px; patchZ = pz;
-    const blades = grassLayout(px, pz, ground, { ...settings, radius, capacity });
+    const blades = relayout(px, pz);
     const farthest = blades.at(-1);
     extent.value = blades.length === capacity && farthest ? Math.min(radius, Math.hypot(farthest.x - px, farthest.z - pz)) : radius;
     for (let i = 0; i < blades.length; i++) {

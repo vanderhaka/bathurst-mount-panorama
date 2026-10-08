@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { describe, expect, it } from 'vitest';
-import { grassHeight, grassLayout, GRASS_PRESETS, type GrassGround } from '@/world/grass-layout';
+import { createGrassLayout, grassHeight, grassLayout, GRASS_PRESETS, type GrassGround } from '@/world/grass-layout';
 import { createNearGrass } from '@/world/near-grass';
 
 const ground = (x: number, z: number): GrassGround => ({ x, z, height: 3, normalY: 1, trackDistance: 20, lateral: 25, clearance: 15 });
@@ -47,6 +47,31 @@ describe('camera-near grass', () => {
     grass.update(20, 0, 3);
     expect(mesh?.instanceMatrix.version).toBeGreaterThan(version ?? 0);
     grass.dispose();
+  });
+
+  it('moves the patch incrementally with exactly the full layout and samples only the new edge', () => {
+    let calls = 0;
+    // Uneven ground: banks, the road and the barrier reject some candidates.
+    const uneven = (x: number, z: number): GrassGround => {
+      calls++;
+      return { x, z, height: 0.05 * x - 0.02 * z, normalY: 0.9 + 0.1 * Math.abs(Math.sin(x * 0.11 + z * 0.07)),
+        trackDistance: 12 * Math.sin(z * 0.03) + 4, lateral: x, clearance: 3 + Math.cos(x * 0.05) * 2 };
+    };
+    const wide = { ...GRASS_PRESETS.high, radius: 30, capacity: 600 };
+    const incremental = createGrassLayout(uneven, wide);
+    const path = [[0, 0], [8, 0], [16, 8], [24, 16], [24, 24], [-40, 64], [-32, 64], [0, 0]];
+    let full = 0, step = 0;
+    for (const [i, [cx, cz]] of path.entries()) {
+      calls = 0;
+      const blades = incremental(cx, cz);
+      if (i === 1) step = calls;
+      calls = 0;
+      expect(blades).toEqual(grassLayout(cx, cz, uneven, wide));
+      if (i === 1) full = calls;
+      expect(blades.length).toBeGreaterThan(0);
+    }
+    expect(step).toBeGreaterThan(0);
+    expect(step).toBeLessThan(full * 0.35);
   });
 
   it('updates shader time and wind without rebuilding the blades, then disposes once', () => {

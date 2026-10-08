@@ -101,13 +101,14 @@ export function prepareTerrainGeometry(geometry: THREE.BufferGeometry, height: (
   geometry.setAttribute('terrainCover', cover);
 }
 
-/** Builds a reusable, synchronous sampler for the colour pass and the local grass patch. */
+/**
+ * Builds a reusable, synchronous sampler for the colour pass and the local grass patch. Each sample
+ * depends on the position alone (no search hint), so the grass patch can cache it by world cell.
+ */
 export function createTerrainSurfaceSampler(track: Track, height: (x: number, z: number) => number): (x: number, z: number) => TerrainSurfaceSample {
   const tp = createTrackPoint(), n = new THREE.Vector3();
-  let hint = -1;
   return (x, z) => {
-    projectToTrack(track, x, z, hint, tp);
-    hint = tp.index;
+    projectToTrack(track, x, z, -1, tp);
     const side = tp.d >= 0 ? track.left : track.right;
     const lateral = Math.abs(tp.d);
     const trackDistance = lateral - sampleArray(track, side.edge, tp.index, tp.t);
