@@ -34,12 +34,29 @@ describe('results after a session', () => {
     const driven = [lap('camaro', 126, '2026-10-08T10:00:00Z'), lap('camaro', 127, '2026-10-08T10:02:00Z')];
     screen.set(driven, { camaro: driven[0], supra: lap('supra', 125, '2026-10-01T00:00:00Z') });
     const root = screen.el as unknown as MenuNode;
-    expect(findText(root, '2 laps · 2 valid')).not.toBeNull();
+    expect(findText(root, 'Experienced · 2 laps · 2 valid')).not.toBeNull();
     expect(root.querySelectorAll('tr').length).toBe(1 + 2); // head + this session's laps
     const cards = root.querySelectorAll('.mn-best');
     const overall = cards.filter((c) => c.classList.contains('is-overall')).map((c) => c.textContent);
     expect(overall).toHaveLength(1);
     expect(overall[0]).toMatch(/^GR Supra/);
+  });
+});
+
+describe('driving levels in Results', () => {
+  it('names the level in the summary and tags only the laps driven at another level', () => {
+    stubMenuDom();
+    const screen = new ResultsScreen({ again() {}, changeCar() {}, menu() {}, telemetry() {}, backToSession() {} });
+    const old = lap('camaro', 126, '2026-10-08T10:00:00Z');
+    const casual: LapRecord = { ...lap('camaro', 120, '2026-10-08T10:02:00Z'), level: 'casual' };
+    const superstar: LapRecord = { ...lap('camaro', 128, '2026-10-08T10:04:00Z'), level: 'superstar' };
+    screen.set([old, casual, superstar], { camaro: superstar }, 'superstar');
+    const root = screen.el as unknown as MenuNode;
+    expect(findText(root, 'Superstar · 3 laps · 3 valid')).not.toBeNull();
+    const rows = root.querySelectorAll('tr').slice(1);
+    expect(findText(rows[0], 'Experienced')).not.toBeNull(); // saved before levels = Experienced
+    expect(findText(rows[1], 'Casual')).not.toBeNull();
+    expect(findText(rows[2], 'Superstar')).toBeNull(); // the session's own level needs no tag
   });
 });
 

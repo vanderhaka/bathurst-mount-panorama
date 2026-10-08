@@ -23,6 +23,7 @@ export interface VehicleAssists {
   tc: boolean;
   autoGears: boolean;
   mechanicalDamage: boolean; // false = impacts leave the mechanics as new (damage setting "Visual only" or "Off")
+  wear: boolean; // false = tyres and brakes stay as new (no thermal grip loss, wear, flat spots or fade)
 }
 
 /**
@@ -45,7 +46,7 @@ export class Vehicle {
   readonly flatSpots = this.stint.flatSpots;
   /** Monotonic game seconds, advanced only by fixed physics steps. */
   simulationS = 0;
-  assists: VehicleAssists = { abs: true, tc: true, autoGears: true, mechanicalDamage: true };
+  assists: VehicleAssists = { abs: true, tc: true, autoGears: true, mechanicalDamage: true, wear: true };
   handling: Readonly<HandlingConfig> = DEFAULT_HANDLING; // multipliers from Settings > Handling
   setup: Readonly<CarSetup>;
   steerAngle = 0;
@@ -121,6 +122,8 @@ export class Vehicle {
     const { spec, track } = this;
     const hc = this.handling, curve = tyreCurve((hc.peakSlipDeg * Math.PI) / 180, hc.slideGrip);
     const m = this.massKg;
+    const wear = this.assists.wear;
+    this.stint.wear = wear;
     const sin = Math.sin(this.heading), cos = Math.cos(this.heading);
     // Body axes: forward f = (sin, cos), left l = (cos, -sin).
     const vLong = this.vx * sin + this.vz * cos;
@@ -178,7 +181,7 @@ export class Vehicle {
       const wl = -uB * sn + wB * cs;
       const sideDamage = c.x > 0 ? this.damage.left : this.damage.right;
       const pressure = pressureGrip(front ? this.setup.frontPressureKpa : this.setup.rearPressureKpa);
-      const mu = spec.tyreMu * hc.grip * (front ? 1 : hc.rearGrip) * S.grip * pressure * this.stint.tyres[w].grip * this.flatSpots.tyres[w].gripMultiplier * this.trackGrip.at(tp.index, tp.t, tp.d, surf) * (1 - 0.18 * sideDamage * this.damage.suspension);
+      const mu = spec.tyreMu * hc.grip * (front ? 1 : hc.rearGrip) * S.grip * pressure * this.stint.tyres[w].grip * (wear ? this.flatSpots.tyres[w].gripMultiplier : 1) * this.trackGrip.at(tp.index, tp.t, tp.d, surf) * (1 - 0.18 * sideDamage * this.damage.suspension);
       const bias = front ? this.setup.brakeBiasFront : 1 - this.setup.brakeBiasFront;
       const brakeF = (brakePedal * spec.maxBrakeTorqueNm * (bias / spec.brakeBiasFront)) / R * this.brakes.discs[w].forceMultiplier;
       const driveF = front ? 0 : drive / 2;

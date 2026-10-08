@@ -25,9 +25,11 @@ export class FlatSpots {
     for (const tyre of this.tyres) Object.assign(tyre, { severity: 0, gripMultiplier: 1 });
   }
 
-  advance(wheel: number, lockUse: number, speed: number, loadN: number, surface: SurfaceKind, dt: number): void {
+  /** With `wear` false no flat spot forms, and the lock-time count restarts. */
+  advance(wheel: number, lockUse: number, speed: number, loadN: number, surface: SurfaceKind, dt: number, wear = true): void {
     const tyre = this.tyres[wheel];
     if (!tyre || !(Number.isFinite(dt) && dt > 0)) return;
+    if (!wear) { this.lockTime[wheel] = 0; return; }
     const hardSurface = surface === 'road' || surface === 'kerb' || surface === 'asphalt' || surface === 'concrete';
     const locked = Number.isFinite(lockUse) && Number.isFinite(speed) && Number.isFinite(loadN)
       && lockUse >= FLAT_SPOT_MIN_USE && Math.abs(speed) >= FLAT_SPOT_MIN_SPEED && loadN >= 500 && hardSurface;

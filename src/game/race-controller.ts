@@ -12,6 +12,7 @@ import type { InputManager } from '@/input/input-manager';
 import { impactSeverity } from '@/physics/damage';
 import type { VehicleInput } from '@/physics/types';
 import { applyAssists } from '@/race/assists';
+import { AutoRecover, facingWrongWay } from '@/race/auto-recover';
 import { updateRaceSetup } from '@/race/setup-controls';
 import type { Autopilot } from '@/race/autopilot';
 import { SessionProfiles } from '@/game/session-profiles';
@@ -78,6 +79,8 @@ export class RaceController {
   /** Verification hook: when set, this driver replaces the player's controls. */
   autopilot: Autopilot | null = null;
   private stuckT = 0;
+  /** Casual: puts a stuck car back on the track (Settings.autoRecover). */
+  private readonly recover = new AutoRecover();
   private damageMode: Settings['damage'] | null = null;
 
   constructor(readonly session: RaceSession, readonly player: CarEntity, private readonly d: RaceDeps) {
@@ -88,6 +91,7 @@ export class RaceController {
   frame(dt: number, fps: number | null): void {
     const { input } = this.d;
     const settings = this.d.settings();
+    this.session.setRules(settings);
     this.phoneVibration.setEnabled(settings.phoneVibration);
     const v = this.player.vehicle;
     const sens = input.steerSensitivity;
@@ -95,7 +99,7 @@ export class RaceController {
     sens.pad = settings.steerPad;
     sens.touch = settings.steerTouch;
     const controls = input.update(dt);
-    v.assists = { abs: settings.abs, tc: settings.tractionControl, autoGears: settings.autoGears, mechanicalDamage: settings.damage === 'full' };
+    v.assists = { abs: settings.abs, tc: settings.tractionControl, autoGears: settings.autoGears, mechanicalDamage: settings.damage === 'full', wear: settings.wear };
     this.player.visualDamage = settings.damage !== 'off';
     if (settings.damage !== this.damageMode) {
       // A change in the race removes the damage that the new mode does not keep.
@@ -135,6 +139,11 @@ export class RaceController {
         if (sev > 0.35) this.session.say(settings.damage === 'full' ? 'HEAVY IMPACT — DAMAGE' : 'HEAVY IMPACT', 'warn');
       }
       this.session.update(h);
+      if (settings.autoRecover && !this.autopilot && this.session.racing) {
+        const offTrack = v.wheels.every((w) => w.surface !== 'road' && w.surface !== 'kerb');
+        const wrongWay = facingWrongWay(this.session.track, v.tp.index, v.heading);
+        if (this.recover.update(h, { speed: v.speed, offTrack, wrongWay, throttle: this.vin.throttle })) this.session.resetToTrack('auto');
+      } else this.recover.reset();
       // The verification driver never gives up: reset when stuck.
       if (this.autopilot && this.session.racing) {
         this.stuckT = Math.abs(v.speed) < 2 ? this.stuckT + h : 0;

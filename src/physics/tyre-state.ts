@@ -51,7 +51,8 @@ export class TyreModel {
     }
   }
 
-  advance(input: TyreHeatInput, speed: number, dt: number): void {
+  /** With `wear` false the tyres behave as new at their best temperature; temperatures still evolve for display. */
+  advance(input: TyreHeatInput, speed: number, dt: number, wear = true): void {
     if (!(Number.isFinite(dt) && dt > 0)) return;
     const v = Math.max(0, Math.abs(speed));
     const heat = tyreHeat(input, v, this.heat);
@@ -64,6 +65,7 @@ export class TyreModel {
       this.surface[i] += (SURFACE_GAIN * heat[i] - this.surface[i]) * k;
       tyre.tempC = Math.min(TYRE_MAX_C, this.carcass[i] + this.surface[i]);
       const overheat = Math.min(OVERHEAT_WEAR_MAX, 1 + Math.max(0, tyre.tempC - 110) / 20);
+      if (!wear) { tyre.grip = tyreGrip(this.compound, (c.minC + c.maxC) / 2, 0); continue; }
       tyre.wear = Math.min(1, tyre.wear + c.wearRate * heat[i] * overheat * dt);
       tyre.grip = tyreGrip(this.compound, tyre.tempC, tyre.wear);
     }

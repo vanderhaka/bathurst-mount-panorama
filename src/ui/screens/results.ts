@@ -1,9 +1,11 @@
-// Session results: each car's best lap (cards; the fastest is tagged) and the laps
-// driven in this session, with purple / green bests.
+// Session results: each car's best lap at the session's driving level (cards; the fastest is
+// tagged) and the laps driven in this session, with purple / green bests. A lap driven at
+// another level carries that level's tag.
 import { CAR_SPECS, type CarKind } from '@/car/car-specs';
 import { h } from '@/hud/dom';
 import { formatLapTime, formatSectorTime } from '@/hud/format';
-import type { LapRecord } from '@/types/session';
+import { LEVEL_NAMES } from '@/race/driving-levels';
+import type { DrivingLevel, LapRecord } from '@/types/session';
 import { CAR_ORDER } from '@/ui/car-data';
 import { hintBar, kicker, menuButton, type Screen, screenEl, STD_HINTS } from '@/ui/screen';
 
@@ -65,12 +67,12 @@ export class ResultsScreen implements Screen {
     );
   }
 
-  set(laps: LapRecord[], bestByCar: Partial<Record<CarKind, LapRecord>>): void {
+  set(laps: LapRecord[], bestByCar: Partial<Record<CarKind, LapRecord>>, level: DrivingLevel = 'experienced'): void {
     const valid = laps.filter((l) => l.valid);
     const overall = valid.reduce<LapRecord | null>((a, l) => (a === null || l.timeS < a.timeS ? l : a), null);
     const sectorBest = [0, 1, 2].map((i) => Math.min(...valid.map((l) => l.sectorsS[i] ?? Infinity)));
     const fastest = Object.values(bestByCar).reduce<LapRecord | null>((a, l) => (l && (a === null || l.timeS < a.timeS) ? l : a), null);
-    this.summary.textContent = `${laps.length} ${laps.length === 1 ? 'lap' : 'laps'} · ${valid.length} valid`;
+    this.summary.textContent = `${LEVEL_NAMES[level].badge} · ${laps.length} ${laps.length === 1 ? 'lap' : 'laps'} · ${valid.length} valid`;
     this.cards.replaceChildren(...CAR_ORDER.map((car) => bestCard(car, bestByCar[car], !!fastest && bestByCar[car] === fastest)));
     const start = Math.max(0, laps.length - MAX_ROWS);
     const rows = laps.slice(start).map((lap, k) => {
@@ -80,6 +82,8 @@ export class ResultsScreen implements Screen {
       const invalid = !lap.valid && !lap.standing;
       const timeCls = invalid ? 'is-invalid' : isOverall ? 'is-ob' : isCarBest ? 'is-pb' : '';
       const tag = lap.standing ? h('span', 'mn-tag mn-tag--plain', undefined, ['Standing start']) : invalid ? h('span', 'mn-tag mn-tag--bad', undefined, ['Invalid']) : '';
+      const lapLevel = lap.level ?? 'experienced';
+      const levelTag = lapLevel !== level ? h('span', 'mn-tag mn-tag--plain', undefined, [LEVEL_NAMES[lapLevel].badge]) : '';
       return h('tr', invalid ? 'is-invalid' : '', undefined, [
         h('td', 'mn-num', undefined, [String(start + k + 1)]),
         h('td', undefined, undefined, [CAR_SPECS[lap.car].shortName]),
@@ -88,7 +92,7 @@ export class ResultsScreen implements Screen {
           const t = lap.sectorsS[i] ?? null;
           return h('td', `mn-num ${lap.valid && t !== null && t === sectorBest[i] ? 'is-ob' : ''}`, undefined, [formatSectorTime(t)]);
         }),
-        h('td', undefined, undefined, [tag]),
+        h('td', undefined, undefined, [tag, levelTag]),
       ]);
     });
     this.body.replaceChildren(...rows);

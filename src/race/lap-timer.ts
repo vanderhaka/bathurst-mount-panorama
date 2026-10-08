@@ -66,6 +66,16 @@ export class LapTimer {
     }
   }
 
+  /** Changes to another saved best (a level's records): best lap, best sectors and delta trace follow it. */
+  useRecord(saved: { bestS: number; bestSectors: number[]; trace?: number[] } | null): void {
+    for (let i = 0; i < this.bestSectors.length; i++) {
+      this.bestSectors[i] = saved?.bestSectors[i] ?? null;
+      this.sessionBestSectors[i] = null;
+    }
+    this.bestS = saved ? saved.bestS : null;
+    this.bestTrace = saved?.trace ?? null;
+  }
+
   /** Call when the car is placed before the line (out lap). */
   startOutLap(lapDistance: number): void {
     this.lapNumber = 0;

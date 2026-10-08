@@ -22,6 +22,8 @@ export class VehicleStint {
   readonly brakes = new BrakeModel();
   readonly flatSpots = new FlatSpots();
   private readonly brakeWork: BrakeContact = { powerW: 0, lockUse: 0 };
+  /** False: tyres and brakes stay as new (no thermal grip loss, wear, flat spots or fade). Fuel is unaffected. */
+  wear = true;
   completedLaps = 0;
   /** Refuels at the line over this vehicle's life; never reset, so readers can spot a new one. */
   refuels = 0;
@@ -51,8 +53,8 @@ export class VehicleStint {
   advanceContact(wheel: number, loadN: number, mu: number, speed: number, driveN: number, brakeN: number,
     result: TyreResult, surface: SurfaceKind, dt: number): boolean {
     brakeContact(loadN, mu, speed, driveN, brakeN, result, this.brakeWork);
-    this.brakes.advance(wheel, this.brakeWork.powerW, speed, dt);
-    this.flatSpots.advance(wheel, this.brakeWork.lockUse, speed, loadN, surface, dt);
+    this.brakes.advance(wheel, this.brakeWork.powerW, speed, dt, this.wear);
+    this.flatSpots.advance(wheel, this.brakeWork.lockUse, speed, loadN, surface, dt, this.wear);
     return this.brakeWork.lockUse > 0;
   }
 
@@ -68,7 +70,7 @@ export class VehicleStint {
     if (this.previousS !== null) this.crossLine(this.previousS, s, lineS, lapLength);
     this.previousS = s;
     this.fuel.advance(enginePedal, dt);
-    this.tyreModel.advance(t, t.speed, dt);
+    this.tyreModel.advance(t, t.speed, dt, this.wear);
   }
 
   /**

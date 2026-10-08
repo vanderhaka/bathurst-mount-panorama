@@ -1,5 +1,5 @@
 import type { CarKind } from '@/car/car-specs';
-import type { LapRecord, SessionConfig, Settings } from '@/types/session';
+import type { DrivingLevel, LapRecord, SessionConfig, Settings } from '@/types/session';
 import type { PadStyle } from '@/input/pad-style';
 import type { TiltStatus } from '@/input/tilt-steering';
 import type { TyreCompound } from '@/physics/tyre-state';
@@ -139,7 +139,8 @@ export interface Menus {
   syncSettings(s: Settings): void;
   /** Controller family of the connected gamepad: menus show its button names (Xbox or PlayStation). */
   setPadStyle(style: PadStyle): void;
-  showResults(laps: LapRecord[], bestByCar: Partial<Record<CarKind, LapRecord>>): void;
+  /** `level`: the driving level whose best laps the cards show (Experienced when absent). */
+  showResults(laps: LapRecord[], bestByCar: Partial<Record<CarKind, LapRecord>>, level?: DrivingLevel): void;
   hide(): void;
   isOpen(): boolean;
   /** Gamepad navigation forwarded by the game's input layer (keyboard is handled by the menus). */

@@ -1,11 +1,14 @@
 import type { CarKind } from '@/car/car-specs';
 import { decodeGhost, encodeGhost, GhostPlayer } from '@/race/ghost';
-import type { LapRecord } from '@/types/session';
+import type { DrivingLevel, LapRecord } from '@/types/session';
 import { compactTelemetry, restoreTelemetry, type LapTelemetry } from '@/types/telemetry';
 import { CIRCUITS, type CircuitId } from '@/track/circuits';
 
 // v2: v1 records could hold ghosts that replayed fast and fake bests from reversing over the line.
-const KEY = (car: CarKind, circuit: CircuitId) => `${circuit}.records.v2.${car}`;
+// Each driving level has its own records. Experienced keeps the key from before levels, so the
+// records saved then are its records and an older build still reads them.
+const KEY = (car: CarKind, circuit: CircuitId, level: DrivingLevel) =>
+  `${circuit}.records.v2.${car}${level === 'experienced' ? '' : `.${level}`}`;
 /** Reject corrupt/impossible times while allowing Adelaide's shorter laps. */
 const MIN_PLAUSIBLE_LAP_S = { bathurst: 100, adelaide: 50 } as const;
 
@@ -27,10 +30,10 @@ interface Stored {
   laps: LapRecord[];
 }
 
-/** Best lap, sectors, delta trace, ghost and lap history per car (localStorage, best effort). */
-export function loadRecords(car: CarKind, circuit: CircuitId = 'bathurst'): CarRecords | null {
+/** Best lap, sectors, delta trace, ghost and lap history per car and level (localStorage, best effort). */
+export function loadRecords(car: CarKind, circuit: CircuitId = 'bathurst', level: DrivingLevel = 'experienced'): CarRecords | null {
   try {
-    const raw = localStorage.getItem(KEY(car, circuit));
+    const raw = localStorage.getItem(KEY(car, circuit, level));
     if (!raw) return null;
     const s = JSON.parse(raw) as Stored;
     const laps = (s.laps ?? []).filter((l) => l.timeS >= MIN_PLAUSIBLE_LAP_S[circuit]);
@@ -57,12 +60,12 @@ function encodeCached(g: Float32Array): string {
  * A Bathurst record with ghost and pedal trace is ~0.25 M characters. When storage is full,
  * the best time, sectors and lap history still persist: the trace is dropped first, then the ghost.
  */
-export function saveRecords(car: CarKind, r: CarRecords, circuit: CircuitId = 'bathurst'): void {
+export function saveRecords(car: CarKind, r: CarRecords, circuit: CircuitId = 'bathurst', level: DrivingLevel = 'experienced'): void {
   const full: Stored = { bestS: r.bestS, bestSectors: r.bestSectors, trace: r.trace, ghost: r.ghost ? encodeCached(r.ghost) : undefined,
     telemetry: r.telemetry ? compactTelemetry(r.telemetry) : undefined, laps: r.laps.slice(-50) };
   for (const s of [full, { ...full, telemetry: undefined }, { ...full, telemetry: undefined, ghost: undefined }]) {
     try {
-      localStorage.setItem(KEY(car, circuit), JSON.stringify(s));
+      localStorage.setItem(KEY(car, circuit, level), JSON.stringify(s));
       return;
     } catch {
       /* storage full (try a smaller record) or unavailable: records stay for this session only */

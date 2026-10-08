@@ -20,7 +20,9 @@ export function loadSettings(): Settings {
   const touch = touchOptions(settings);
   return { ...settings, headMotion: headMotionAmount(settings.headMotion), quality: graphics.quality, autoQuality: graphics.automatic,
     touchMode: touch.mode, touchAnalogThrottle: touch.analogThrottle,
-    touchAutoThrottle: touch.autoThrottle, touchLeftHanded: touch.leftHanded, steerOnboarded: steerOnboarded(settings) };
+    touchAutoThrottle: touch.autoThrottle, touchLeftHanded: touch.leftHanded, steerOnboarded: steerOnboarded(settings),
+    onboarded: settings.onboarded === true, trackLimits: settings.trackLimits !== false, wear: settings.wear !== false,
+    autoRecover: settings.autoRecover === true };
 }
 
 export function saveSettings(s: Settings): void {

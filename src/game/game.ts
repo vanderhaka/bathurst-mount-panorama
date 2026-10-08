@@ -147,7 +147,7 @@ export class Game {
     this.attract.drop();
     this.endRace();
     const player = this.makeEntity(cfg.car, cfg.liveryIndex);
-    const session = new RaceSession(cfg.car, this.world.track, this.world.line, player, cfg.tyres ?? 'soft');
+    const session = new RaceSession(cfg.car, this.world.track, this.world.line, player, cfg.tyres ?? 'soft', cfg.settings);
     session.placeOnGrid();
     this.ghostModel = createCarModel(cfg.car, { livery: LIVERY_PRESETS[cfg.car][0].livery, detail: 'low', quality: this.settings.quality });
     this.ghostModel.setGhost(true);
