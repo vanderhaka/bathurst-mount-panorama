@@ -4,13 +4,14 @@
 import { DEV_TOOLS } from '@/config/build-flags';
 import type { CarKind } from '@/car/car-specs';
 import { h } from '@/hud/dom';
+import { levelChoice } from '@/race/driving-levels';
 import { DEFAULT_SETTINGS, type Settings } from '@/types/session';
 import { fillPadText } from '@/input/pad-style';
 import { currentPadStyle, padText } from '@/ui/pad-glyphs';
 import { hintBar, kicker, menuButton, type Screen, screenEl, STD_HINTS, valueRow } from '@/ui/screen';
 import { HandlingPage } from '@/ui/screens/handling-page';
 import { SetupPage } from '@/ui/screens/setup-page';
-import { adjustSetting, optionIndex, rangeFraction, SETTING_GROUPS, type SettingField, valueLabel } from '@/ui/settings-model';
+import { adjustSetting, levelIndex, optionIndex, rangeFraction, SETTING_GROUPS, type SettingField, valueLabel } from '@/ui/settings-model';
 import { TabBar } from '@/ui/tab-bar';
 
 interface Row {
@@ -40,13 +41,9 @@ function indicator(field: SettingField, settings: Settings): HTMLElement {
     const mark = Math.round(rangeFraction(field, DEFAULT_SETTINGS[field.key]) * 20) - 1;
     return h('span', 'mn-meter', { 'aria-hidden': 'true' }, Array.from({ length: 20 }, (_, i) => h('i', `${i < on ? 'is-on' : ''} ${i === mark ? 'is-default' : ''}`.trim())));
   }
-  const active = optionIndex(field, settings);
-  return h(
-    'span',
-    'mn-pips',
-    { 'aria-hidden': 'true' },
-    field.options.map((_, i) => h('i', i === active ? 'is-on' : '')),
-  );
+  const active = field.kind === 'level' ? levelIndex(settings) : optionIndex(field, settings);
+  const count = field.kind === 'level' ? 3 : field.options.length;
+  return h('span', 'mn-pips', { 'aria-hidden': 'true' }, Array.from({ length: count }, (_, i) => h('i', i === active ? 'is-on' : '')));
 }
 
 export class SettingsScreen implements Screen {
@@ -125,7 +122,7 @@ export class SettingsScreen implements Screen {
     for (const r of this.rows) {
       const text = valueLabel(r.field, settings);
       r.value.replaceChildren(h('span', 'mn-value__text', undefined, [text]), indicator(r.field, settings));
-      r.el.dataset.value = String(settings[r.field.key]);
+      r.el.dataset.value = r.field.kind === 'level' ? levelChoice(settings) : String(settings[r.field.key]);
       r.el.setAttribute('aria-label', `${r.field.label}: ${text}. Left and right to change.`);
     }
     this.handling?.render();

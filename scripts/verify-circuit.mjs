@@ -116,6 +116,7 @@ try {
   assert.equal(bathurst.id, 'bathurst'); assert.equal(bathurst.length, 6213); assert.ok(bathurst.title.includes('Panorama'));
   report.defaultCircuit = bathurst; await shot('switched-bathurst');
   await activate(button('title', 'Time trial')); await activate(button('car', 'Start time trial'));
+  await answerSteerQuestion(page);
   await page.waitForFunction(() => window.__game.race?.session.lights < 0, null, { timeout: 30000 });
   assert.equal(await page.evaluate(() => window.__game.race.session.telemetrySnapshot().corners.length), 23);
   report.bathurstRaceStarts = true;

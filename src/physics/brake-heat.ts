@@ -30,7 +30,8 @@ export class BrakeModel {
     for (const disc of this.discs) Object.assign(disc, { tempC: temp, forceMultiplier: brakeFade(temp), energyJ: 0 });
   }
 
-  advance(wheel: number, powerW: number, speed: number, dt: number): void {
+  /** With `fade` false the discs heat and cool as usual but never lose braking force. */
+  advance(wheel: number, powerW: number, speed: number, dt: number, fade = true): void {
     const disc = this.discs[wheel];
     if (!disc || !(Number.isFinite(dt) && dt > 0)) return;
     const spec = wheel < 2 ? DISC_THERMAL.front : DISC_THERMAL.rear;
@@ -41,6 +42,6 @@ export class BrakeModel {
     const rise = (disc.tempC - BRAKE_AMBIENT_C - equilibriumRise) * Math.exp(-k * dt) + equilibriumRise;
     disc.tempC = clamp(BRAKE_AMBIENT_C + rise, BRAKE_AMBIENT_C, 1200);
     disc.energyJ += power * dt;
-    disc.forceMultiplier = brakeFade(disc.tempC);
+    disc.forceMultiplier = fade ? brakeFade(disc.tempC) : 1;
   }
 }

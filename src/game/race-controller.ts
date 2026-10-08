@@ -13,6 +13,7 @@ import type { InputManager } from '@/input/input-manager';
 import { impactSeverity } from '@/physics/damage';
 import type { VehicleInput } from '@/physics/types';
 import { applyAssists } from '@/race/assists';
+import { AutoRecover, facingWrongWay } from '@/race/auto-recover';
 import { updateRaceSetup } from '@/race/setup-controls';
 import type { Autopilot } from '@/race/autopilot';
 import { SessionProfiles } from '@/game/session-profiles';
@@ -79,6 +80,8 @@ export class RaceController {
   /** Verification hook: when set, this driver replaces the player's controls. */
   autopilot: Autopilot | null = null;
   private stuckT = 0;
+  /** Casual: puts a stuck car back on the track (Settings.autoRecover). */
+  private readonly recover = new AutoRecover();
   private damageMode: Settings['damage'] | null = null;
 
   constructor(readonly session: RaceSession, readonly player: CarEntity, private readonly d: RaceDeps) {
@@ -91,6 +94,7 @@ export class RaceController {
   frame(dt: number, fps: number | null): void {
     const { input } = this.d;
     const settings = this.d.settings();
+    this.session.setRules(settings);
     this.phoneVibration.setEnabled(settings.phoneVibration);
     const v = this.player.vehicle;
     const sens = input.steerSensitivity;
@@ -98,7 +102,7 @@ export class RaceController {
     sens.pad = settings.steerPad;
     sens.touch = settings.steerTouch;
     const controls = input.update(dt);
-    v.assists = { abs: settings.abs, tc: settings.tractionControl, autoGears: settings.autoGears, mechanicalDamage: settings.damage === 'full' };
+    v.assists = { abs: settings.abs, tc: settings.tractionControl, autoGears: settings.autoGears, mechanicalDamage: settings.damage === 'full', wear: settings.wear };
     this.player.visualDamage = settings.damage !== 'off';
     if (settings.damage !== this.damageMode) {
       // A change in the race removes the damage that the new mode does not keep.
@@ -140,6 +144,11 @@ export class RaceController {
       const lap = this.session.update(h);
       // The verification autopilot never counts.
       if (lap && !this.autopilot) trackLapsDriven(this.session.track.id, this.session.car, this.session.sessionLaps.length);
+      if (settings.autoRecover && !this.autopilot && this.session.racing) {
+        const offTrack = v.wheels.every((w) => w.surface !== 'road' && w.surface !== 'kerb');
+        const wrongWay = facingWrongWay(this.session.track, v.tp.index, v.heading);
+        if (this.recover.update(h, { speed: v.speed, offTrack, wrongWay, throttle: this.vin.throttle })) this.session.resetToTrack('auto');
+      } else this.recover.reset();
       // The verification driver never gives up: reset when stuck.
       if (this.autopilot && this.session.racing) {
         this.stuckT = Math.abs(v.speed) < 2 ? this.stuckT + h : 0;
@@ -162,7 +171,7 @@ export class RaceController {
       const hs = this.hudState;
       this.player.model.setDash?.({
         gear: v.pt.gear, speedKmh: hs.speedKmh,
-        shiftLights: Math.max(0, (v.pt.rpm - (e.redlineRpm - 1700)) / 1600),
+        shiftLights: Math.max(0, (v.pt.rpm - (e.redlineRpm - 1700)) / 1600), rpm: v.pt.rpm,
         lapS: hs.lap.number > 0 ? hs.lap.currentS : null, deltaS: hs.lap.deltaS,
         waterTempC: 88 + Math.min(14, this.session.timer.lapTime / 20),
       });

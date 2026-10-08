@@ -6,6 +6,9 @@ import type { TyreCompound } from '@/physics/tyre-state';
 
 export type CameraMode = 'chase' | 'chaseFar' | 'bonnet' | 'cockpit' | 'tv';
 
+/** Driving levels, least strict first (src/race/driving-levels.ts). Each has its own best lap and ghost. */
+export type DrivingLevel = 'casual' | 'experienced' | 'superstar';
+
 /** Player settings. Persisted in localStorage (best effort). */
 export interface Settings {
   racingLine: 'off' | 'braking' | 'full';
@@ -24,8 +27,16 @@ export interface Settings {
   touchLeftHanded: boolean;
   /** The touch player has been asked how to steer (or already changed the mode): ask only once. Not an option row. */
   steerOnboarded: boolean;
+  /** The player has seen the first race setup (driving level, damage, camera, graphics): show it only once. Not an option row. */
+  onboarded: boolean;
   /** Full = crashes change the car's mechanics; visual = dents only; off = no damage. */
   damage: 'full' | 'visual' | 'off';
+  /** All four wheels off the track for more than 0.15 s invalidates the lap. Off: laps stay valid (Casual). */
+  trackLimits: boolean;
+  /** Tyre wear and heat, flat spots and brake fade. Off: tyres and brakes stay as new (Casual). */
+  wear: boolean;
+  /** Puts the car back on the track after 3 s stuck, off the track or facing the wrong way (Casual). */
+  autoRecover: boolean;
   ghost: boolean;
   units: 'kmh' | 'mph';
   quality: QualityPreset;
@@ -57,7 +68,11 @@ export const DEFAULT_SETTINGS: Settings = {
   touchAutoThrottle: false,
   touchLeftHanded: false,
   steerOnboarded: false,
+  onboarded: false,
   damage: 'full',
+  trackLimits: true,
+  wear: true,
+  autoRecover: false,
   ghost: true,
   units: 'kmh',
   quality: 'high',
@@ -89,4 +104,6 @@ export interface LapRecord {
   dateIso: string;
   /** The standing-start lap, timed from lights out: never valid by design (absent in older saves). */
   standing?: boolean;
+  /** The level whose records the lap counts for. Absent in saves made before levels: Experienced. */
+  level?: DrivingLevel;
 }

@@ -4,14 +4,15 @@
 import type { CarKind } from '@/car/car-specs';
 import { saveRecords, type CarRecords } from '@/race/records';
 import type { CircuitId } from '@/track/circuits';
+import type { DrivingLevel } from '@/types/session';
 
 const pending = new Map<string, () => void>();
 let scheduled = false;
 let listening = false;
 
-/** Saves soon; a later save for the same car and circuit replaces a pending one. */
-export function queueRecordsSave(car: CarKind, records: CarRecords, circuit: CircuitId): void {
-  pending.set(`${circuit}.${car}`, () => saveRecords(car, records, circuit));
+/** Saves soon; a later save for the same car, circuit and level replaces a pending one. */
+export function queueRecordsSave(car: CarKind, records: CarRecords, circuit: CircuitId, level: DrivingLevel = 'experienced'): void {
+  pending.set(`${circuit}.${car}.${level}`, () => saveRecords(car, records, circuit, level));
   listenForPageHide();
   if (scheduled) return;
   scheduled = true;

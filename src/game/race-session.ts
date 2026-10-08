@@ -5,27 +5,34 @@ import { formatLapTime } from '@/hud/format';
 import { gridSlot } from '@/race/grid';
 import { LapTimer, type LapResult } from '@/race/lap-timer';
 import { loadRecords, type CarRecords } from '@/race/records';
-import { queueRecordsSave } from '@/race/records-queue';
+import { flushRecords, queueRecordsSave } from '@/race/records-queue';
+import { LEVEL_NAMES, lapLevel, levelRank, type Rules } from '@/race/driving-levels';
 import { TelemetryRecorder } from '@/race/telemetry-recorder';
 import type { RacingLine } from '@/track/racing-line';
 import type { Track } from '@/track/track-model';
 import type { HudState } from '@/types/hud';
-import type { LapRecord } from '@/types/session';
+import { DEFAULT_SETTINGS, type DrivingLevel, type LapRecord } from '@/types/session';
 import type { TyreCompound } from '@/physics/tyre-state';
 import { restoreTelemetry, type LapTelemetry, type SessionTelemetry, type TelemetrySample } from '@/types/telemetry';
 
 
 type Message = NonNullable<HudState['message']>;
 
-/** One time-trial session: start lights, timing, track limits, ghost and records for one car. */
+/** One time-trial session: start lights, timing, track limits, ghost and records for one car and driving level. */
 export class RaceSession {
   readonly timer: LapTimer;
   records: CarRecords | null;
   ghost: GhostPlayer | null = null;
   private readonly recorder = new GhostRecorder();
-  /** Saved lap history followed by the laps driven in this session (saved together). */
+  /** The level's saved lap history followed by the laps driven at that level (saved together). */
   readonly laps: LapRecord[] = [];
-  private readonly savedLapCount: number;
+  /** Every lap driven in this session, at any level (Restart keeps them). */
+  private readonly driven: LapRecord[] = [];
+  /** The level whose records this session reads and writes. It follows the rules on the grid and at each lap start. */
+  level: DrivingLevel;
+  /** The level the current settings obey, and whether track limits apply (setRules, every frame). */
+  private rulesLevel: DrivingLevel;
+  private trackLimits: boolean;
   private readonly telemetryRecorder: TelemetryRecorder;
   private readonly telemetryLaps: LapTelemetry[] = [];
   private bestTelemetry: LapTelemetry | null = null;
@@ -42,8 +49,11 @@ export class RaceSession {
   readonly ghostPose: GhostPose = { x: 0, y: 0, z: 0, heading: 0, pitch: 0, roll: 0, steer: 0, speed: 0 };
   ghostVisible = false;
 
-  constructor(readonly car: CarKind, readonly track: Track, readonly line: RacingLine, readonly entity: CarEntity, readonly tyres: TyreCompound = 'soft') {
-    this.records = loadRecords(car, track.id);
+  constructor(readonly car: CarKind, readonly track: Track, readonly line: RacingLine, readonly entity: CarEntity, readonly tyres: TyreCompound = 'soft',
+    rules: Rules = DEFAULT_SETTINGS) {
+    this.level = this.rulesLevel = lapLevel(rules);
+    this.trackLimits = rules.trackLimits;
+    this.records = loadRecords(car, track.id, this.level);
     this.telemetryRecorder = new TelemetryRecorder(track.length);
     this.bestTelemetry = restoreTelemetry(this.records?.telemetry, this.records?.bestS ?? Infinity, track.length);
     const sectorStarts = track.sectorStarts.map((s) => track.wrapS(s - track.startLineS));
@@ -51,13 +61,12 @@ export class RaceSession {
     this.timer = new LapTimer(track.length, sectorStarts, saved ? { bestS: saved.bestS, bestSectors: saved.bestSectors, trace: saved.trace } : null);
     if (this.records?.ghost) this.ghost = new GhostPlayer(this.records.ghost);
     if (this.records?.laps) this.laps.push(...this.records.laps);
-    this.savedLapCount = this.laps.length;
     this.refuelsSeen = entity.vehicle.stint.refuels;
   }
 
   /** Laps driven since this session started (Restart keeps them). */
   get sessionLaps(): LapRecord[] {
-    return this.laps.slice(this.savedLapCount);
+    return this.driven;
   }
 
   /** Puts the car on pole position behind the standing-start line and arms the lights. */
@@ -83,6 +92,28 @@ export class RaceSession {
 
   get racing(): boolean {
     return this.lights < 0;
+  }
+
+  /** The current settings, every frame. On the grid the session moves to the level they obey at once. */
+  setRules(rules: Rules): void {
+    this.rulesLevel = lapLevel(rules);
+    this.trackLimits = rules.trackLimits;
+    if (!this.racing && this.rulesLevel !== this.level) this.useLevel(this.rulesLevel);
+  }
+
+  /** Reads another level's records: best lap, sectors, delta trace, ghost, best telemetry and lap history. */
+  private useLevel(level: DrivingLevel): void {
+    // A save still waiting for an idle moment must reach storage before that level is read again.
+    flushRecords();
+    this.level = level;
+    this.records = loadRecords(this.car, this.track.id, level);
+    const saved = this.records && Number.isFinite(this.records.bestS) ? this.records : null;
+    this.timer.useRecord(saved ? { bestS: saved.bestS, bestSectors: saved.bestSectors, trace: saved.trace } : null);
+    this.ghost = this.records?.ghost ? new GhostPlayer(this.records.ghost) : null;
+    this.ghostVisible = false;
+    this.bestTelemetry = restoreTelemetry(this.records?.telemetry, this.records?.bestS ?? Infinity, this.track.length);
+    this.laps.length = 0;
+    if (this.records?.laps) this.laps.push(...this.records.laps);
   }
 
   say(text: string, kind: Message['kind'], seconds = 2.6): void {
@@ -132,9 +163,14 @@ export class RaceSession {
     const v = this.entity.vehicle;
     const allOff = v.wheels.every((w) => w.surface !== 'road' && w.surface !== 'kerb');
     this.offTrackT = allOff ? this.offTrackT + dt : 0;
-    if (this.offTrackT > 0.15 && this.timer.valid && this.timer.lapNumber > 0) {
+    if (this.trackLimits && this.offTrackT > 0.15 && this.timer.valid && this.timer.lapNumber > 0) {
       this.timer.invalidate();
       this.say('TRACK LIMITS — LAP INVALIDATED', 'warn');
+    }
+    // A lap counts for a level only when its rules held for the whole lap.
+    if (levelRank(this.rulesLevel) < levelRank(this.level) && this.timer.valid && this.timer.lapNumber > 0) {
+      this.timer.invalidate();
+      this.say('RULES CHANGED — LAP INVALIDATED', 'warn');
     }
     const crossingsBefore = this.timer.crossings;
     const res = this.timer.update(dt, this.lapDist());
@@ -162,9 +198,10 @@ export class RaceSession {
     }
     if (res) {
       // The standing-start lap is shorter than a flying lap: kept in the history, never valid.
-      const rec: LapRecord = { car: this.car, timeS: res.timeS, sectorsS: res.sectorsS, valid: res.valid && !res.standing, dateIso: new Date().toISOString() };
+      const rec: LapRecord = { car: this.car, timeS: res.timeS, sectorsS: res.sectorsS, valid: res.valid && !res.standing, dateIso: new Date().toISOString(), level: this.level };
       if (res.standing) rec.standing = true;
       this.laps.push(rec);
+      this.driven.push(rec);
       const prevBest = this.records?.bestS ?? null;
       const isBest = res.valid && (prevBest === null || res.timeS < prevBest) && this.timer.bestS === res.timeS;
       if (isBest) {
@@ -175,6 +212,11 @@ export class RaceSession {
       else if (!res.valid) this.say(`LAP ${fmt(res.timeS)} — INVALID`, 'warn', 3);
       else this.say(`LAP ${fmt(res.timeS)}`, 'info', 3);
       this.persist(isBest ? frames : undefined);
+    }
+    // The next lap counts for the level the rules obey now.
+    if (this.rulesLevel !== this.level) {
+      this.useLevel(this.rulesLevel);
+      this.sayNext(`LAPS NOW COUNT AS ${LEVEL_NAMES[this.level].badge.toUpperCase()}`, 'info');
     }
     this.ghostVisible = !!this.ghost;
   }
@@ -191,7 +233,7 @@ export class RaceSession {
       laps: this.laps.slice(-50),
     };
     // Saved when the browser is idle, or at once on quit and page hide (records-queue).
-    if (Number.isFinite(next.bestS) || next.laps.length) queueRecordsSave(this.car, next, this.track.id);
+    if (Number.isFinite(next.bestS) || next.laps.length) queueRecordsSave(this.car, next, this.track.id, this.level);
     this.records = next;
   }
 
@@ -205,16 +247,21 @@ export class RaceSession {
       corners: this.track.corners.map((c) => ({ distanceM: this.track.wrapS(c.s - this.track.startLineS), turn: c.turn, name: c.name })) };
   }
 
-  /** Puts the car back on the racing line at the current position and repairs it (lap becomes invalid). */
-  resetToTrack(): void {
+  /**
+   * Puts the car back on the racing line at the current position and repairs it. The lap becomes
+   * invalid when track limits apply (with them off, only Casual records take the lap).
+   * `auto`: automatic recovery after the car was stuck.
+   */
+  resetToTrack(reason: 'manual' | 'auto' = 'manual'): void {
     const v = this.entity.vehicle;
     const s = v.tp.s;
     const i = Math.round(this.track.wrapS(s) / this.track.spacing) % this.track.n;
     this.entity.reset(s, this.line.offset[i]);
     this.entity.repair();
-    const timed = this.timer.lapNumber > 0;
-    if (timed) this.timer.invalidate();
-    this.say(timed ? 'CAR RESET AND REPAIRED — LAP INVALIDATED' : 'CAR RESET AND REPAIRED', 'warn');
+    const invalid = this.trackLimits && this.timer.lapNumber > 0;
+    if (invalid) this.timer.invalidate();
+    const what = reason === 'auto' ? 'BACK ON TRACK' : 'CAR RESET AND REPAIRED';
+    this.say(invalid ? `${what} — LAP INVALIDATED` : what, reason === 'auto' && !invalid ? 'info' : 'warn');
   }
 }
 

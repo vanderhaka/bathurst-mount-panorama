@@ -71,7 +71,7 @@ function base(track: DemoTrack, progress: number, speedKmh: number): HudState {
     damage: { ...NO_DAMAGE },
     message: null,
     fps: null,
-    entry: { number: 97, code: 'CAM', colour: '#c8102e' },
+    entry: { number: '97', code: 'CAM', colour: '#c8102e' },
     startLights: -1,
     tyres: tyreSet(88, 92, 84, 86, 0.06),
     fuel: { litres: 84.6, lapsLeft: 21.7 },

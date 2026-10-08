@@ -1,0 +1,38 @@
+[
+  {
+    "eval": "(() => { if (window.__game.state !== 'title') throw new Error('Title did not load'); return document.title; })()"
+  },
+  { "key": "Enter" },
+  { "wait": 500 },
+  { "clickOn": "[aria-label='Start time trial']" },
+  {
+    "waitFor": "(() => { const s = document.querySelector('.mn-screen--onboarding'); return !!s && !s.hidden; })()",
+    "timeout": 10000
+  },
+  { "clickOn": "[data-level-card='casual']" },
+  { "clickOn": "[data-onboarding-next]" },
+  { "clickOn": "[data-onboarding-start]" },
+  {
+    "waitFor": "window.__game?.state === 'race' && window.__game.race.session.lights < 0",
+    "timeout": 30000
+  },
+  {
+    "eval": "(() => { const g = window.__game, s = g.settings; if (!s.autoRecover || s.trackLimits || s.wear || s.damage !== 'off') throw new Error('Casual rules not active: ' + JSON.stringify({ autoRecover: s.autoRecover, trackLimits: s.trackLimits, wear: s.wear, damage: s.damage })); if (g.race.session.level !== 'casual') throw new Error('Session level is ' + g.race.session.level); return g.race.session.level; })()"
+  },
+  { "wait": 1000 },
+  {
+    "eval": "(() => { const v = window.__game.race.player.vehicle; v.heading += Math.PI; v.vx = 0; v.vz = 0; return { heading: v.heading }; })()"
+  },
+  { "wait": 1500 },
+  {
+    "eval": "(() => { const m = window.__game.race.session.currentMessage(); if (m && m.text.startsWith('BACK ON TRACK')) throw new Error('Recovered too early'); return m && m.text; })()"
+  },
+  {
+    "waitFor": "window.__game.race.session.currentMessage()?.text === 'BACK ON TRACK'",
+    "timeout": 4000
+  },
+  {
+    "eval": "(() => { const g = window.__game, v = g.race.player.vehicle, t = g.race.session.track, i = v.tp.index; const dot = Math.sin(v.heading) * t.tx[i] + Math.cos(v.heading) * t.tz[i]; if (dot < 0.9) throw new Error('Not facing forward after recovery: ' + dot); if (!g.race.session.timer.valid) throw new Error('Recovery invalidated a Casual lap'); return { dot, valid: g.race.session.timer.valid }; })()"
+  },
+  { "shot": "artifacts/first-race-setup/casual-recovery.png" }
+]

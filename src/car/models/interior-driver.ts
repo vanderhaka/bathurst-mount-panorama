@@ -48,7 +48,8 @@ function helmet(eye: THREE.Vector3, c: DriverColours): THREE.BufferGeometry {
 }
 
 /** Driver body (excluding the hands, which ride on the steering wheel). */
-export function buildDriver(eye: THREE.Vector3, wheelCentre: THREE.Vector3, c: DriverColours): THREE.BufferGeometry {
+/** `reach` is how far each hand sits from the wheel centre across the wheel. */
+export function buildDriver(eye: THREE.Vector3, wheelCentre: THREE.Vector3, c: DriverColours, reach = 0.15): THREE.BufferGeometry {
   const hip = new THREE.Vector3(eye.x, 0.25, eye.z - 0.02);
   const shoulder = new THREE.Vector3(eye.x, eye.y - 0.27, eye.z - 0.1);
   const parts: THREE.BufferGeometry[] = [];
@@ -66,7 +67,7 @@ export function buildDriver(eye: THREE.Vector3, wheelCentre: THREE.Vector3, c: D
   parts.push(helmet(eye, c));
   for (const s of [1, -1]) {
     const sh = shoulder.clone().add(new THREE.Vector3(s * 0.2, 0.02, 0.02));
-    const hand = wheelCentre.clone().add(new THREE.Vector3(s * 0.15, -0.01, -0.03));
+    const hand = wheelCentre.clone().add(new THREE.Vector3(s * reach, -0.01, -0.03));
     const elbow = sh.clone().lerp(hand, 0.5).add(new THREE.Vector3(s * 0.09, -0.12, 0));
     parts.push(limb([sh, elbow, hand.clone().add(new THREE.Vector3(0, -0.01, -0.06))], 0.052, 0.04, c.suit));
     const knee = hip.clone().add(new THREE.Vector3(s * 0.11, 0.18, 0.42));
@@ -77,6 +78,6 @@ export function buildDriver(eye: THREE.Vector3, wheelCentre: THREE.Vector3, c: D
 }
 
 /** Gloves, attached to the steering wheel so they turn with it (wheel frame). */
-export function buildHands(colour: number): THREE.BufferGeometry {
-  return merge([1, -1].map((s) => tint(lathedBlob(new THREE.Vector3(s * 0.14, 0.005, -0.012), 0.09, 0.03, 0.038, (t) => Math.sin(Math.PI * t) ** 0.5, 6, 12), colour)));
+export function buildHands(colour: number, gripX = 0.14): THREE.BufferGeometry {
+  return merge([1, -1].map((s) => tint(lathedBlob(new THREE.Vector3(s * gripX, 0.005, -0.012), 0.09, 0.03, 0.038, (t) => Math.sin(Math.PI * t) ** 0.5, 6, 12), colour)));
 }

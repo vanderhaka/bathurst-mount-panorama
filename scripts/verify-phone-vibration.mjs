@@ -223,6 +223,7 @@ async function main() {
     assert.equal(await page.evaluate(() => window.__phoneProbe.apiPresent), mode === 'android');
     await page.locator('.mn-screen--title .mn-btn--primary').tap();
     await page.locator('[aria-label="Start time trial"]').tap();
+    await answerSteerQuestion(page);
     await page.waitForFunction(() => window.__game.race?.session.lights < 0, null, { timeout: 30000 });
     await page.evaluate(observeImpacts);
     for (const kind of ['kerb', 'impact']) await runContact(kind, false, '-reloaded');

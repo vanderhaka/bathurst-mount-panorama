@@ -10,6 +10,7 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { chromium, webkit } from 'playwright';
 import { authenticatePreview } from './browser-auth.mjs';
+import { acceptFirstRaceSetup } from './steer-question.mjs';
 
 const engine = process.argv[2] ?? 'chromium';
 const url = process.argv[3] ?? 'http://127.0.0.1:5181/';
@@ -25,6 +26,8 @@ const errors = [], report = { engine, cases: {} };
 async function open({ size = [844, 390], permission, seed, desktop = false }) {
   const context = await browser.newContext(desktop ? { viewport: { width: size[0], height: size[1] } }
     : { viewport: { width: size[0], height: size[1] }, hasTouch: true, isMobile: true, deviceScaleFactor: 3, userAgent: IPHONE });
+  // Chrome shows the page any controller on this computer: a person playing at the same time would steer the test.
+  await context.addInitScript(() => { navigator.getGamepads = () => []; });
   if (permission) {
     await context.addInitScript((answer) => {
       window.__orientationRequests = [];
@@ -50,6 +53,7 @@ async function open({ size = [844, 390], permission, seed, desktop = false }) {
       await press(page.locator('.mn-screen--title .mn-btn--primary'));
       await page.waitForTimeout(400);
       await press(page.locator('[aria-label="Start time trial"]'));
+      await acceptFirstRaceSetup(page); // the first race setup screen comes before the steering question
     },
     press,
     shot: (name) => page.screenshot({ path: resolve(output, `${engine}-${size.join('x')}-${name}.png`) }),
@@ -158,6 +162,7 @@ try {
   assert.equal(await keys.page.evaluate(() => document.querySelector('.bx-menus').dataset.screen), 'car', 'Back returns to car select');
   assert.equal((await keys.settings()).live.onboarded, false, 'Backing out is not a choice');
   await keys.press(keys.page.locator('[aria-label="Start time trial"]')); // Safari does not focus a tapped button
+  await acceptFirstRaceSetup(keys.page); // no-op if backing out left the setup already accepted
   assert.ok(await keys.asking(), 'Asked again after backing out');
   await keys.page.keyboard.press('Enter');
   await keys.lights();

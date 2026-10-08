@@ -1,9 +1,9 @@
-// Physical specification of the three Gen3 Supercars. Single source of truth for
-// both the 3D models (dimensions) and the vehicle physics (mass, power, aero).
-// Sources: docs/research/car-specs.md.
+// Physical specification of the cars: the three Gen3 Supercars and the 1979 Group C Torana.
+// Single source of truth for both the 3D models (dimensions) and the vehicle physics
+// (mass, power, aero). Sources: docs/research/car-specs.md.
 import { CIRCUITS, type CircuitId } from '@/track/circuits';
 
-export type CarKind = 'camaro' | 'mustang' | 'supra';
+export type CarKind = 'camaro' | 'mustang' | 'supra' | 'torana';
 /** Per-tyre values in wheel order FL, FR, RL, RR. */
 export type WheelGrip = readonly [number, number, number, number];
 
@@ -79,6 +79,11 @@ export interface CarSpec {
   brakeBiasFront: number;
   /** Max road-wheel steering angle (rad). */
   maxSteerRad: number;
+  /**
+   * Multiplies the tyre temperature rise from the g-force heat model, so each car's tyre reaches its working
+   * window at that car's pace (the model is calibrated on Gen3 cars). Absent = 1. Wear is not scaled.
+   */
+  tyreHeatGain?: number;
 }
 
 // docs/research/car-specs.md: wheelbase 2.766 m (WhichCar), L x W 4.88 x 1.96 m (iRacing
@@ -92,6 +97,9 @@ const RATED_TORQUE: Record<CarKind, Array<[number, number]>> = {
   // Lexus 2UR-GSE based, 94 x 94 mm bore and stroke. Parity rules match its power and
   // torque to the other two across the rev range; the DOHC heads give a Mustang-like top end.
   supra: [[1000, 390], [2500, 515], [4000, 610], [5000, 655], [6000, 660], [7000, 610], [7600, 555]],
+  // Holden 308 in 1979 Group C trim, Wheels 1980: 285-290 kW and about 475 Nm; peak rpm estimated
+  // (docs/research/car-specs.md section 12).
+  torana: [[1000, 190], [1500, 245], [2000, 290], [2500, 335], [3000, 370], [3500, 405], [4000, 432], [4500, 458], [5000, 475], [5500, 472], [6000, 460], [6200, 445], [6500, 410], [6800, 365]],
 };
 const derate = (curve: Array<[number, number]>, factor: number): Array<[number, number]> => curve.map(([r, t]) => [r, Math.round(t * factor)]);
 
@@ -225,6 +233,44 @@ export const CAR_SPECS: Record<CarKind, CarSpec> = {
     maxBrakeTorqueNm: 4200,
     brakeBiasFront: 0.6,
     maxSteerRad: 0.36,
+  },
+  // 1979 Group C tribute car (docs/research/car-specs.md section 12). Values marked "estimate" are
+  // reasoned there; the tyre friction is a first value that a later calibration tunes to the lap target.
+  torana: {
+    kind: 'torana',
+    displayName: 'Holden Torana A9X (1979 Group C)',
+    shortName: 'Torana A9X',
+    // Length, wheelbase confirmed; width with flares, height, track, overhang and ride height are estimates.
+    dimensions: { length: 4.51, width: 1.8, height: 1.3, wheelbase: 2.586, trackFront: 1.54, trackRear: 1.52, wheelRadius: 0.31, tyreWidth: 0.27, frontOverhang: 0.92, rideHeight: 0.1 },
+    massKg: 1300, // estimate: stripped shell plus cage and drop tank
+    frontWeight: 0.52, // estimate: front V8, low rear tank
+    cgHeight: 0.42, // estimate: taller than Gen3, under the tip-over limit
+    yawInertia: 1900, // estimate, scaled from the Gen3 value by mass and length
+    engine: {
+      label: '5.0 L pushrod V8',
+      displacementL: 5.0,
+      torqueCurve: derate(RATED_TORQUE.torana, CIRCUITS.bathurst.altitudeDerate),
+      idleRpm: 1100, // estimate: big-cam idle
+      redlineRpm: 6500,
+      limiterRpm: 6800, // rules limit
+      inertia: 0.2, // estimate: heavier flywheel than Gen3
+      engineBrakeNm: 70, // estimate
+      crank: 'crossplane',
+      valvetrain: 'pushrod',
+    },
+    gearRatios: [2.43, 1.61, 1.23, 1.0], // Super T10, one period set (estimate)
+    reverseRatio: 2.6,
+    finalDrive: 2.6,
+    shiftTimeS: 0.3, // estimate: manual clutch and lever
+    drivetrainEfficiency: 0.9, // estimate
+    cdA: 1.05, // calibrated: Conrod top speed inside the 249-269 km/h trap range, with margin (tests/torana-pace.test.ts)
+    clA: 0,
+    aeroBalanceFront: 0.5,
+    tyreMu: 1.21, // calibrated: LINE_PROFILE lap at MEASURED = R x 145.5 s (tests/torana-pace.test.ts)
+    maxBrakeTorqueNm: 2500, // estimate
+    brakeBiasFront: 0.62, // estimate
+    maxSteerRad: 0.4, // estimate
+    tyreHeatGain: 1.5, // calibrated: lap-1 tyre temperature at The Cutting about 4.5 C under the Camaro's; 3-lap peak below it; higher gains put the race-warm colour driver into the wall (tests/line-follower.test.ts)
   },
 };
 

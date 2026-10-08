@@ -7,6 +7,11 @@ export interface LiveryPreset {
   livery: Livery;
 }
 
+/** The race number as painted on the car: `numberText` when set, otherwise the plain number. */
+export function liveryNumber(l: Livery): string {
+  return l.numberText ?? String(l.number);
+}
+
 /** Generic, fictional liveries (no real teams or sponsors). */
 export const LIVERY_PRESETS: Record<CarKind, LiveryPreset[]> = {
   camaro: [
@@ -26,5 +31,11 @@ export const LIVERY_PRESETS: Record<CarKind, LiveryPreset[]> = {
     { name: 'Stealth', livery: { primary: C.carbonBlack, secondary: C.heritageRed, accent: C.racingWhite, number: 71, banner: 'FORRESTS', pattern: 'chevron' } },
     { name: 'Ocean', livery: { primary: C.teal, secondary: C.racingWhite, accent: C.yellow, number: 44, banner: 'REID PARK', pattern: 'stripes' } },
     { name: 'Solar', livery: { primary: C.yellow, secondary: C.carbonBlack, accent: C.heritageRed, number: 11, banner: 'MCPHILLAMY', pattern: 'split' } },
+  ],
+  torana: [
+    { name: '1979 Bathurst', livery: { primary: C.racingWhite, secondary: C.heritageRed, accent: C.carbonBlack, number: 5, numberText: '05', banner: 'PANORAMA', pattern: 'hdt79' } },
+    { name: 'White 05', livery: { primary: C.racingWhite, secondary: C.heritageRed, accent: C.carbonBlack, number: 5, numberText: '05', banner: 'CONROD', pattern: 'stripes' } },
+    { name: 'Papaya', livery: { primary: C.sunsetOrange, secondary: C.carbonBlack, accent: C.racingWhite, number: 9, banner: 'MURRAYS', pattern: 'stripes' } },
+    { name: 'Jasmine', livery: { primary: C.yellow, secondary: C.carbonBlack, accent: C.heritageRed, number: 34, banner: 'GRIFFINS', pattern: 'chevron' } },
   ],
 };

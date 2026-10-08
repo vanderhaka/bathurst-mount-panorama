@@ -4,7 +4,7 @@ import { LIVERY_PRESETS } from '@/car/liveries';
 import { peakPowerKw } from '@/hud/indicators';
 import { CIRCUITS, type CircuitId } from '@/track/circuits';
 
-export const CAR_ORDER: CarKind[] = ['camaro', 'mustang', 'supra'];
+export const CAR_ORDER: CarKind[] = ['camaro', 'mustang', 'supra', 'torana'];
 
 export interface CarSheet {
   kind: CarKind;
@@ -16,15 +16,18 @@ export interface CarSheet {
 }
 
 /**
- * Published Gen3 ratings (parity: same for every car), docs/research/car-specs.md
- * [S1][S3][S5]. The physics derates them for the circuit's altitude (circuitCarSpec),
+ * Published Gen3 ratings (parity: same for every Gen3 car), docs/research/car-specs.md
+ * [S1][S3][S5], and the Torana's 1979 rating (Wheels 1980, section 12). The physics derates them for the circuit's altitude (circuitCarSpec),
  * so the menu shows these figures and notes the in-game output at the selected circuit.
  */
 const RATED: Record<CarKind, { kw: number; hp: number; nm: number }> = {
   camaro: { kw: 447, hp: 600, nm: 660 },
   mustang: { kw: 447, hp: 600, nm: 660 },
   supra: { kw: 447, hp: 600, nm: 660 },
+  torana: { kw: 289, hp: 388, nm: 475 },
 };
+
+const CLASS: Record<CarKind, string> = { camaro: 'Gen3 Supercar', mustang: 'Gen3 Supercar', supra: 'Gen3 Supercar', torana: '1979 Group C' };
 
 const nf = new Intl.NumberFormat('en-AU');
 
@@ -37,6 +40,7 @@ export function carSheet(kind: CarKind, circuit: CircuitId): CarSheet {
     name: spec.shortName,
     maker: spec.displayName.split(' ')[0],
     rows: [
+      ['Class', CLASS[kind]],
       ['Engine', spec.engine.label],
       ['Power', `${rated.kw} kW  /  ${rated.hp} hp`],
       ['Torque', `${rated.nm} Nm`],

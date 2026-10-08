@@ -1,5 +1,6 @@
 // Settings screen model: every Settings field, its options and help text.
 // Pure (no DOM) so it can be unit-tested.
+import { applyLevel, LEVEL_NAMES, LEVELS, levelChoice } from '@/race/driving-levels';
 import type { Settings } from '@/types/session';
 
 export type SettingKey = keyof Settings;
@@ -27,7 +28,15 @@ interface RangeField {
 
 const SENSITIVITY = { kind: 'range', min: 0.5, max: 2, step: 0.1 } as const;
 
-export type SettingField = ChoiceField<SettingKey> | RangeField;
+/** The Driving level row: not a Settings key, it sets every rule at once. */
+interface LevelField {
+  key: 'drivingLevel';
+  kind: 'level';
+  label: string;
+  help: string;
+}
+
+export type SettingField = ChoiceField<SettingKey> | RangeField | LevelField;
 
 const ON_OFF = [
   { value: false, label: 'Off' },
@@ -38,6 +47,12 @@ export const SETTING_GROUPS: ReadonlyArray<{ title: string; fields: SettingField
   {
     title: 'Driving assists',
     fields: [
+      {
+        key: 'drivingLevel',
+        kind: 'level',
+        label: 'Driving level',
+        help: 'Sets every rule on this page. Casual: every help, no damage, no track limits. Experienced: a real car with some help. Superstar: the real car, no help. Each level keeps its own best laps and ghost.',
+      },
       {
         key: 'racingLine',
         kind: 'choice',
@@ -64,6 +79,9 @@ export const SETTING_GROUPS: ReadonlyArray<{ title: string; fields: SettingField
           { value: 'off', label: 'Off' },
         ],
       },
+      { key: 'trackLimits', kind: 'choice', label: 'Track limits', help: 'All four wheels off the track invalidates the lap. Off: laps stay valid and count as Casual.', options: ON_OFF },
+      { key: 'wear', kind: 'choice', label: 'Tyre and brake wear', help: 'Tyres wear and heat up, locked wheels get flat spots, and hot brakes fade. Off: tyres and brakes stay as new, and laps count as Casual.', options: ON_OFF },
+      { key: 'autoRecover', kind: 'choice', label: 'Automatic recovery', help: 'Puts the car back on the track after 3 s stuck, off the track or facing the wrong way. On: laps count as Casual.', options: ON_OFF },
     ],
   },
   {
@@ -157,11 +175,23 @@ export function optionIndex(field: ChoiceField<SettingKey>, settings: Settings):
   return Math.max(0, field.options.findIndex((o) => o.value === settings[field.key]));
 }
 
+/** Index of the current level pip (0..2), -1 for Custom. */
+export function levelIndex(settings: Settings): number {
+  const current = levelChoice(settings);
+  return LEVELS.findIndex((l) => l === current);
+}
+
 /** Returns new settings with the field moved one step in `dir` (choices wrap, range clamps). */
 export function adjustSetting(settings: Settings, field: SettingField, dir: -1 | 1): Settings {
   if (field.kind === 'range') {
     const v = Math.round((settings[field.key] + dir * field.step) * 100) / 100;
     return { ...settings, [field.key]: Math.max(field.min, Math.min(field.max, v)) };
+  }
+  if (field.kind === 'level') {
+    const i = levelIndex(settings);
+    // From Custom, right goes to Casual and left to Superstar.
+    const to = i < 0 ? (dir === 1 ? 0 : LEVELS.length - 1) : (i + dir + LEVELS.length) % LEVELS.length;
+    return applyLevel(settings, LEVELS[to]);
   }
   const n = field.options.length;
   const next = field.options[(optionIndex(field, settings) + dir + n) % n];
@@ -176,5 +206,6 @@ export function rangeFraction(field: RangeField, value: number): number {
 /** Text shown for the field's current value. */
 export function valueLabel(field: SettingField, settings: Settings): string {
   if (field.kind === 'range') return field.key === 'headMotion' && settings.headMotion === 0 ? 'Off' : `${Math.round(settings[field.key] * 100)}%`;
+  if (field.kind === 'level') return LEVEL_NAMES[levelChoice(settings)].badge;
   return field.options[optionIndex(field, settings)].label;
 }

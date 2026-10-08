@@ -40,6 +40,9 @@
   display: grid;
   overflow-y: auto;
   min-height: 0;
+  /* Room for the focus ring on every side; the negative margin keeps the rows where they were. */
+  padding: var(--menu-focus-room);
+  margin: 0 calc(-1 * var(--menu-focus-room));
 }
 .mn-tabpage > * {
   grid-area: 1 / 1;

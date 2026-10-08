@@ -2,7 +2,7 @@
 import { h } from '@/hud/dom';
 import { padChip } from '@/ui/pad-glyphs';
 
-export type ScreenId = 'loading' | 'title' | 'car' | 'steer' | 'settings' | 'pause' | 'controls' | 'results' | 'telemetry';
+export type ScreenId = 'loading' | 'title' | 'car' | 'onboarding' | 'steer' | 'settings' | 'pause' | 'controls' | 'results' | 'telemetry';
 
 export interface Screen {
   readonly id: ScreenId;

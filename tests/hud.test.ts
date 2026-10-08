@@ -193,9 +193,10 @@ describe('menu models', () => {
   });
 
   it('covers every Settings field', () => {
-    // steerOnboarded is first-run bookkeeping (the steering question was answered), not an option.
-    const options = Object.keys(DEFAULT_SETTINGS).filter((key) => key !== 'steerOnboarded');
-    expect(new Set(ALL_FIELDS.map((f) => f.key))).toEqual(new Set(options));
+    // steerOnboarded and onboarded are first-run bookkeeping (the first-run screens were answered), not options.
+    const options = Object.keys(DEFAULT_SETTINGS).filter((key) => key !== 'steerOnboarded' && key !== 'onboarded');
+    // The Driving level row is virtual: it sets rule fields, it is not a Settings key.
+    expect(new Set(ALL_FIELDS.filter((f) => f.kind !== 'level').map((f) => f.key))).toEqual(new Set(options));
   });
 
   it('builds the controls help from the shared bindings', () => {

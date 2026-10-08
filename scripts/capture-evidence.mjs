@@ -2,13 +2,14 @@
 // Captures a frozen evidence set for independent review: menus, every famous corner
 // in race view with the HUD, camera modes, damage, ghost, racing line, a timed AI lap,
 // performance metrics and console errors.
-// Usage: node scripts/capture-evidence.mjs <out-dir> [--url http://127.0.0.1:5181/] [--car camaro|mustang|supra]
+// Usage: node scripts/capture-evidence.mjs <out-dir> [--url http://127.0.0.1:5181/] [--car camaro|mustang|supra|torana]
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { chromium } from 'playwright';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { authenticatePreview } from './browser-auth.mjs';
+import { answerSteerQuestion } from './steer-question.mjs';
 
 const args = process.argv.slice(2);
 const out = resolve(args.find((a) => !a.startsWith('--')) ?? 'artifacts/review/latest');
@@ -35,13 +36,14 @@ metrics.loadMs = Date.now() - t0;
 await wait(3500);
 await shot('01-title');
 await key('Enter'); await wait(1500);
-// Car select starts on the Camaro; the order is camaro, mustang, supra (src/ui/car-data.ts).
-for (let i = 0; i < ['camaro', 'mustang', 'supra'].indexOf(car); i++) { await key('ArrowRight'); await wait(1200); }
+// Car select starts on the Camaro; the order is camaro, mustang, supra, torana (src/ui/car-data.ts).
+for (let i = 0; i < ['camaro', 'mustang', 'supra', 'torana'].indexOf(car); i++) { await key('ArrowRight'); await wait(1200); }
 await shot('02-car-select');
 await key('ArrowRight'); await wait(1500);
 await shot('03-car-select-other');
 await key('ArrowLeft'); await wait(1200);
 await page.getByRole('button', { name: 'Start time trial', exact: true }).click();
+await answerSteerQuestion(page);
 await wait(2600);
 await shot('04-grid-lights');
 await page.waitForFunction(() => window.__game?.race?.session.lights < 0, null, { timeout: 20000 });

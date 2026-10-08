@@ -41,6 +41,15 @@ export const TOYOTA_LAYOUT: FiringLayout = {
   bankOfCylinder: [0, 1, 0, 1, 0, 1, 0, 1],
 };
 
+/**
+ * Holden 308 1-2-7-8-4-5-6-3, odd cylinders on one bank. The order comes from weak secondary
+ * sources (docs/research/car-specs.md section 12); check a workshop manual.
+ */
+export const HOLDEN_LAYOUT: FiringLayout = {
+  firingOrder: [1, 2, 7, 8, 4, 5, 6, 3],
+  bankOfCylinder: [0, 1, 0, 1, 0, 1, 0, 1],
+};
+
 /** Flat-plane V8 alternates banks, every bank gap is exactly two slots. */
 export const FLAT_PLANE_LAYOUT: FiringLayout = {
   firingOrder: [1, 5, 3, 7, 4, 8, 2, 6],

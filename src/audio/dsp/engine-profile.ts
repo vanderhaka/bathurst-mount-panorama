@@ -3,9 +3,11 @@ import {
   CHEVY_LAYOUT,
   FLAT_PLANE_LAYOUT,
   FORD_LAYOUT,
+  HOLDEN_LAYOUT,
   TOYOTA_LAYOUT,
   type FiringLayout,
 } from '@/audio/dsp/firing';
+import { holdenProfile } from '@/audio/dsp/holden-profile';
 
 export interface FormantSpec {
   hz: number;
@@ -264,4 +266,5 @@ export const CAR_SOUND_PROFILES: Record<CarKind, CarSoundProfile> = {
   camaro: camaroProfile(),
   mustang: mustangProfile(),
   supra: supraProfile(),
+  torana: holdenProfile(flatPlaneAware('torana', HOLDEN_LAYOUT)),
 };

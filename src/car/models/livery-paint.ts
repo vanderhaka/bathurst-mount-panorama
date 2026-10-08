@@ -6,6 +6,8 @@ import type { CarKind } from '@/car/car-specs';
 import type { BodyProfile, Outline } from '@/car/models/profile-types';
 import { contrastOn, fillPoly, grow, hex, inRegion, luminance, mirrorX, poly, roundRect, worldText, type Ctx } from '@/car/models/livery-canvas';
 import { drawSponsors } from '@/car/models/livery-sponsors';
+import { drawHdt79, drawHdt79Board } from '@/car/models/livery-hdt79';
+import { liveryNumber } from '@/car/liveries';
 
 export interface LiveryShape {
   kind: CarKind;
@@ -194,7 +196,7 @@ function drawShutLines(ctx: Ctx, s: LiveryShape): void {
   const p = s.profile;
   const line = 'rgba(0,0,0,0.55)';
   for (const r of SIDES) inRegion(ctx, r, () => {
-    guardOutlet(ctx, p.art.door[0][0]);
+    if (s.kind !== 'torana') guardOutlet(ctx, p.art.door[0][0]);
     poly(ctx, p.art.door);
     ctx.strokeStyle = line;
     ctx.lineWidth = 0.006;
@@ -225,19 +227,24 @@ function drawNumbers(ctx: Ctx, l: Livery, s: LiveryShape): void {
   const p = s.profile;
   const panel = luminance(l.primary) > 0.7 ? 0x1b1c1e : 0xf1f1ee;
   const digits = luminance(panel) > 0.5 ? (luminance(l.primary) < 0.45 ? hex(l.primary) : '#111214') : '#f4f4f0';
-  const num = String(l.number);
+  const num = liveryNumber(l);
   const d = p.art.door;
   const zc = (d[0][0] + d[2][0]) / 2 + 0.05;
+  const boards = l.pattern !== 'hdt79';
   for (const r of SIDES) {
     // Number board above the door sponsor strip; the banner text runs along the sill.
-    inRegion(ctx, r, () => roundRect(ctx, zc, 0.6, 0.5, 0.38, 0.05, hex(panel)));
-    worldText(ctx, r, num, zc, 0.6, 0.33, 0.44, digits);
+    if (boards) {
+      inRegion(ctx, r, () => roundRect(ctx, zc, 0.6, 0.5, 0.38, 0.05, hex(panel)));
+      worldText(ctx, r, num, zc, 0.6, 0.33, 0.44, digits);
+    }
     worldText(ctx, r, l.banner, zc + 0.05, 0.158, 0.045, 0.9, '#f4f4f0', 800);
   }
-  const zRoof = (p.z.roofFront + p.z.roofRear) / 2;
-  const roofLen = Math.min(0.62, p.z.roofFront - p.z.roofRear - 0.08);
-  inRegion(ctx, 'top', () => roundRect(ctx, zRoof, 0, roofLen, 0.62, 0.06, hex(panel)));
-  worldText(ctx, 'top', num, zRoof, 0, 0.5, roofLen * 0.88, digits);
+  if (boards) {
+    const zRoof = (p.z.roofFront + p.z.roofRear) / 2;
+    const roofLen = Math.min(0.62, p.z.roofFront - p.z.roofRear - 0.08);
+    inRegion(ctx, 'top', () => roundRect(ctx, zRoof, 0, roofLen, 0.62, 0.06, hex(panel)));
+    worldText(ctx, 'top', num, zRoof, 0, 0.5, roofLen * 0.88, digits);
+  }
   worldText(ctx, 'front', l.banner, 0, 0.115, 0.05, 0.5, contrastOn(l.primary), 800);
 }
 
@@ -246,9 +253,10 @@ export function paintLivery(ctx: Ctx, l: Livery, s: LiveryShape): void {
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.fillStyle = hex(l.primary);
   ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-  drawPattern(ctx, l, s);
+  if (l.pattern === 'hdt79') drawHdt79(ctx, l, s); else drawPattern(ctx, l, s);
   drawShutLines(ctx, s);
   drawFascia(ctx, s);
-  drawSponsors(ctx, l, s);
+  if (s.kind !== 'torana') drawSponsors(ctx, l, s);
   drawNumbers(ctx, l, s);
+  if (l.pattern === 'hdt79') drawHdt79Board(ctx, l);
 }
