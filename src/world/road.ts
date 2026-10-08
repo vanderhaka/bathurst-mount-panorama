@@ -75,8 +75,8 @@ export function buildRoad(track: Track, line: RacingLine, kerbs: KerbLayout, ren
   group.add(buildStartMarkings(track, materials.paint));
 
   // Kerb texture defines metre-scale stripes; geometry keeps the bevel and lowered outer edge.
-  for (const [arr, sign] of [[kerbs.left, 1], [kerbs.right, -1]] as const) {
-    const geo = buildKerbGeometry(track, line, arr, sign, settings.kerbWear);
+  for (const [arr, types, sign] of [[kerbs.left, kerbs.leftType, 1], [kerbs.right, kerbs.rightType, -1]] as const) {
+    const geo = buildKerbGeometry(track, line, arr, sign, settings.kerbWear, types);
     const mesh = new THREE.Mesh(geo, materials.kerb);
     mesh.receiveShadow = true;
     mesh.name = 'kerbs';

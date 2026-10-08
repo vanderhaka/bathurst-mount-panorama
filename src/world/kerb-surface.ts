@@ -1,39 +1,23 @@
 import * as THREE from 'three';
 import type { RacingLine } from '@/track/racing-line';
 import type { Track } from '@/track/track-model';
+import { kerbProfileHeight, taperedKerbWidths } from '@/track/kerb-profile';
 import { VERGE_FALL } from '@/track/track-query';
 import { fbm } from '@/world/dem';
 import { buildStrip } from '@/world/strip';
 
-/** Height above the plane of the road edge. Road-side bevel peaks at 65 mm. */
-export function kerbProfileHeight(u: number, width: number): number {
-  const p = u < 0.25 ? u / 0.25 : 1 - ((u - 0.25) / 0.75) * 0.55;
-  return 0.004 + 0.061 * p * Math.min(1, width / 0.6);
-}
+export { kerbProfileHeight } from '@/track/kerb-profile';
 
-function taperedWidths(arr: Float32Array): Float32Array {
-  const out = Float32Array.from(arr), n = arr.length, ramp = 3;
-  for (let i = 0; i < n; i++) {
-    if (arr[i] <= 0) continue;
-    let end = ramp;
-    for (let k = 1; k <= ramp; k++) {
-      if (arr[(i + k) % n] <= 0 || arr[(i - k + n) % n] <= 0) { end = k - 1; break; }
-    }
-    out[i] *= Math.min(1, (end + 0.5) / (ramp + 0.5));
-  }
-  return out;
-}
-
-export function buildKerbGeometry(track: Track, line: RacingLine, widths: Float32Array, sign: 1 | -1, wear: number): THREE.BufferGeometry {
-  const taper = taperedWidths(widths), edge = sign > 0 ? track.left.edge : track.right.edge;
+export function buildKerbGeometry(track: Track, line: RacingLine, widths: Float32Array, sign: 1 | -1, wear: number, types?: Uint8Array): THREE.BufferGeometry {
+  const taper = types ? widths : taperedKerbWidths(widths), edge = sign > 0 ? track.left.edge : track.right.edge;
   const geo = buildStrip(track, {
-    include: (i) => widths[i] > 0.05,
+    include: (i) => widths[i] > 0.05 || Boolean(types && (widths[track.wrap(i - 1)] > 0.05 || widths[track.wrap(i + 1)] > 0.05)),
     from: (i) => sign > 0 ? edge[i] : -(edge[i] + taper[i]),
     to: (i) => sign > 0 ? edge[i] + taper[i] : -edge[i],
     segments: 8,
     lift: (i, u) => {
       const v = sign > 0 ? u : 1 - u;
-      return kerbProfileHeight(v, taper[i]) + v * taper[i] * VERGE_FALL;
+      return kerbProfileHeight(v, taper[i], types ? types[i] : 1) + v * taper[i] * VERGE_FALL;
     },
     colour: (i, u, d, c) => {
       const v = sign > 0 ? u : 1 - u;

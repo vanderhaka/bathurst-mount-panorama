@@ -212,10 +212,11 @@ Status: done (commit a3fafe064cc410f9114d24503d5ff624a3a48c8d).
 - **Do:** brake temperature from energy in and cooling; brake force falls above a temperature; a lock-up above a slip and speed makes a flat spot (vibration and less grip until the tyre changes).
 - **Done when:** repeated late braking at The Chase raises the brake temperature to the fade zone in a test; the HUD shows the brake temperature.
 ### 3.7 Track grip on and off the racing line — S
-Status: done (commit recorded by the next item; exact SHA and preview proof in HANDOFF.md).
+Status: done (commit 98ea49201928ff8455a6acda13864736eb3779fa).
 - **Do:** more grip on the rubbered line, less on the dirty outside; the line grip rises through a session.
 - **Done when:** a test shows lower grip 4 m off the line; the visual line from 1.4 matches the grip.
 ### 3.8 Kerb types — M
+Status: done (commit recorded by the next item; exact SHA and preview proof in HANDOFF.md).
 - **Depends on:** 1.4.
 - **Do:** flat kerbs that a driver can use; raised "sausage" kerbs that unsettle the car; per-corner kerb data from the aerial photos (for example the 2 m inside kerb at The Chase T21).
 - **Done when:** the physics surface and the visual kerb match at five checked corners; the line-follower test still passes.

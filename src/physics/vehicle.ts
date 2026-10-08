@@ -2,8 +2,9 @@ import type { CarSpec } from '@/car/car-specs';
 import { DEFAULT_HANDLING, type HandlingConfig } from '@/config/handling';
 import { defaultSetup, type CarSetup } from '@/config/setup';
 import type { KerbLayout } from '@/track/kerbs';
+import { kerbCrossfallAt } from '@/track/kerb-profile';
 import type { Track } from '@/track/track-model';
-import { createTrackPoint, projectToTrack, sampleArray, VERGE_FALL, type SurfaceKind, type TrackPoint } from '@/track/track-query';
+import { createTrackPoint, projectToTrack, sampleArray, type SurfaceKind, type TrackPoint } from '@/track/track-query';
 import { resolveWalls } from '@/physics/collision';
 import { contactPass, settleOnGround } from '@/physics/vehicle-contact';
 import { TrackGrip } from '@/track/rubber-line';
@@ -191,9 +192,7 @@ export class Vehicle {
       rollM += fs * c.x;
       // Slope: the ground reaction leans with the surface (horizontal push downhill).
       const grade = sampleArray(track, track.grade, tp.index, tp.t);
-      const side = tp.d >= 0 ? track.left : track.right;
-      const edge = sampleArray(track, side.edge, tp.index, tp.t);
-      const cross = Math.abs(tp.d) <= edge ? Math.tan(sampleArray(track, track.bank, tp.index, tp.t)) : -VERGE_FALL * Math.sign(tp.d);
+      const cross = kerbCrossfallAt(track, this.kerbs, tp.index, tp.t, tp.d);
       const ti = tp.index;
       gx -= fz * (grade * track.tx[ti] / Math.max(0.2, Math.hypot(track.tx[ti], track.tz[ti])) + cross * track.lx[ti]);
       gz -= fz * (grade * track.tz[ti] / Math.max(0.2, Math.hypot(track.tx[ti], track.tz[ti])) + cross * track.lz[ti]);

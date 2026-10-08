@@ -1,3 +1,5 @@
+import { KERB_CORNERS } from '@/track/kerb-data';
+import { taperedKerbWidths } from '@/track/kerb-profile';
 import type { RacingLine } from '@/track/racing-line';
 import type { Track } from '@/track/track-model';
 
@@ -7,6 +9,9 @@ export interface KerbLayout {
   /** Kerb width outside the road edge per sample (m, 0 = no kerb). */
   left: Float32Array;
   right: Float32Array;
+  /** 0 = flat, 1 = raised, shared by geometry and contact height. */
+  leftType: Uint8Array;
+  rightType: Uint8Array;
 }
 
 /**
@@ -45,16 +50,22 @@ export function placeKerbs(track: Track, line: RacingLine, width = 1.05): KerbLa
     return out;
   };
   const l = grow(left), r = grow(right);
-  // The broad inside apron of Chase T21 is visible in the aerial reference.
-  const chase = track.corners.find((corner) => corner.turn === 21);
-  if (chase) for (let i = 0; i < n; i++) {
-    const distance = Math.abs(i * track.spacing - chase.s);
-    if (Math.min(distance, track.length - distance) < 38) l[i] = Math.max(l[i], 2);
+  const leftType = new Uint8Array(n), rightType = new Uint8Array(n);
+  for (const data of KERB_CORNERS) {
+    const corner = track.corners.find((c) => c.turn === data.turn);
+    if (!corner) continue;
+    const widths = corner.dir === 'L' ? l : r, types = corner.dir === 'L' ? leftType : rightType;
+    for (let i = 0; i < n; i++) {
+      const distance = Math.abs(i * track.spacing - corner.s);
+      if (Math.min(distance, track.length - distance) >= data.halfLength) continue;
+      widths[i] = data.width;
+      types[i] = data.type === 'raised' ? 1 : 0;
+    }
   }
   // A kerb never extends past the barrier.
   for (let i = 0; i < n; i++) {
     l[i] = Math.min(l[i], Math.max(0, track.left.wall[i] - track.left.edge[i] - 0.3));
     r[i] = Math.min(r[i], Math.max(0, track.right.wall[i] - track.right.edge[i] - 0.3));
   }
-  return { left: l, right: r, line };
+  return { left: taperedKerbWidths(l), right: taperedKerbWidths(r), leftType, rightType, line };
 }
