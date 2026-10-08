@@ -113,10 +113,14 @@
   --menu-scrim-side: linear-gradient(90deg, rgb(5 6 8 / 0.86) 0%, rgb(5 6 8 / 0.62) 38%, rgb(5 6 8 / 0) 72%);
   --menu-bg-solid: #0a0c0e;
   --menu-panel-bg: rgb(12 14 17 / 0.9);
-  --menu-item-bg: rgb(255 255 255 / 0.04);
+  --menu-item-bg: rgb(255 255 255 / 0.06);
+  /* Hairline on every item, so each row's bounds show against the panel. */
+  --menu-item-edge: rgb(255 255 255 / 0.14);
   --menu-item-bg-focus: rgb(255 255 255 / 0.1);
   --menu-focus-ring: #ffffff;
   --menu-focus-width: 2px;
+  /* The focus ring sits 2px outside the item: scroll areas pad by this much so they do not clip it. */
+  --menu-focus-room: calc(var(--menu-focus-width) + 2px);
   --menu-font-size: clamp(12px, min(0.9vw, 1.6vh), 28px);
   --menu-title-size: clamp(56px, min(8.4vw, 15vh), 220px);
 }
