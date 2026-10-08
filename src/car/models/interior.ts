@@ -25,6 +25,8 @@ export interface Interior {
   outside: THREE.Group;
   steering: THREE.Group;
   mirror: InteriorMirror;
+  /** Classic cockpit only: the floor gear lever, pivoting on the tunnel. */
+  lever: THREE.Group | null;
 }
 
 const X = new THREE.Vector3(1, 0, 0);
@@ -113,9 +115,14 @@ export function buildInterior(p: BodyProfile, cv: CurveSet, livery: Livery, mat:
   group.name = 'interior';
   const mirror = buildInteriorMirror(p, cv, zTail);
   const cage = buildCage(p, cv, zHoop, CAGE, CAGE_DETAIL);
+  let lever: THREE.Group | null = null;
   const columnTube = tube([wheelCentre.clone().addScaledVector(column, 0.03), wheelCentre.clone().addScaledVector(column, 0.4)], 0.022, 0x2a2b2e);
   if (cc) {
-    group.add(named('cockpit', merge([cage, cc.detail, columnTube, mirror.frame]), mat, true), mirror.glass, named('gear-lever', cc.lever, mat, true));
+    lever = new THREE.Group();
+    lever.name = 'gear-lever-pivot';
+    lever.position.copy(cc.leverPivot);
+    lever.add(named('gear-lever', cc.lever, mat, true));
+    group.add(named('cockpit', merge([cage, cc.detail, columnTube, mirror.frame]), mat, true), mirror.glass, lever);
     if (displayMat) group.add(named('classic-dials', cc.dials, displayMat, false));
   } else {
     const panelPlace = new THREE.Matrix4().makeBasis(new THREE.Vector3(-1, 0, 0), new THREE.Vector3(0, 0.819, 0.574), new THREE.Vector3(0, 0.574, -0.819));
@@ -141,5 +148,5 @@ export function buildInterior(p: BodyProfile, cv: CurveSet, livery: Livery, mat:
   steering.add(named('steering-wheel-mesh', cc ? classicWheel(true, glove, gloves) : steeringWheel(true, glove, gloves), mat, true));
   steering.userData.base = steering.quaternion.clone();
   group.add(steering);
-  return { group, cabin, outside, steering, mirror };
+  return { group, cabin, outside, steering, mirror, lever };
 }

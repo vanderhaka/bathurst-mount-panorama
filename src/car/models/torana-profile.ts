@@ -38,10 +38,11 @@ export const TORANA_PROFILE: BodyProfile = {
     floorY: [[-2.45, 0.25], [-2.2, 0.2], [-1.9, 0.1], [1.8, 0.1], [2.29, 0.13]],
     sillY: [[-2.45, 0.3], [-2.2, 0.27], [-1.85, 0.25], [-1.0, 0.24], [1.0, 0.24], [1.85, 0.2], [2.29, 0.15]],
     sillX: [[-2.45, 0.865], [-2.0, 0.9], [-1.0, 0.895], [1.0, 0.895], [1.9, 0.9], [2.29, 0.87]],
-    // Flat sides at the doors (body 1.66 m); the bolt-on flares step out 7 cm over both axles
-    // with a square-cut lip: the width changes within 0.04 m of z at each end of the flare.
-    lowX: [[-2.45, 0.9], [-2.0, 0.93], [-1.87, 0.975], [-1.43, 0.98], [-1.03, 0.978], [-0.99, 0.9], [0, 0.898], [0.99, 0.9], [1.03, 0.978], [1.41, 0.98], [1.8, 0.978], [1.86, 0.93], [2.29, 0.9]],
-    maxX: [[-2.45, 0.905], [-2.0, 0.935], [-1.87, 0.98], [-1.43, 0.984], [-1.03, 0.982], [-0.99, 0.912], [0, 0.91], [0.99, 0.912], [1.03, 0.982], [1.41, 0.984], [1.8, 0.982], [1.86, 0.935], [2.29, 0.905]],
+    // Flat sides at the doors (body 1.66 m); the bolt-on flares step out 7 cm over both axles. Each flare
+    // ramps out from its joint with the body (about 0.11 m outside the arch, by the door shut lines) to the
+    // full width at the arch, where a rolled lip (flares, below) finishes the opening.
+    lowX: [[-2.45, 0.9], [-2.0, 0.93], [-1.87, 0.975], [-1.43, 0.98], [-1.03, 0.978], [-0.92, 0.9], [0, 0.898], [0.92, 0.9], [1.03, 0.978], [1.41, 0.98], [1.8, 0.978], [1.86, 0.93], [2.29, 0.9]],
+    maxX: [[-2.45, 0.905], [-2.0, 0.935], [-1.87, 0.98], [-1.43, 0.984], [-1.03, 0.982], [-0.92, 0.912], [0, 0.91], [0.92, 0.912], [1.03, 0.982], [1.41, 0.984], [1.8, 0.982], [1.86, 0.935], [2.29, 0.905]],
     // Belt 0.86 m at the doors, rising 3 cm to the quarter window; the front fender top sits just below the bonnet edge.
     beltY: [[-2.45, 0.87], [-2.05, 0.85], [-1.5, 0.83], [-1.0, 0.81], [-0.5, 0.79], [0, 0.785], [0.5, 0.785], [0.93, 0.79], [1.1, 0.8], [1.5, 0.765], [2.0, 0.725], [2.29, 0.7]],
     // The top of each flare starts closer to the axle than its foot, so the lip follows the arch.
@@ -63,11 +64,13 @@ export const TORANA_PROFILE: BodyProfile = {
     // Flat crowns with crisp edges on the bonnet, roof and the full-width spoiler.
     crownPow: [[-2.45, 4.0], [-2.3, 4.0], [-2.15, 3.2], [-1.6, 3.0], [-1.0, 3.2], [-0.49, 3.2], [0.4, 3.0], [0.7, 2.4], [1.06, 3.0], [1.5, 4.0], [2.29, 4.0]],
     pillarW: [[-2.45, 0.07], [-1.2, 0.09], [-0.6, 0.065], [0.6, 0.075], [2.29, 0.06]],
-    // Thick C-pillars: the rear glass is much narrower than the quarter-window rail. On the bonnet this is the foot of the hump.
-    rearGlassX: [[-2.45, 0.7], [-2.15, 0.72], [-1.8, 0.71], [-1.2, 0.62], [-0.9, 0.5], [-0.6, 0.36], [1.08, 0.36], [1.2, 0.46], [1.78, 0.36], [2.02, 0.34], [2.29, 0.34]],
-    // Raised trapezoid hump in the rear half of the bonnet: +9 cm with a flat top, a steep rear face and a gentle front slope.
-    domeH: [[1.1, 0], [1.12, 0], [1.2, 0.09], [1.78, 0.09], [2.0, 0]],
-    domeW: [[1.1, 0.46], [1.2, 0.46], [1.78, 0.36], [2.0, 0.34]],
+    // Thick C-pillars: the rear glass is much narrower than the quarter-window rail. On the bonnet this is the foot
+    // of the hump (equal to domeW, see hump below).
+    rearGlassX: [[-2.45, 0.7], [-2.15, 0.72], [-1.8, 0.71], [-1.2, 0.62], [-0.9, 0.5], [-0.6, 0.36], [0.9, 0.36], [1.1, 0.33], [1.6, 0.32], [1.68, 0.29], [1.73, 0.22], [1.76, 0.19], [2.29, 0.19]],
+    // Bolt-on box hump from the windscreen base forward over about 48 % of the bonnet (1979 museum car, road A9X):
+    // 0.59 m wide, 8 cm tall, a flat top, a near-vertical rear face (the scoop opening) and a rounded front ramp.
+    domeH: [[1.1, 0], [1.112, 0], [1.128, 0.085], [1.6, 0.085], [1.66, 0.072], [1.71, 0.042], [1.75, 0]],
+    domeW: [[1.1, 0.33], [1.6, 0.32], [1.68, 0.29], [1.73, 0.22], [1.76, 0.19]],
   },
   z: { cowl: 1.1, roofFront: 0.6, roofRear: -1.2, rearGlassBase: -2.15, sideFront: 0.927, sideRear: -1.95, banner: 0.68 },
   nose: {
@@ -93,6 +96,9 @@ export const TORANA_PROFILE: BodyProfile = {
     roundX: 0.03,
     roundTop: 0.01,
     roundBottom: 0.03,
+    // Three-piece spoiler: the bolt-on end caps rise about 6 cm above the centre lip at the corners and wrap down
+    // the rear quarters as a triangle above the tail lamps (rear photos of the HDT cars).
+    tipLift: { lift: 0.07, x0: 0.6, x1: 0.8, zone: 0.25, yFrom: 0.82, yTo: 0.97 },
   },
   lowFrac: 0.3,
   maxFrac: 0.66,
@@ -104,12 +110,19 @@ export const TORANA_PROFILE: BodyProfile = {
     outline: lamp(0.654, 0.63, 0.0926, 0.085),
   },
   taillight: {
-    // Flat horizontal rectangular lamp at each end of the rear panel (x 0.45-0.80 m, y 0.66-0.78 m)
-    // split by one thin horizontal divider.
+    // Flat horizontal rectangular lamp at each end of the rear panel (x 0.45-0.80 m, y 0.66-0.78 m) in a black
+    // bezel, crossed by one black bar just above mid-height. From the inboard end: a narrow red cell, the main
+    // red section, then amber over the outboard 45 % (rear photos of the HDT cars and a road LX).
     outline: [[0.49, 0.66], [0.871, 0.66], [0.871, 0.78], [0.49, 0.78]],
     bars: [
-      [[0.49, 0.66], [0.871, 0.66], [0.871, 0.714], [0.49, 0.714]],
-      [[0.49, 0.726], [0.871, 0.726], [0.871, 0.78], [0.49, 0.78]],
+      [[0.49, 0.66], [0.532, 0.66], [0.532, 0.722], [0.49, 0.722]],
+      [[0.49, 0.734], [0.532, 0.734], [0.532, 0.78], [0.49, 0.78]],
+      [[0.542, 0.66], [0.7, 0.66], [0.7, 0.722], [0.542, 0.722]],
+      [[0.542, 0.734], [0.7, 0.734], [0.7, 0.78], [0.542, 0.78]],
+    ],
+    amber: [
+      [[0.7, 0.66], [0.871, 0.66], [0.871, 0.722], [0.7, 0.722]],
+      [[0.7, 0.734], [0.871, 0.734], [0.871, 0.78], [0.7, 0.78]],
     ],
   },
   art: {
@@ -135,12 +148,19 @@ export const TORANA_PROFILE: BodyProfile = {
     door: [[0.927, 0.26], [0.932, 0.795], [-0.382, 0.8], [-0.4, 0.26]],
   },
   eye: [-0.392, 1.04, -0.26],
-  // Small flag mirror at the front upper corner of the door.
-  mirror: { z: 0.95, y: 0.84 },
+  // Small black flag mirror at the front upper corner of the door.
+  mirror: { z: 0.95, y: 0.84, colour: 0x151515 },
   // Side exit just ahead of the rear wheel.
   exhaustZ: -0.927,
   sideSkirts: false,
   diffuser: false,
+  // Black louvred vent between the door glass and the quarter window, and two bonnet pins near the front corners
+  // (side and front photos of the HDT cars).
+  quarterLouvre: { width: 0.16, slats: 6 },
+  bonnetPins: { x: 0.33, z: 2.22 },
+  hump: { edge: 0.035, scoopZ: 1.12, rows: [1.106, 1.112, 1.128, 1.138, 1.6, 1.66, 1.71, 1.75], rivets: 7 },
+  // Rolled lip, about 6-7 dome bolts per front arch and a black joint line (front-flare photo).
+  flares: { lip: 0.045, proud: 0.022, bolts: 7, boltR: 0.075, jointR: 0.115 },
   wheel: { kind: 'classic', rimRadius: 0.1905, rimHalfWidth: 0.127, discRadius: 0.138 },
   cockpit: 'classic',
   canards: [],

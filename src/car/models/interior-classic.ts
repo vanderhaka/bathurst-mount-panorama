@@ -1,6 +1,8 @@
 // Classic (1970s) cockpit pieces: a flat upright dash with a silver-grey face,
-// a binnacle with two large square dials (the live canvas is mapped on them) and
-// two small dials, a plate of toggle switches, and the floor gear lever.
+// a binnacle with three equal dials in a row as in the road A9X (tachometer
+// ahead of the driver, speedometer, then a fuel / temperature gauge; the live
+// canvas is mapped on the first two), two small gauges low beside the column,
+// a plate of toggle switches, and the floor gear lever.
 import * as THREE from 'three';
 import type { CurveSet } from '@/car/models/body-section';
 import type { BodyProfile } from '@/car/models/profile-types';
@@ -15,7 +17,34 @@ export interface ClassicCockpit {
   detail: THREE.BufferGeometry;
   /** Two dial quads textured from the display canvas: tachometer in the left half, speedometer in the right. */
   dials: THREE.BufferGeometry;
+  /** Floor gear lever, modelled around its pivot (`leverPivot`, on the tunnel). */
   lever: THREE.BufferGeometry;
+  leverPivot: THREE.Vector3;
+}
+
+/** Lever throw (rad): fore-aft between the gate rows, sideways between the H planes. */
+const THROW = 0.2;
+const PLANE = 0.09;
+
+/**
+ * Poses the floor lever for a gear in an H gate with `gears` forward gears: 1 and 2 in the leftmost plane
+ * (forward, back), 3 and 4 in the next, and so on; neutral in the middle. Reverse sits beyond the 1-2 plane
+ * and back (its place on the period Super T10 gate is not confirmed by any source found).
+ */
+export function poseGearLever(lever: THREE.Object3D, gear: number, gears: number): void {
+  const planes = Math.ceil(gears / 2);
+  const plane = (i: number) => (i - (planes - 1) / 2) * PLANE;
+  let fore = 0, side = 0;
+  if (gear > 0) {
+    const g = Math.min(gear, gears) - 1;
+    fore = g % 2 === 0 ? THROW : -THROW;
+    side = plane(Math.floor(g / 2));
+  } else if (gear < 0) {
+    fore = -THROW;
+    side = plane(-1);
+  }
+  // Car left (+x) is the driver's left in this right-hand-drive cockpit: low planes lean towards +x.
+  lever.rotation.set(fore, 0, side, 'XZY');
 }
 
 const BLACK = 0x1b1b1d;
@@ -55,6 +84,14 @@ function bezel(cx: number, cy: number, z: number): THREE.BufferGeometry {
   const c = 0.024;
   const o: Array<[number, number]> = [[-h + c, -h], [h - c, -h], [h, -h + c], [h, h - c], [h - c, h], [-h + c, h], [-h, h - c], [-h, -h + c]];
   return tint(extrude(o, 0.006, (a, b, d) => [cx + a, cy + b, z - d]), 0x0a0a0b);
+}
+
+/** Combination gauge the size of the main dials: dark face, grey ring, fuel and temperature needles. */
+function comboDial(cx: number, cy: number, z: number): THREE.BufferGeometry[] {
+  const r = DIAL / 2 - 0.008;
+  const disc = (rr: number, t: number, zz: number, colour: number) => tint(new THREE.CylinderGeometry(rr, rr, t, 28).rotateX(Math.PI / 2).translate(cx, cy, zz), colour);
+  const needle = (a: number, y0: number) => box(0, r * 0.32, 0, 0.004, r * 0.64, 0.001, 0xff7a1a).rotateZ(a).translate(cx, cy + y0, z - 0.0078);
+  return [disc(r + 0.004, 0.003, z - 0.0035, 0x9a9da2), disc(r, 0.002, z - 0.0065, 0x101113), needle(0.6, 0.02), needle(-0.5, -0.03)];
 }
 
 /** Small round dial (fuel, temperature) with an orange needle. */
@@ -98,18 +135,22 @@ export function classicCockpit(p: BodyProfile, cv: CurveSet, eye: THREE.Vector3)
   const bz = zF - 0.058;
   const tach = new THREE.Vector2(eye.x, 0.8);
   const speedo = new THREE.Vector2(eye.x + PITCH, 0.8);
+  const combo = new THREE.Vector2(eye.x + 2 * PITCH, 0.8);
   const binnacle = [
-    box(eye.x + 0.125, 0.8, zF - 0.0305, 0.44, 0.26, 0.055, 0x131315),
-    box(eye.x + 0.125, 0.936, zF - 0.0375, 0.46, 0.012, 0.075, 0x131315),
+    box(eye.x + PITCH, 0.8, zF - 0.0305, 0.6, 0.26, 0.055, 0x131315),
+    box(eye.x + PITCH, 0.936, zF - 0.0375, 0.62, 0.012, 0.075, 0x131315),
     bezel(tach.x, tach.y, bz),
     bezel(speedo.x, speedo.y, bz),
+    bezel(combo.x, combo.y, bz),
   ];
   const tunnel = box(0.03, 0.18, (eye.z - 0.05 + zF - 0.02) / 2, 0.32, 0.16, zF - 0.02 - (eye.z - 0.05), 0x232427);
   const leverX = eye.x + 0.3;
   return {
     dash: { geo: merge([body, ...panel, ...binnacle, tunnel]), top, rearZ: zF },
-    detail: merge([...smallDial(eye.x + 0.29, 0.83, bz, 0.5), ...smallDial(eye.x + 0.29, 0.77, bz, -0.7), ...toggles(0.1, 0.53, zF)]),
+    // Two small gauges low on the dash face to the right of the column (the driver's right: towards -x).
+    detail: merge([...comboDial(combo.x, combo.y, bz), ...smallDial(eye.x - 0.15, 0.62, face, 0.5), ...smallDial(eye.x - 0.225, 0.62, face, -0.7), ...toggles(0.1, 0.53, zF)]),
     dials: dialQuads(tach, speedo, bz - 0.0072),
-    lever: gearLever(leverX, eye.z + 0.24),
+    lever: gearLever(leverX, eye.z + 0.24).translate(-leverX, -0.3, -(eye.z + 0.24)),
+    leverPivot: new THREE.Vector3(leverX, 0.3, eye.z + 0.24),
   };
 }

@@ -63,10 +63,11 @@ function cap(c: CapSpec, m: FrameMap): CapSpec {
     roundX: m.x(c.roundX),
     roundTop: m.y(c.roundTop),
     roundBottom: m.y(c.roundBottom),
+    ...(c.tipLift ? { tipLift: { ...c.tipLift, x0: m.x(c.tipLift.x0), x1: m.x(c.tipLift.x1), zone: c.tipLift.zone * m.sz, yFrom: m.y(c.tipLift.yFrom), yTo: m.y(c.tipLift.yTo) } } : {}),
   };
 }
 
-const light = (l: LightSpec, m: FrameMap): LightSpec => ({ outline: xy(l.outline, m), bars: l.bars?.map((b) => xy(b, m)) });
+const light = (l: LightSpec, m: FrameMap): LightSpec => ({ outline: xy(l.outline, m), bars: l.bars?.map((b) => xy(b, m)), ...(l.amber ? { amber: l.amber.map((b) => xy(b, m)) } : {}) });
 
 function art(a: FasciaArt, m: FrameMap): FasciaArt {
   return {
@@ -112,7 +113,11 @@ export function resolveProfile(p: BodyProfile, d: CarDimensions): BodyProfile {
     // The seat does not move when the greenhouse grows: the eye keeps its design height
     // (the extra height becomes headroom and taller glass).
     eye: [m.x(p.eye[0]), p.eye[1], m.z(p.eye[2])],
-    mirror: { z: m.z(p.mirror.z), y: m.y(p.mirror.y) },
+    mirror: { z: m.z(p.mirror.z), y: m.y(p.mirror.y), ...(p.mirror.colour !== undefined ? { colour: p.mirror.colour } : {}) },
+    ...(p.hump ? { hump: { ...p.hump, edge: m.x(p.hump.edge), scoopZ: m.z(p.hump.scoopZ), rows: p.hump.rows.map(m.z) } } : {}),
+    ...(p.flares ? { flares: p.flares } : {}),
+    ...(p.quarterLouvre ? { quarterLouvre: p.quarterLouvre } : {}),
+    ...(p.bonnetPins ? { bonnetPins: { x: m.x(p.bonnetPins.x), z: m.z(p.bonnetPins.z) } } : {}),
     exhaustZ: m.z(p.exhaustZ),
     ...(p.splitter ? { splitter: { reach: p.splitter.reach * m.sz, thickness: p.splitter.thickness } } : {}),
     ...(p.sideSkirts !== undefined ? { sideSkirts: p.sideSkirts } : {}),

@@ -7,6 +7,7 @@ import type { BodyProfile, Outline } from '@/car/models/profile-types';
 import { contrastOn, fillPoly, grow, hex, inRegion, luminance, mirrorX, poly, roundRect, worldText, type Ctx } from '@/car/models/livery-canvas';
 import { drawSponsors } from '@/car/models/livery-sponsors';
 import { drawHdt79, drawHdt79Board } from '@/car/models/livery-hdt79';
+import { drawBoltOnJoints } from '@/car/models/livery-body';
 import { liveryNumber } from '@/car/liveries';
 
 export interface LiveryShape {
@@ -255,6 +256,7 @@ export function paintLivery(ctx: Ctx, l: Livery, s: LiveryShape): void {
   ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
   if (l.pattern === 'hdt79') drawHdt79(ctx, l, s); else drawPattern(ctx, l, s);
   drawShutLines(ctx, s);
+  drawBoltOnJoints(ctx, s);
   drawFascia(ctx, s);
   if (s.kind !== 'torana') drawSponsors(ctx, l, s);
   drawNumbers(ctx, l, s);

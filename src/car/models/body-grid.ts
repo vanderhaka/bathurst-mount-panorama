@@ -26,6 +26,8 @@ export interface BodyGrid {
   /** Row index of each greenhouse / cap boundary. */
   /** noseFace: last nose row before the flat front face (the face rows follow it). */
   rowAt: Record<'cowl' | 'roofFront' | 'roofRear' | 'rearGlassBase' | 'sideFront' | 'sideRear' | 'banner' | 'noseStart' | 'noseFace' | 'tailStart', number>;
+  /** Box bonnet hump only: rows [from, to) whose hump top edge and foot are hard creases. */
+  humpRows?: readonly [number, number];
 }
 
 export interface GridOptions { detail: RingDetail; step: number; archRows: number; capRows: number }
@@ -36,7 +38,7 @@ function mainStations(p: BodyProfile, dims: CarDimensions, o: GridOptions): { z:
   const zf = dims.wheelbase / 2;
   const R = p.arch.radius;
   const required = [p.tail.zStart, p.nose.zStart, p.z.cowl, p.z.roofFront, p.z.roofRear, p.z.rearGlassBase, p.z.sideFront, p.z.sideRear, p.z.banner];
-  const fixed = [...required];
+  const fixed = [...required, ...(p.hump?.rows ?? [])];
   for (const zw of [-zf, zf]) {
     for (let i = 0; i < o.archRows; i++) fixed.push(zw + R * Math.sin(-Math.PI / 2 + (Math.PI * i) / (o.archRows - 1)));
     fixed.push(zw - R - 0.006, zw + R + 0.006);
@@ -52,6 +54,18 @@ function mainStations(p: BodyProfile, dims: CarDimensions, o: GridOptions): { z:
     out.push(z[i]);
   }
   return { z: out, required };
+}
+
+/** Raises the outer ends of a full-width spoiler (tail cap `tipLift`), fading down the quarters. */
+function liftTips(rest: Float32Array, tail: CapSpec): void {
+  const t = tail.tipLift;
+  if (!t) return;
+  for (let i = 0; i < rest.length; i += 3) {
+    const wz = smoothstep(tail.zStart + t.zone, tail.zStart, rest[i + 2]);
+    if (wz <= 0) continue;
+    const wy = smoothstep(t.yFrom, t.yTo, rest[i + 1]);
+    rest[i + 1] += t.lift * wz * wy * smoothstep(t.x0, t.x1, Math.abs(rest[i]));
+  }
 }
 
 function sweepFn(cap: CapSpec): Curve {
@@ -125,6 +139,7 @@ export function buildBodyGrid(p: BodyProfile, dims: CarDimensions, o: GridOption
       rest[i + 2] = ring.z[h];
     }
   });
+  liftTips(rest, p.tail);
   const rowZ = Float32Array.from(rings.map((ring, r) => (kinds[r] === ROW_MAIN ? zs[r - tail.length] : ring.z[0])));
   const find = (z: number) => tail.length + zs.reduce((best, v, i) => (Math.abs(v - z) < Math.abs(zs[best] - z) ? i : best), 0);
   const rowAt = {
@@ -132,5 +147,11 @@ export function buildBodyGrid(p: BodyProfile, dims: CarDimensions, o: GridOption
     sideFront: find(p.z.sideFront), sideRear: find(p.z.sideRear), banner: find(p.z.banner),
     noseStart: tail.length + zs.length - 1, noseFace: tail.length + zs.length - 1 + rounding, tailStart: tail.length,
   };
-  return { rows: rings.length, cols, n, layout, sideCrease: p.sideCrease ?? true, rest, rowKind: Uint8Array.from(kinds), rowZ, rowAt };
+  const grid: BodyGrid = { rows: rings.length, cols, n, layout, sideCrease: p.sideCrease ?? true, rest, rowKind: Uint8Array.from(kinds), rowZ, rowAt };
+  if (p.hump) {
+    const zEnd = Math.max(...p.hump.rows);
+    const last = zs.findIndex((z) => z > zEnd + 0.1);
+    grid.humpRows = [rowAt.cowl, last < 0 ? rowAt.noseStart : tail.length + last];
+  }
+  return grid;
 }

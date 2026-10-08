@@ -112,7 +112,7 @@ function wiper(grid: BodyGrid, p: BodyProfile): THREE.BufferGeometry | null {
 
 export function buildFrontAero(grid: BodyGrid, p: BodyProfile, cv: CurveSet, dims: CarDimensions, housing: number): FrontAero {
   const spl = splitter(p, dims);
-  const m = mirrors(p, cv, housing);
+  const m = mirrors(p, cv, p.mirror.colour ?? housing);
   const w = wiper(grid, p);
   return {
     plastic: [...(p.sideSkirts === false ? [] : skirts(p, cv, dims)), ...m.plastic, ...(w ? [w] : [])],

@@ -9,6 +9,7 @@ import { createDamage } from '@/car/models/damage';
 import { makeCurve } from '@/car/models/curves';
 import { paintDisplayLive } from '@/car/models/livery-texture';
 import { dashRpm, paintAnalogue } from '@/car/models/display-analogue';
+import { poseGearLever } from '@/car/models/interior-classic';
 import { liveryAtlasSize } from '@/car/models/texture-quality';
 import type { Ctx } from '@/car/models/livery-canvas';
 
@@ -46,7 +47,7 @@ function anchors(parts: CarParts): { cockpit: THREE.Object3D; bonnet: THREE.Obje
 }
 
 /** Outer shell: drawn first with depth writes, so nothing inside shows through the ghost. */
-const GHOST_SHELL = new Set(['paint', 'paint-face', 'glass', 'glass-tinted', 'banner']);
+const GHOST_SHELL = new Set(['paint', 'paint-face', 'paint-flares', 'glass', 'glass-tinted', 'banner']);
 /** Inner parts hidden in ghost mode (they only clutter a see-through car). */
 const GHOST_HIDDEN = new Set(['underside', 'disc', 'caliper', 'grille-recess']);
 
@@ -76,7 +77,7 @@ export function buildCarModel(kind: CarKind, options: CarModelOptions): CarModel
   const parts = buildCarParts(kind, options);
   const { root, body, wheels, mats, look, interior, lights } = parts;
   const a = anchors(parts);
-  const generic = [parts.plastic, parts.trim, lights.head, lights.tail, ...parts.fascia, ...(parts.splitter?.meshes ?? []), ...(parts.wing?.meshes ?? [])];
+  const generic = [parts.plastic, parts.trim, lights.head, lights.tail, ...(lights.amber ? [lights.amber] : []), ...(parts.flares ? [parts.flares] : []), ...parts.fascia, ...(parts.splitter?.meshes ?? []), ...(parts.wing?.meshes ?? [])];
   const noseTopY = makeCurve(parts.profile.curves.topY)(parts.zFront - 0.45);
   const damage = createDamage({ grid: parts.grid, shell: parts.shell, generic, splitter: parts.splitter, wing: parts.wing, lights, mats, tex: parts.tex, look, zFront: parts.zFront, zRear: parts.zRear, noseTopY });
 
@@ -132,6 +133,7 @@ export function buildCarModel(kind: CarKind, options: CarModelOptions): CarModel
       showCabin();
     },
     setDash(state) {
+      if (interior?.lever) poseGearLever(interior.lever, state.gear, CAR_SPECS[kind].gearRatios.length);
       const tex = parts.tex?.display;
       if (!tex || !interior || !interior.group.visible) return;
       // Repaint only when a shown value changes (canvas uploads are not free).

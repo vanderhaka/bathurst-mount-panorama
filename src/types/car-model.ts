@@ -83,7 +83,7 @@ export interface CarModel {
 }
 
 export interface DashState {
-  gear: number; // -1 R, 0 N, 1..6
+  gear: number; // -1 R, 0 N, 1..number of forward gears
   speedKmh: number;
   /** 0..1 of the shift-light range. */
   shiftLights: number;

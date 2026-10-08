@@ -54,8 +54,9 @@ export function archAt(z: number, axles: readonly number[], radius: number, whee
   return { inArch: false, lipY: 0 };
 }
 
-/** `soft` (0..1): how much the bonnet edge (G0) rolls smoothly into the top surface instead of creasing. */
-export interface Section { cp: P2[]; top: (x: number) => number; soft: number; edgeNext: P2; sideCrease: boolean }
+/** `soft` (0..1): how much the bonnet edge (G0) rolls smoothly into the top surface instead of creasing.
+ *  `edgeT`: box-hump rows only, the R1 -> RC parameter of the hump's top edge (its wall is the first sample step). */
+export interface Section { cp: P2[]; top: (x: number) => number; soft: number; edgeNext: P2; sideCrease: boolean; edgeT?: number }
 
 /** Bonnet rows blend from a crisp glass-base crease at the cowl to a smooth fender roll over this length (m). */
 const BONNET_ROLL_ZONE = 0.3;
@@ -86,7 +87,12 @@ export function controlPoints(p: BodyProfile, cv: CurveSet, z: number, arch: Arc
   const pw = cv.crownPow(z);
   const domeH = cv.domeH(z);
   const domeW = Math.max(0.05, cv.domeW(z));
-  const base = (x: number) => crownY(topY, G1, pw, x) + domeH * (1 - Math.min(1, (x / domeW) ** 2)) ** 2;
+  // A box hump (ahead of the cowl only): flat top, straight walls `edge` wide; otherwise the smooth bulge.
+  const box = p.hump && z > p.z.cowl ? p.hump.edge : 0;
+  const dome = box
+    ? (x: number) => domeH * Math.max(0, Math.min(1, (domeW - x) / box))
+    : (x: number) => domeH * (1 - Math.min(1, (x / domeW) ** 2)) ** 2;
+  const base = (x: number) => crownY(topY, G1, pw, x) + dome(x);
   // Ahead of the windscreen there is no glass edge at G0: the shoulder roll runs
   // into the bonnet with a matching slope (no fold line along the bonnet edge).
   const soft = smoothstep(p.z.cowl, p.z.cowl + BONNET_ROLL_ZONE, z);
@@ -120,7 +126,8 @@ export function controlPoints(p: BodyProfile, cv: CurveSet, z: number, arch: Arc
     { x: r1x, y: top(r1x) },
     { x: 0, y: top(0) },
   ];
-  return { cp, top, soft, edgeNext, sideCrease: p.sideCrease ?? true };
+  const edgeT = box ? Math.min(0.3, box / Math.max(0.05, r1x)) : undefined;
+  return { cp, top, soft, edgeNext, sideCrease: p.sideCrease ?? true, ...(edgeT !== undefined ? { edgeT } : {}) };
 }
 
 /** Height of the top surface (bonnet, windscreen, roof, deck) at x, from the roof rail G1 to the centre. */
@@ -149,12 +156,19 @@ function spanPoint(cp: P2[], span: number, t: number, top: (x: number) => number
   return catmullRom(p0, a, b, p3, t);
 }
 
+/** Sample parameter j of k on a span. On box-hump rows the second sample of the last span (R1 -> RC) sits on the
+ *  hump's top edge, so the wall is one sample step and both of its creases fall on ring columns. */
+function topT(s: Section, span: number, j: number, k: number): number {
+  if (s.edgeT === undefined || span !== CP.R1 || j === 0) return j / k;
+  return s.edgeT + ((1 - s.edgeT) * (j - 1)) / Math.max(1, k - 1);
+}
+
 /** Samples the half section into layout.n + 1 points (x >= 0). */
 export function sampleHalf(section: Section, layout: SectionLayout, out: P2[] = []): P2[] {
   out.length = 0;
   const { cp, top } = section;
   layout.spans.forEach((k, span) => {
-    for (let j = 0; j < k; j++) out.push(spanPoint(cp, span, j / k, top, section));
+    for (let j = 0; j < k; j++) out.push(spanPoint(cp, span, topT(section, span, j, k), top, section));
   });
   out.push({ ...cp[CP.RC] });
   return out;

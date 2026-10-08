@@ -8,6 +8,8 @@ import type { BodyProfile, Outline } from '@/car/models/profile-types';
 export interface LightSet {
   head: THREE.Mesh;
   tail: THREE.Mesh;
+  /** Amber tail-lamp sections (profiles with taillight.amber only). */
+  amber: THREE.Mesh | null;
   /** Centres of [left, right] lights (model frame). */
   headCentres: THREE.Vector3[];
   tailCentres: THREE.Vector3[];
@@ -92,17 +94,20 @@ function lightMesh(elements: Outline[], probe: BodyProbe, dirZ: number, levels: 
   return { mesh, centres };
 }
 
-/** `face`: the fascia mesh, when the nose face is cut out of the grid. */
-export function buildLights(grid: BodyGrid, p: BodyProfile, head: THREE.Material, tail: THREE.Material, high: boolean, face: THREE.BufferGeometry | null): LightSet {
+/** `face`: the fascia mesh, when the nose face is cut out of the grid. `amber`: material of the amber tail sections. */
+export function buildLights(grid: BodyGrid, p: BodyProfile, head: THREE.Material, tail: THREE.Material, high: boolean, face: THREE.BufferGeometry | null, amber: THREE.Material | null = null): LightSet {
   const levels = high ? 2 : 0;
   const front = face ? makeProbe(grid, grid.rowAt.noseStart - 10, grid.rowAt.noseFace, [face]) : makeProbe(grid, grid.rowAt.noseStart - 10, grid.rows - 1);
   const rear = makeProbe(grid, 0, grid.rowAt.tailStart + 10);
   const headEls = [p.headlight.outline, ...(p.headlight.bars ?? [])];
-  const tailEls = p.taillight.bars?.length ? p.taillight.bars : [p.taillight.outline];
+  // Amber sections get their own mesh at detail 'high'; far away (detail 'low', one draw call less) they join the tail lens.
+  const amberEls = p.taillight.amber?.length && amber && high ? p.taillight.amber : null;
+  const tailEls = [...(p.taillight.bars?.length ? p.taillight.bars : [p.taillight.outline]), ...(amberEls ? [] : p.taillight.amber ?? [])];
   const mats = (m: THREE.Material) => (high ? [m, m] : [m]);
   const h = lightMesh(headEls, front, -1, levels, mats(head), 'headlights');
   const t = lightMesh(tailEls, rear, 1, levels, mats(tail), 'taillights');
+  const a = amberEls && amber ? lightMesh(amberEls, rear, 1, levels, [amber], 'tail-amber').mesh : null;
   front.dispose();
   rear.dispose();
-  return { head: h.mesh, tail: t.mesh, headCentres: h.centres, tailCentres: t.centres };
+  return { head: h.mesh, tail: t.mesh, amber: a, headCentres: h.centres, tailCentres: t.centres };
 }

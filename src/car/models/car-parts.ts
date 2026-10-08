@@ -22,6 +22,7 @@ import { buildFrontAero } from '@/car/models/aero-front';
 import { buildRearAero } from '@/car/models/aero-rear';
 import { buildBodyDetails } from '@/car/models/aero-details';
 import { buildFascia } from '@/car/models/fascia';
+import { buildBoltOns } from '@/car/models/body-bolt-on';
 import { merge, tint } from '@/car/models/geo-utils';
 import type { BodyProfile } from '@/car/models/profile-types';
 import { buildInterior, type Interior } from '@/car/models/interior';
@@ -37,7 +38,7 @@ export interface CarParts {
   shell: BodyMeshes;
   profile: BodyProfile;
   look: CarLook;
-  mats: CarMaterialSet & { display: THREE.MeshBasicMaterial | null };
+  mats: CarMaterialSet & { display: THREE.MeshBasicMaterial | null; amber?: THREE.MeshStandardMaterial };
   tex: LiveryTextures | null;
   plastic: THREE.Mesh;
   trim: THREE.Mesh;
@@ -46,6 +47,8 @@ export interface CarParts {
   lights: LightSet;
   wheels: WheelSet;
   interior: Interior | null;
+  /** Painted flare lips and bolts (profiles with flares only). */
+  flares: THREE.Mesh | null;
   /** Nose face with real openings, and the opening recesses (detail 'high'). */
   fascia: THREE.Mesh[];
   /** Front-most and rear-most body z. */
@@ -88,7 +91,9 @@ export function buildCarParts(kind: CarKind, options: CarModelOptions): CarParts
   const l = options.livery;
   const [width, height] = liveryAtlasSize(seg.atlasWidth, seg.atlasHeight, options.quality ?? 'high');
   const tex = createLiveryTextures(l, { kind, profile, zFront, zRear, axleZ: dims.wheelbase / 2, wheelR: dims.wheelRadius }, width, height);
-  const mats = createCarMaterials({ look, paintMap: tex?.paint ?? null, bannerMap: tex?.banner ?? null, displayMap: tex?.display ?? null, primary: l.primary, high });
+  const mats: CarParts['mats'] = createCarMaterials({ look, paintMap: tex?.paint ?? null, bannerMap: tex?.banner ?? null, displayMap: tex?.display ?? null, primary: l.primary, high });
+  // Amber tail-lamp sections: an unlit amber lens that never takes the brake glow.
+  if (profile.taillight.amber) mats.amber = new THREE.MeshStandardMaterial({ name: 'car-amber', color: 0xff7400, emissive: 0xff5200, emissiveIntensity: 0.5, roughness: 0.2, metalness: 0 });
 
   const root = new THREE.Group();
   root.name = `car-${kind}`;
@@ -112,7 +117,8 @@ export function buildCarParts(kind: CarKind, options: CarModelOptions): CarParts
   const plates = rear.wingPlates ? tint(rear.wingPlates, l.accent) : null;
   let splitter: HingedPart | null = null;
   let wing: HingedPart | null = null;
-  const plasticParts = [...front.plastic, ...rear.plastic, ...buildBodyDetails(grid, profile, high)];
+  const boltOns = buildBoltOns(grid, profile, cv, dims.wheelbase / 2, dims.wheelRadius, high);
+  const plasticParts = [...front.plastic, ...rear.plastic, ...buildBodyDetails(grid, profile, high), ...boltOns.plastic];
   if (fasciaGeo?.strut) plasticParts.push(fasciaGeo.strut);
   const trimParts = [...front.trim];
   if (high) {
@@ -134,9 +140,12 @@ export function buildCarParts(kind: CarKind, options: CarModelOptions): CarParts
   const plastic = mesh(merge(plasticParts), mats.plastic, 'aero');
   const trim = mesh(merge(trimParts), mats.trim, 'trim');
   body.add(plastic, trim);
+  const flares = boltOns.paint ? mesh(boltOns.paint, mats.paint, 'paint-flares') : null;
+  if (flares) body.add(flares);
 
-  const lights = buildLights(grid, profile, mats.head, mats.tail, high, fasciaGeo?.face ?? null);
+  const lights = buildLights(grid, profile, mats.head, mats.tail, high, fasciaGeo?.face ?? null, mats.amber ?? null);
   body.add(lights.head, lights.tail);
+  if (lights.amber) body.add(lights.amber);
 
   const tyreMap = high ? createTyreTexture(look.tyre.colour, profile.wheel?.kind === 'classic') : null;
   if (tyreMap) {
@@ -158,5 +167,5 @@ export function buildCarParts(kind: CarKind, options: CarModelOptions): CarParts
       g.depthWrite = true;
     }
   }
-  return { root, body, grid, shell, profile, look, mats, tex, plastic, trim, splitter, wing, lights, wheels, interior, fascia, zFront, zRear };
+  return { root, body, grid, shell, profile, look, mats, tex, plastic, trim, splitter, wing, lights, wheels, interior, flares, fascia, zFront, zRear };
 }

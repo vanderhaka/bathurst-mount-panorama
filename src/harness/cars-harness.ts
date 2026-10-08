@@ -11,6 +11,7 @@
 //   brake=1                   brake lights on and hot discs
 //   target=x,y,z              camera target (default 0,0.55,0)
 //   az=<deg>&el=<deg>         custom camera azimuth (0 = front, 90 = left side) and elevation
+//   gear=<-1..n>              dash state for that gear (analogue dials, classic gear lever)
 import '@/hud/fonts';
 import * as THREE from 'three';
 import { createHarnessScene } from '@/harness/harness-scene';
@@ -65,6 +66,7 @@ async function main(): Promise<void> {
     if (params.get('brake') === '1') { m.setBrakeLights(true); m.setBrakeGlow(1); }
     if (damage > 0) for (const hit of damageSequence(damage)) m.applyImpact(hit);
     if (params.get('ghost') === '1') m.setGhost(true);
+    if (params.has('gear')) m.setDash?.({ gear: Number(params.get('gear')), speedKmh: 120, shiftLights: 0, lapS: null, deltaS: null, waterTempC: 90 });
   });
 
   const first = models[0];

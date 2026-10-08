@@ -51,6 +51,10 @@ export interface CapSpec {
   roundX: number;
   roundTop: number;
   roundBottom: number;
+  /** Upswept spoiler tips (tail only; absent = none): ring points above `yFrom` (full by `yTo`) within `zone` m of
+   *  zStart rise by up to `lift` m, easing in from |x| = x0 to x1 (the end caps), so the outer ends of a
+   *  full-width spoiler kick up and the lift fades down the rear quarters. */
+  tipLift?: { lift: number; x0: number; x1: number; zone: number; yFrom: number; yTo: number };
 }
 
 export interface GreenhouseZ {
@@ -72,6 +76,8 @@ export interface LightSpec {
   outline: Outline;
   /** Extra emissive bars inside the housing (tri-bar tail lights, DRL strips). */
   bars?: Outline[];
+  /** Amber lens sections (tail lights): their own unlit amber material, so they never glow with the brake lights. */
+  amber?: Outline[];
 }
 
 /** Livery-texture features in world coordinates. */
@@ -139,7 +145,8 @@ export interface BodyProfile {
   wing?: WingSpec;
   /** Driver eye (right-hand drive: x < 0). */
   eye: readonly [number, number, number];
-  mirror: { z: number; y: number };
+  /** Door mirror position; `colour` overrides the housing colour (default: the livery's secondary colour). */
+  mirror: { z: number; y: number; colour?: number };
   exhaustZ: number;
   /** Front splitter (absent = none): how far its lip reaches ahead of the nose face (m) and its thickness (m). */
   splitter?: { reach: number; thickness: number };
@@ -151,6 +158,21 @@ export interface BodyProfile {
   wheel?: WheelStyle;
   /** Cockpit style; absent = the Gen3 cockpit. 'classic': a 1970s dash with round gauges, a large wheel and a floor gear lever. */
   cockpit?: 'gen3' | 'classic';
+  /** Box-section bonnet hump (absent = the smooth domeH/domeW bulge). domeH/domeW still give its height and half-width;
+   *  the cross-section becomes a flat top with straight walls `edge` m wide and hard creases at the top edge and foot.
+   *  rearGlassX must equal domeW ahead of the cowl so that the foot lands on a ring column. `scoopZ`: z of its rear
+   *  face, which carries a dark rear-facing opening; `rows`: extra loft stations (z) that keep its faces crisp;
+   *  `rivets`: bolt heads along the foot of each side. */
+  hump?: { edge: number; scoopZ: number; rows: number[]; rivets: number };
+  /** Bolt-on wheel-arch flares (absent = none): a rolled lip `lip` m wide standing `proud` m off the flare around
+   *  each arch opening, `bolts` dome heads per arch on an arc `boltR` m outside the arch, and a dark joint line
+   *  painted on an arc `jointR` m outside the arch, where the flare meets the body. */
+  flares?: { lip: number; proud: number; bolts: number; boltR: number; jointR: number };
+  /** Black louvred panel (absent = none) over the side glass just behind the door, `width` m long, with `slats`
+   *  vertical slats (the HDT Toranas' quarter-window vent). */
+  quarterLouvre?: { width: number; slats: number };
+  /** Two bonnet pins (absent = none) at x = +/-x near the bonnet front edge, at z. */
+  bonnetPins?: { x: number; z: number };
   /** Dive planes on each front bumper corner: [height y, outward reach] per plane. */
   canards: ReadonlyArray<readonly [number, number]>;
 }

@@ -77,5 +77,9 @@ export function isHardColumn(grid: BodyGrid, info: QuadInfo, c: number, r: numbe
   const q = r * info.qc + Math.min(c, info.qc - 1);
   if (info.kind[q] !== ROW_MAIN) return false;
   const h = c <= grid.n ? c : 2 * grid.n - c;
+  if (grid.humpRows && r >= grid.humpRows[0] && r < grid.humpRows[1]) {
+    const foot = grid.layout.cpIndex[CP.R1];
+    if (h === foot || h === foot + 1) return true;
+  }
   return info.creases.has(h);
 }
