@@ -93,9 +93,12 @@ describe('camera rows', () => {
 });
 
 describe('graphics row', () => {
-  it('shows Auto for automatic quality (the default), else the tier, with the Settings tier labels', () => {
-    expect(rowValue(row('graphics'), DEFAULT_SETTINGS)).toBe('auto');
-    expect(rowValueLabel(row('graphics'), DEFAULT_SETTINGS)).toBe('Auto');
+  const auto = { ...DEFAULT_SETTINGS, quality: 'high' as const, autoQuality: true };
+
+  it('shows the tier (High by default), or Auto for automatic quality, with the Settings tier labels', () => {
+    expect(rowValue(row('graphics'), DEFAULT_SETTINGS)).toBe('high');
+    expect(rowValueLabel(row('graphics'), DEFAULT_SETTINGS)).toBe('High');
+    expect(rowValueLabel(row('graphics'), auto)).toBe('Auto');
     expect(rowValueLabel(row('graphics'), { ...DEFAULT_SETTINGS, quality: 'medium', autoQuality: false })).toBe('Medium');
     const field = SETTING_GROUPS.flatMap((g) => g.fields).find((f) => f.key === 'quality');
     expect(field?.kind === 'choice' && field.options.map((o) => o.label)).toEqual(row('graphics').options.slice(1).map((o) => o.label));
@@ -108,13 +111,14 @@ describe('graphics row', () => {
   });
 
   it('turns automatic quality off for a tier, and restarts Auto from High', () => {
-    const low = stepRow(DEFAULT_SETTINGS, row('graphics'), 1);
+    const low = stepRow(auto, row('graphics'), 1);
     expect(low).toMatchObject({ quality: 'low', autoQuality: false });
     const back = stepRow(low, row('graphics'), -1);
     expect(back).toMatchObject({ quality: 'high', autoQuality: true });
-    const high = stepRow(DEFAULT_SETTINGS, row('graphics'), -1);
+    const high = stepRow(auto, row('graphics'), -1);
     expect(high).toMatchObject({ quality: 'high', autoQuality: false });
-    expect(rowValue(row('graphics'), stepRow(high, row('graphics'), 1))).toBe('auto');
+    expect(stepRow(DEFAULT_SETTINGS, row('graphics'), -1)).toMatchObject({ quality: 'medium', autoQuality: false });
+    expect(rowValue(row('graphics'), stepRow(DEFAULT_SETTINGS, row('graphics'), 1))).toBe('auto');
   });
 });
 
