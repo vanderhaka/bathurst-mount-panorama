@@ -36,7 +36,10 @@ describe.each(KINDS)('%s model', (kind) => {
 
   it('matches the spec bounding box within 3%', () => {
     high.root.updateMatrixWorld(true);
-    const size = new THREE.Box3().setFromObject(high.root).getSize(new THREE.Vector3());
+    // The contact-shadow blob is a ground decal, not part of the car's size.
+    const box = new THREE.Box3();
+    high.root.traverse((o) => { if (o instanceof THREE.Mesh && !o.userData.contactShadow) box.expandByObject(o); });
+    const size = box.getSize(new THREE.Vector3());
     expect(Math.abs(size.z - d.length) / d.length).toBeLessThan(0.03);
     expect(Math.abs(size.x - d.width) / d.width).toBeLessThan(0.03);
     expect(Math.abs(size.y - d.height) / d.height).toBeLessThan(0.03);
@@ -64,8 +67,8 @@ describe.each(KINDS)('%s model', (kind) => {
     const l = stats(low);
     expect(h.triangles).toBeLessThanOrEqual(40000);
     expect(l.triangles).toBeLessThanOrEqual(6000);
-    expect(h.drawCalls).toBeLessThanOrEqual(25);
-    expect(l.drawCalls).toBeLessThanOrEqual(8);
+    expect(h.drawCalls).toBeLessThanOrEqual(26); // 25 + the contact-shadow plane
+    expect(l.drawCalls).toBeLessThanOrEqual(9); // 8 + the contact-shadow plane
     expect(low.root.getObjectByName('interior')).toBeUndefined();
   });
 
@@ -138,7 +141,7 @@ describe.each(KINDS)('%s model', (kind) => {
     high.setGhost(true);
     const mats = new Set<THREE.Material>();
     high.root.traverse((o) => {
-      if (o instanceof THREE.Mesh) {
+      if (o instanceof THREE.Mesh && !o.userData.contactShadow) {
         (Array.isArray(o.material) ? o.material : [o.material]).forEach((x) => mats.add(x));
         expect(o.castShadow).toBe(false);
       }
@@ -151,7 +154,9 @@ describe.each(KINDS)('%s model', (kind) => {
     expect(high.root.getObjectByName('paint')?.renderOrder).toBeLessThan(0);
     expect(high.root.getObjectByName('disc')?.visible).toBe(false);
     expect(high.root.getObjectByName('interior')?.visible).toBe(false);
+    expect(high.root.getObjectByName('contact-shadow')?.visible).toBe(false);
     high.setGhost(false);
+    expect(high.root.getObjectByName('contact-shadow')?.visible).toBe(true);
     expect((high.root.getObjectByName('paint') as THREE.Mesh).material).not.toBe(ghost);
     expect(high.root.getObjectByName('disc')?.visible).toBe(true);
     expect(high.root.getObjectByName('paint')?.renderOrder).toBe(0);

@@ -85,6 +85,8 @@ function paintDisplay(ctx: Ctx): void {
   ctx.fillText('92°', w * 0.96, h * 0.72);
 }
 
+const TYRE_SIDEWALL = '#2a2a2c';
+
 /**
  * Sidewall lettering for the slick (generic text, no brand). Lathe UVs: u runs
  * around the tyre, v along the profile (outer sidewall is v ~0.8..0.93).
@@ -97,6 +99,10 @@ export function createTyreTexture(base: number, plain = false): THREE.CanvasText
   const { width: w, height: h } = ctx.canvas;
   ctx.fillStyle = hex(base);
   ctx.fillRect(0, 0, w, h);
+  // Sidewalls (either side of the tread, which sits at v ~0.4..0.6) a little lighter than the tread.
+  ctx.fillStyle = TYRE_SIDEWALL;
+  ctx.fillRect(0, 0, w, h * 0.4);
+  ctx.fillRect(0, h * 0.6, w, h * 0.4);
   const y0 = (1 - 0.925) * h;
   const y1 = (1 - 0.812) * h;
   if (plain) {

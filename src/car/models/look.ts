@@ -56,6 +56,8 @@ export interface CarLook {
   disc: DiscLook;
   caliper: SurfaceLook;
   interior: SurfaceLook;
+  /** Soft dark blob under the body (opacity 0 hides it). */
+  contactShadow: { opacity: number };
   lights: LightsLook;
   damage: DamageLook;
   ghost: GhostLook;
@@ -63,18 +65,19 @@ export interface CarLook {
 }
 
 export const CAR_LOOK: CarLook = {
-  paint: { roughness: 0.34, metalness: 0.12, clearcoat: 1, clearcoatRoughness: 0.06, envMapIntensity: 1.35 },
-  glass: { colour: 0x0d1418, roughness: 0.05, metalness: 0.1, envMapIntensity: 1.8, opacity: 0.8 },
-  glassTint: { colour: 0x07090b, roughness: 0.05, metalness: 0.15, envMapIntensity: 1.8, opacity: 0.92 },
+  paint: { roughness: 0.25, metalness: 0.3, clearcoat: 1, clearcoatRoughness: 0.04, envMapIntensity: 1.7 },
+  glass: { colour: 0x080d10, roughness: 0.03, metalness: 0.1, envMapIntensity: 1.4, opacity: 0.82 },
+  glassTint: { colour: 0x040608, roughness: 0.03, metalness: 0.15, envMapIntensity: 1.4, opacity: 0.93 },
   rim: { colour: 0x8b9097, roughness: 0.3, metalness: 0.85, envMapIntensity: 1.2 },
   nut: { colour: 0xc8261e, roughness: 0.35, metalness: 0.6, envMapIntensity: 1 },
-  tyre: { colour: 0x1b1b1d, roughness: 0.9, metalness: 0, envMapIntensity: 0.6 },
+  tyre: { colour: 0x1b1b1d, roughness: 0.95, metalness: 0, envMapIntensity: 0.6 },
   plastic: { colour: 0x151618, roughness: 0.72, metalness: 0, envMapIntensity: 0.8 },
   carbon: { colour: 0x17181b, roughness: 0.55, metalness: 0.1, envMapIntensity: 0.9 },
   trim: { colour: 0xffffff, roughness: 0.45, metalness: 0.2, envMapIntensity: 1 },
   disc: { colour: 0x6a6c70, roughness: 0.45, metalness: 0.8, envMapIntensity: 1, glowColour: 0xff4a12, glowMax: 3.2 },
   caliper: { colour: 0xb81d1d, roughness: 0.4, metalness: 0.3, envMapIntensity: 1 },
   interior: { colour: 0xffffff, roughness: 0.8, metalness: 0.05, envMapIntensity: 0.6 },
+  contactShadow: { opacity: 0.55 },
   lights: {
     headColour: 0xf4f7ff, headIntensity: 2.4,
     tailColour: 0xff0606, tailIntensity: 0.9, brakeColour: 0xff0000, brakeIntensity: 1.8,
@@ -115,6 +118,8 @@ export interface CarMaterialSet {
   head: THREE.MeshStandardMaterial;
   tail: THREE.MeshStandardMaterial;
   broken: THREE.MeshStandardMaterial;
+  /** Contact-shadow blob material (opacity is live). */
+  contact?: THREE.MeshBasicMaterial;
   ghost: THREE.MeshStandardMaterial;
 }
 
@@ -191,6 +196,7 @@ export function writeMaterials(mats: CarMaterialSet, look: CarLook, brakeOn: boo
   mats.tail.color.setHex(l.tailColour).multiplyScalar(0.25);
   setTailGlow(mats, look, brakeOn);
   mats.broken.color.setHex(l.brokenColour);
+  if (mats.contact) mats.contact.opacity = look.contactShadow.opacity;
   mats.ghost.color.setHex(look.ghost.colour);
   mats.ghost.emissive.setHex(look.ghost.colour);
   mats.ghost.opacity = look.ghost.opacity;

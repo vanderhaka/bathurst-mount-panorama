@@ -25,6 +25,7 @@ import { buildFascia } from '@/car/models/fascia';
 import { buildBoltOns } from '@/car/models/body-bolt-on';
 import { merge, tint } from '@/car/models/geo-utils';
 import type { BodyProfile } from '@/car/models/profile-types';
+import { createContactShadow } from '@/car/models/contact-shadow';
 import { buildInterior, type Interior } from '@/car/models/interior';
 
 const PROFILES = { camaro: CAMARO_PROFILE, mustang: MUSTANG_PROFILE, supra: SUPRA_PROFILE, torana: TORANA_PROFILE } as const;
@@ -155,6 +156,10 @@ export function buildCarParts(kind: CarKind, options: CarModelOptions): CarParts
   }
   const wheels = createWheels(dims, mats, seg, high, look, profile.wheel);
   root.add(wheels.group);
+  // Unsprung (root), so it stays flat on the road while the body pitches and rolls.
+  const shadow = createContactShadow(zFront - zRear + 0.5, dims.trackFront + dims.tyreWidth + 0.5, (zFront + zRear) / 2, look.contactShadow.opacity);
+  mats.contact = shadow.material;
+  root.add(shadow.mesh);
 
   let interior: Interior | null = null;
   if (high && mats.interior && shell.shell) {
