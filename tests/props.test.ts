@@ -146,13 +146,44 @@ describe('instanced props', () => {
     expect(after).not.toBe(before);
     setPropsLook({ shading: { flat: false } });
     const smooth = getPropAsset('eucalyptus', 0);
-    expect((smooth.material as THREE.MeshStandardMaterial).flatShading).toBe(false);
     expect(smooth.triangles).toBe(after.triangles);
     resetPropsLook();
     expect(PROPS_LOOK.eucalyptus.foliage.length).toBeGreaterThan(1);
-    expect((getPropAsset('eucalyptus', 0).material as THREE.MeshStandardMaterial).flatShading).toBe(false);
     clearPropCache();
     expect(getPropAsset('eucalyptus', 0)).not.toBe(after);
+  });
+
+  // Gum trees use the world's own leaf/bark material (src/props/trees/gum-materials.ts), which is
+  // always smooth-shaded and ignores shading.flat. Pin that separately from the flat-switch test below.
+  it('keeps gum trees smooth-shaded whatever shading.flat says', () => {
+    const flatShading = () => (getPropAsset('eucalyptus', 0).material as THREE.MeshStandardMaterial).flatShading;
+    expect(PROPS_LOOK.shading.flat).toBe(true);
+    expect(flatShading()).toBe(false);
+    setPropsLook({ shading: { flat: false } });
+    expect(flatShading()).toBe(false);
+    resetPropsLook();
+    expect(flatShading()).toBe(false);
+  });
+
+  // The pine uses the shared foliage material and the mesher, so it does honour shading.flat.
+  it('shading.flat smooths a flat-shaded prop and resetPropsLook restores the facets', () => {
+    const flatShading = (a: ReturnType<typeof getPropAsset>) => (a.material as THREE.MeshStandardMaterial).flatShading;
+    const normals = (a: ReturnType<typeof getPropAsset>) => Array.from(a.geometry.getAttribute('normal').array);
+    expect(PROPS_LOOK.shading.flat).toBe(true);
+    const facets = getPropAsset('pine', 0);
+    expect(flatShading(facets)).toBe(true);
+    setPropsLook({ shading: { flat: false } });
+    const smooth = getPropAsset('pine', 0);
+    expect(smooth).not.toBe(facets);
+    expect(flatShading(smooth)).toBe(false);
+    expect(smooth.triangles).toBe(facets.triangles);
+    expect(normals(smooth)).not.toEqual(normals(facets));
+    resetPropsLook();
+    expect(PROPS_LOOK.shading.flat).toBe(true);
+    const restored = getPropAsset('pine', 0);
+    expect(restored).not.toBe(smooth);
+    expect(flatShading(restored)).toBe(true);
+    expect(normals(restored)).toEqual(normals(facets));
   });
 });
 
