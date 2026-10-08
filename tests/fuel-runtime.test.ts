@@ -34,7 +34,7 @@ describe('fuel runtime wiring without a renderer', () => {
   it('binds the racing line to the same owned profile used by the HUD and AI', () => {
     const car = entity(), session = new RaceSession('camaro', track, line, car);
     const setProfile = vi.fn();
-    const race = new RaceController(session, car, { lineMesh: { setProfile } } as unknown as RaceDeps);
+    const race = new RaceController(session, car, { lineMesh: { setProfile }, effects: { resetAll() {} } } as unknown as RaceDeps);
     expect(setProfile).toHaveBeenCalledWith(race.profiles.player);
     expect(race.profiles.ai).not.toBe(race.profiles.player);
   });

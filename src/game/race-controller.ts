@@ -6,6 +6,7 @@ import type { Particles } from '@/fx/particles';
 import type { CarEntity } from '@/game/car-entity';
 import { buildHudState } from '@/game/hud-bridge';
 import { mirrorView } from '@/game/mirror-view';
+import type { RaceEffects } from '@/game/race-effects';
 import type { RaceSession } from '@/game/race-session';
 import { trackLapsDriven, trackRaceStart } from '@/game/usage-analytics';
 import { PhoneVibration } from '@/input/phone-vibration';
@@ -23,32 +24,6 @@ import type { Hud, HudState } from '@/types/hud';
 import type { Settings } from '@/types/session';
 import type { RacingLineMesh } from '@/world/racing-line-mesh';
 
-const wp: [number, number] = [0, 0];
-let emitAcc = 0;
-
-/** Tyre smoke from sliding wheels, dust and gravel spray from run-off areas. */
-export function emitWheelEffects(car: CarEntity, particles: Particles, dt: number): void {
-  const v = car.vehicle;
-  const speed = Math.abs(v.speed);
-  emitAcc += dt;
-  if (emitAcc < 1 / 60) return;
-  emitAcc = 0;
-  const groundY = v.y - v.spec.cgHeight + 0.15;
-  v.wheels.forEach((w, i) => {
-    v.wheelWorld(i, wp);
-    // Smoke only from clear slides (lock-ups, wheelspin, big slip angles), not at the grip limit,
-    // and only from loaded tyres (the slip ratio of a lifted wheel means nothing).
-    if ((w.surface === 'road' || w.surface === 'kerb') && w.slip > 1.35 && w.load > 1500 && speed > 3) {
-      const k = Math.min(1, (w.slip - 1.35) * 1.2);
-      if (Math.random() < 0.25 + k) particles.emit('smoke', wp[0], groundY, wp[1], v.vx, 0, v.vz, k);
-    } else if ((w.surface === 'grass' || w.surface === 'gravel') && speed > 4) {
-      const k = Math.min(1, speed / 25);
-      if (Math.random() < 0.5 * k + 0.1) particles.emit('dust', wp[0], groundY, wp[1], v.vx, 0, v.vz, k);
-      if (w.surface === 'gravel' && Math.random() < 0.8 * k) particles.emit('gravel', wp[0], groundY, wp[1], v.vx, 0, v.vz);
-    }
-  });
-}
-
 /** Distance (m) inside which the ghost is hidden in the cockpit and bonnet views. */
 const GHOST_HIDE_IN_CAR = 14;
 
@@ -62,6 +37,8 @@ export interface RaceDeps {
   audio: CarAudio | null;
   ghostModel: CarModel | null;
   particles: Particles;
+  /** Car effects (smoke, dust, flames, sparks) and the rubber marbles for the current world. */
+  effects: RaceEffects;
   /** Live settings (read every frame so that menu changes apply at once). */
   settings: () => Settings;
   /** Shows the session's start-light count on the grid gantry. */
@@ -89,6 +66,7 @@ export class RaceController {
     d.lineMesh.setProfile(this.profiles.player);
     // One RaceController per race started from the menu (Restart reuses it, so it is not counted again).
     trackRaceStart(session.track.id, session.car);
+    d.effects.resetAll();
   }
 
   frame(dt: number, fps: number | null): void {
@@ -147,18 +125,18 @@ export class RaceController {
       if (settings.autoRecover && !this.autopilot && this.session.racing) {
         const offTrack = v.wheels.every((w) => w.surface !== 'road' && w.surface !== 'kerb');
         const wrongWay = facingWrongWay(this.session.track, v.tp.index, v.heading);
-        if (this.recover.update(h, { speed: v.speed, offTrack, wrongWay, throttle: this.vin.throttle })) this.session.resetToTrack('auto');
+        if (this.recover.update(h, { speed: v.speed, offTrack, wrongWay, throttle: this.vin.throttle })) this.resetToTrack('auto');
       } else this.recover.reset();
       // The verification driver never gives up: reset when stuck.
       if (this.autopilot && this.session.racing) {
         this.stuckT = Math.abs(v.speed) < 2 ? this.stuckT + h : 0;
-        if (this.stuckT > 2.5) { this.session.resetToTrack(); this.stuckT = 0; }
+        if (this.stuckT > 2.5) { this.resetToTrack(); this.stuckT = 0; }
       }
     }
     this.player.sync(dt, cockpitHeaveScale(this.d.rig.mode, settings.headMotion));
     this.d.startLights(this.session.lights);
     mirrorView().update(this.d.stage.renderer, this.d.stage.scene, this.player.model, this.d.rig.mode === 'cockpit' && !this.d.rig.lookBack);
-    emitWheelEffects(this.player, this.d.particles, dt);
+    this.d.effects.step(this.player, dt);
     this.updateGhost();
     this.feedback(dt);
     this.d.lineMesh.mode = settings.racingLine;
@@ -176,6 +154,18 @@ export class RaceController {
         waterTempC: 88 + Math.min(14, this.session.timer.lapTime / 20),
       });
     }
+  }
+
+  /** Puts the car back on the racing line (repaired) and clears the effects' burst state. */
+  resetToTrack(reason: 'manual' | 'auto' = 'manual'): void {
+    this.session.resetToTrack(reason);
+    this.d.effects.resetCar();
+  }
+
+  /** Back to the grid: the lap profiles and every effect start clean. */
+  restart(): void {
+    this.profiles.reset();
+    this.d.effects.resetAll();
   }
 
   private updateGhost(): void {
