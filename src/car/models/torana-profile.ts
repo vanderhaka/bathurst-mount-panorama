@@ -140,5 +140,6 @@ export const TORANA_PROFILE: BodyProfile = {
   sideSkirts: false,
   diffuser: false,
   wheel: { kind: 'classic', rimRadius: 0.1905, rimHalfWidth: 0.127, discRadius: 0.138 },
+  cockpit: 'classic',
   canards: [],
 };

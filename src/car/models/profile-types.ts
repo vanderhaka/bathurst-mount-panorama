@@ -149,6 +149,8 @@ export interface BodyProfile {
   diffuser?: boolean;
   /** Wheel style; absent = the Gen3 wheel. */
   wheel?: WheelStyle;
+  /** Cockpit style; absent = the Gen3 cockpit. 'classic': a 1970s dash with round gauges, a large wheel and a floor gear lever. */
+  cockpit?: 'gen3' | 'classic';
   /** Dive planes on each front bumper corner: [height y, outward reach] per plane. */
   canards: ReadonlyArray<readonly [number, number]>;
 }
