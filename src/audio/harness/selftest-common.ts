@@ -11,6 +11,7 @@ export function makeFrame(over: Partial<CarAudioFrame> = {}): CarAudioFrame {
     gear: 0,
     onLimiter: false,
     slip: 0,
+    scrub: 0,
     surface: 'asphalt',
     interior: 0,
     shifted: false,

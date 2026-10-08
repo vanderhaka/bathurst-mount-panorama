@@ -11,6 +11,7 @@ export interface ControlState {
   speedKmh: number;
   gear: number;
   slip: number;
+  scrub: number;
   surface: Surface;
   interior: number;
   limiter: boolean;
@@ -18,7 +19,7 @@ export interface ControlState {
   auto: boolean;
 }
 
-type NumKey = 'rpm' | 'load' | 'throttle' | 'speedKmh' | 'slip' | 'interior' | 'master';
+type NumKey = 'rpm' | 'load' | 'throttle' | 'speedKmh' | 'slip' | 'scrub' | 'interior' | 'master';
 
 interface SliderDef {
   key: NumKey;
@@ -33,6 +34,7 @@ const SLIDERS: readonly SliderDef[] = [
   { key: 'load', label: 'load', min: 0, max: 1, step: 0.01 },
   { key: 'throttle', label: 'throttle', min: 0, max: 1, step: 0.01 },
   { key: 'speedKmh', label: 'speed km/h', min: 0, max: 320, step: 1 },
+  { key: 'scrub', label: 'tyre scrub', min: 0, max: 1, step: 0.01 },
   { key: 'slip', label: 'slip', min: 0, max: 1, step: 0.01 },
   { key: 'interior', label: 'interior', min: 0, max: 1, step: 0.01 },
   { key: 'master', label: 'master', min: 0, max: 1.5, step: 0.01 },
@@ -67,6 +69,7 @@ export function initialState(kind: CarKind): ControlState {
     speedKmh: 0,
     gear: 0,
     slip: 0,
+    scrub: 0,
     surface: 'asphalt',
     interior: 0,
     limiter: false,
@@ -179,6 +182,7 @@ export function buildControls(h: HarnessHandlers): Controls {
         throttle: frame.throttle,
         speedKmh: frame.speedKmh,
         slip: frame.slip,
+        scrub: frame.scrub ?? 0,
         interior: frame.interior,
         master: undefined,
       };

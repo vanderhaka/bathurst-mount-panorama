@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { HeadMotion, headMotionAmount } from '@/camera/head-motion';
 import { getGraphics } from '@/config/graphics';
 import type { Track } from '@/track/track-model';
 import { tvCameraIndex, tvCameraPoint } from '@/track/tv-cameras';
@@ -14,7 +15,10 @@ export interface CameraTarget {
   speed: number;
   /** Artificial body heave, so cockpit comfort can scale it independently. */
   flatSpotHeave?: number;
-  headMotion?: number;
+  /** Measured longitudinal (+ accelerating) and lateral (+ left) acceleration in g. */
+  gLong: number;
+  gLat: number;
+  headMotion: number;
   /** World-space anchors from the car model. */
   cockpit: THREE.Object3D;
   bonnet: THREE.Object3D;
@@ -35,6 +39,7 @@ export class CameraRig {
   private initialised = false;
   private shake = 0;
   private shakeT = 0;
+  private readonly head = new HeadMotion();
   private tvIndex = -1;
   private readonly tvPos = new THREE.Vector3();
   private readonly tmp: [number, number, number] = [0, 0, 0];
@@ -44,6 +49,7 @@ export class CameraRig {
   cycle(): CameraMode {
     this.mode = CAMERA_ORDER[(CAMERA_ORDER.indexOf(this.mode) + 1) % CAMERA_ORDER.length];
     this.initialised = false;
+    this.head.reset();
     return this.mode;
   }
 
@@ -54,6 +60,7 @@ export class CameraRig {
 
   snap(): void {
     this.initialised = false;
+    this.head.reset();
   }
 
   update(t: CameraTarget, dt: number): void {
@@ -64,7 +71,8 @@ export class CameraRig {
     const back = this.lookBack ? -1 : 1;
     this.shakeT += dt;
     this.shake *= Math.exp(-dt * 5);
-    const sh = this.shake * g.cameraShake;
+    const sh = this.shake * g.cameraShake * (this.mode === 'cockpit' ? headMotionAmount(t.headMotion) : 1);
+    if (this.mode !== 'cockpit' || this.lookBack) this.head.reset();
     const jitter = new THREE.Vector3(Math.sin(this.shakeT * 53) * 0.02, Math.sin(this.shakeT * 71) * 0.015, 0).multiplyScalar(sh);
 
     if ((this.mode === 'cockpit' || this.mode === 'bonnet') && this.lookBack) {
@@ -78,11 +86,16 @@ export class CameraRig {
       const anchor = this.mode === 'cockpit' ? t.cockpit : t.bonnet;
       anchor.getWorldPosition(cam.position);
       if (this.mode === 'cockpit') {
-        const amount = Math.max(0, Math.min(1, t.headMotion ?? 1));
+        const amount = headMotionAmount(t.headMotion);
         cam.position.add(new THREE.Vector3(0, -(t.flatSpotHeave ?? 0) * (1 - amount), 0).applyQuaternion(t.quaternion));
       }
       // The model's anchors are pre-oriented like three.js cameras (they look along the car's +Z).
       anchor.getWorldQuaternion(cam.quaternion);
+      if (this.mode === 'cockpit') {
+        const head = this.head.update(t.gLong, t.gLat, t.headMotion, dt);
+        cam.position.add(new THREE.Vector3(head.x, 0, head.z).applyQuaternion(cam.quaternion));
+        cam.quaternion.multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(head.pitch, 0, head.roll, 'YXZ')));
+      }
       cam.position.add(jitter);
       cam.fov = (this.mode === 'cockpit' ? g.fov - 4 : g.fov) + Math.min(8, kmh / 40);
       cam.near = 0.05;

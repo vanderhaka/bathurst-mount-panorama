@@ -21,6 +21,7 @@ export async function runWorstCase(kind: CarKind): Promise<{ peakDbfs: number; r
       gear: 6,
       onLimiter: true,
       slip: 1,
+      scrub: 1,
       surface: 'kerb',
       interior: 1,
     }),

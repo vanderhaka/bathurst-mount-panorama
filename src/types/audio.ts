@@ -13,6 +13,8 @@ export interface CarAudioFrame {
   onLimiter: boolean;
   /** Tyre slip 0..1 (0 = grip, 1 = full slide) for squeal. */
   slip: number;
+  /** Loaded tyre demand 0..1 for rubber scrub before a full slide (omitted = silent). */
+  scrub?: number;
   surface: Surface;
   /** 0..1 = how much the camera is inside the car (cockpit = 1, chase = 0). Changes the mix. */
   interior: number;

@@ -216,14 +216,16 @@ Status: done (commit 98ea49201928ff8455a6acda13864736eb3779fa).
 - **Do:** more grip on the rubbered line, less on the dirty outside; the line grip rises through a session.
 - **Done when:** a test shows lower grip 4 m off the line; the visual line from 1.4 matches the grip.
 ### 3.8 Kerb types — M
-Status: done (commit recorded by the next item; exact SHA and preview proof in HANDOFF.md).
+Status: done (commit 3a48538c0900b1da4eaf9886a3007a41db97699c).
 - **Depends on:** 1.4.
 - **Do:** flat kerbs that a driver can use; raised "sausage" kerbs that unsettle the car; per-corner kerb data from the aerial photos (for example the 2 m inside kerb at The Chase T21).
 - **Done when:** the physics surface and the visual kerb match at five checked corners; the line-follower test still passes.
 ### 3.9 Real pole reference — S
+Status: blocked — the official 2025 pole’s second and third sector splits remain unavailable after results, archive endpoints and official-video retrieval. Saturday Q9 is 124.0413 s; Friday qualifying is 124.0307 s. Keep the reference incomplete; see docs/research/pole-reference.md and artifacts/review/item-3.9/.
 - **Do:** a "2025 pole" target ghost (2:04.03, first sector 50.847 s) built from the AI line and timed to the real sector splits; it shows as a target in time trial.
 - **Done when:** the ghost crosses the sector lines at the real split times.
 ### 3.10 Head movement and sound detail — S
+Status: done (commit recorded by the next item; exact SHA and preview deployment in HANDOFF.md).
 - **Do:** the cockpit camera leans and moves with g-forces (amount in Settings); tyre scrub, kerb rumble, gear whine and downshift backfires in the audio.
 - **Done when:** each sound shows in an audio test; the head movement setting turns it off.
 ### 3.11 Weather and time of day — L

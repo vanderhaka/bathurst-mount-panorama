@@ -1,4 +1,5 @@
 import { DEFAULT_SETTINGS, type Settings } from '@/types/session';
+import { headMotionAmount } from '@/camera/head-motion';
 import { loadQualityChoice } from '@/game/quality-store';
 import { touchOptions } from '@/input/touch-model';
 
@@ -18,7 +19,7 @@ export function loadSettings(): Settings {
   } catch { /* storage unavailable */ }
   const graphics = loadQualityChoice(settings.quality);
   const touch = touchOptions(settings);
-  return { ...settings, quality: graphics.quality, autoQuality: graphics.automatic,
+  return { ...settings, headMotion: headMotionAmount(settings.headMotion), quality: graphics.quality, autoQuality: graphics.automatic,
     touchMode: touch.mode, touchAnalogThrottle: touch.analogThrottle,
     touchAutoThrottle: touch.autoThrottle, touchLeftHanded: touch.leftHanded };
 }

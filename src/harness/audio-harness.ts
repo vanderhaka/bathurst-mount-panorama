@@ -116,6 +116,7 @@ function runInteractive(): void {
         gear: s.gear,
         onLimiter: s.limiter,
         slip: s.slip,
+        scrub: s.scrub,
         surface: s.surface,
         interior: s.interior,
         shifted: pendingShift,

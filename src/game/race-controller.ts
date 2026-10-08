@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { tyreScrubUse } from '@/audio/dsp/tyre-scrub';
 import type { CameraRig } from '@/camera/camera-rig';
 import { getHandling } from '@/config/handling';
 import type { Particles } from '@/fx/particles';
@@ -209,6 +210,7 @@ export class RaceController {
       gear: t.gear,
       onLimiter: t.onLimiter,
       slip: Math.max(0, Math.min(1, (maxSlip - 0.9) / 0.6)) * Math.min(1, speed / 10),
+      scrub: tyreScrubUse(v.wheels),
       surface: worst,
       interior: mode === 'cockpit' ? 1 : mode === 'bonnet' ? 0.55 : 0,
       shifted: t.shifted,

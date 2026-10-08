@@ -1,6 +1,6 @@
 import { strict as assert } from 'node:assert';
 import { test } from 'node:test';
-import { checkDisplay, checkFresh, checkNormal, observeBrakes } from './verify-brakes.mjs';
+import { adjustmentDirection, checkDisplay, checkFresh, checkNormal, observeBrakes } from './verify-brakes.mjs';
 
 const discs = (tempC = 22, energyJ = 0, forceMultiplier = 1) => Array.from({ length: 4 }, () => ({ tempC, energyJ, forceMultiplier }));
 const spots = () => Array.from({ length: 4 }, () => ({ severity: 0, gripMultiplier: 1 }));
@@ -8,6 +8,14 @@ const fresh = () => ({ discs: discs(), spots: spots(), tyres: Array.from({ lengt
 const normal = () => ({ laps: [0, 1, 2].map(i => ({ standing: i === 0, valid: true, timeS: 125,
   discs: discs(500 + 50 * i, 4e6 * (i + 1)), fuelL: 76 - 4 * i })), recoveries: [],
   phases: { normal: { impacts: [], peakC: 600, minForce: 1, maxSpot: 0, cooling: 200 } } });
+
+test('reaches Off by decreasing a clamped range while preserving toggle cycling', () => {
+  assert.equal(adjustmentDirection(.5, 0), 'Previous');
+  assert.equal(adjustmentDirection(1, 0), 'Previous');
+  assert.equal(adjustmentDirection(.5, 1), 'Next');
+  assert.equal(adjustmentDirection(true, false), 'Next');
+  assert.equal(adjustmentDirection(false, true), 'Next');
+});
 
 test('requires real completions, normal cooling, retained ABS tyres and no collision/fade', () => {
   assert.equal(checkNormal(normal()).peakC, 600);

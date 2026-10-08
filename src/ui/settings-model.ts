@@ -13,7 +13,7 @@ interface ChoiceField<K extends SettingKey> {
 }
 
 /** Numeric settings, shown as a percentage with a meter. */
-export type RangeKey = 'masterVolume' | 'steerKeyboard' | 'steerPad' | 'steerTouch';
+export type RangeKey = 'masterVolume' | 'steerKeyboard' | 'steerPad' | 'steerTouch' | 'headMotion';
 
 interface RangeField {
   key: RangeKey;
@@ -113,6 +113,7 @@ export const SETTING_GROUPS: ReadonlyArray<{ title: string; fields: SettingField
           { value: 'tv', label: 'TV' },
         ],
       },
+      { key: 'headMotion', kind: 'range', label: 'Head movement', help: 'Cockpit movement and lean with braking and cornering. Set to Off for a steady camera.', min: 0, max: 1, step: 0.1 },
       { key: 'motionBlur', kind: 'choice', label: 'Motion blur', help: 'Subtle speed streaks on High graphics. The instruments stay sharp.', options: ON_OFF },
       { key: 'showFps', kind: 'choice', label: 'Frame rate counter', help: 'Shows frames per second under the timing panel.', options: ON_OFF },
     ],
@@ -174,6 +175,6 @@ export function rangeFraction(field: RangeField, value: number): number {
 
 /** Text shown for the field's current value. */
 export function valueLabel(field: SettingField, settings: Settings): string {
-  if (field.kind === 'range') return `${Math.round(settings[field.key] * 100)}%`;
+  if (field.kind === 'range') return field.key === 'headMotion' && settings.headMotion === 0 ? 'Off' : `${Math.round(settings[field.key] * 100)}%`;
   return field.options[optionIndex(field, settings)].label;
 }

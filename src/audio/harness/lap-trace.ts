@@ -124,6 +124,7 @@ export class LapSimulator {
         gear: this.gear,
         onLimiter: atLimit,
         slip,
+        scrub: Math.min(1, slip * 1.5),
         surface: a.surface,
         interior,
         shifted,

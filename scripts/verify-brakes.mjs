@@ -7,6 +7,10 @@ import { pathToFileURL } from 'node:url';
 import { chromium, webkit } from 'playwright';
 import { authenticatePreview } from './browser-auth.mjs';
 
+export function adjustmentDirection(current, target) {
+  return typeof current === 'number' && typeof target === 'number' && current > target ? 'Previous' : 'Next';
+}
+
 export function observeBrakes() {
   const game = window.__game, race = game.race, car = race.player, v = car.vehicle, session = race.session;
   const copy = () => JSON.parse(JSON.stringify({ discs: v.brakes.discs, spots: v.flatSpots.tyres,
@@ -147,8 +151,10 @@ async function main() {
   const setting = async (tab, label, key, value) => {
     await page.getByRole('tab', { name: tab, exact: true }).tap();
     for (let i = 0; i < 15; i++) {
-      if (await page.evaluate(({ key, value }) => window.__game.settings[key] === value, { key, value })) return;
-      await page.locator('.mn-screen--settings').getByRole('button', { name: `Next ${label.toLowerCase()}`, exact: true }).tap();
+      const current = await page.evaluate(key => window.__game.settings[key], key);
+      if (current === value) return;
+      const direction = adjustmentDirection(current, value);
+      await page.locator('.mn-screen--settings').getByRole('button', { name: `${direction} ${label.toLowerCase()}`, exact: true }).tap();
     }
     throw new Error(`Cannot choose ${label}`);
   };

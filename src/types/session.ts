@@ -1,4 +1,5 @@
 import type { CarKind } from '@/car/car-specs';
+import { DEFAULT_HEAD_MOTION } from '@/camera/head-motion';
 import type { QualityPreset } from '@/render/renderer';
 import type { TouchSteeringMode } from '@/input/touch-model';
 import type { TyreCompound } from '@/physics/tyre-state';
@@ -35,6 +36,8 @@ export interface Settings {
   showFps: boolean;
   hudSize: 'full' | 'minimal';
   motionBlur: boolean;
+  /** Cockpit g-force movement and shake amount (0 = off, 1 = full). */
+  headMotion: number;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -62,6 +65,7 @@ export const DEFAULT_SETTINGS: Settings = {
   showFps: false,
   hudSize: 'full',
   motionBlur: true,
+  headMotion: DEFAULT_HEAD_MOTION,
 };
 
 export interface SessionConfig {
