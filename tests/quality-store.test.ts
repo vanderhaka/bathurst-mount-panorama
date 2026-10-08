@@ -17,7 +17,7 @@ beforeEach(() => {
 });
 afterEach(() => vi.unstubAllGlobals());
 
-const KEY = 'bathurst.quality.v2';
+const KEY = 'bathurst.quality.v3';
 const auto = { quality: 'high', autoQuality: true } as const;
 const savedSettings = (values: object) => data.set('bathurst.settings.v1', JSON.stringify({ ...DEFAULT_SETTINGS, ...values }));
 
@@ -48,23 +48,24 @@ describe('saved graphics result', () => {
     expect(loadQualityChoice(auto)).toEqual({ quality: 'low', pixelRatio: 0.75, automatic: true });
   });
 
-  it('falls back to a manual quality saved with Settings when no graphics result is stored', () => {
-    savedSettings({ quality: 'low', autoQuality: false });
-    expect(loadSettings()).toMatchObject({ quality: 'low', autoQuality: false });
-    expect(loadQualityChoice(loadSettings())).toEqual({ quality: 'low', pixelRatio: 1, automatic: false });
+  it('starts on High when a quality was saved only with Settings', () => {
+    savedSettings({ quality: 'medium', autoQuality: false });
+    expect(loadSettings()).toMatchObject({ quality: 'high', autoQuality: false });
+    expect(loadQualityChoice(loadSettings())).toEqual({ quality: 'high', pixelRatio: 2, automatic: false });
   });
 
-  it('learns again instead of restoring an automatic result saved by the old monitor', () => {
+  it('starts on High instead of restoring results saved by older versions', () => {
     savedSettings({ quality: 'low', autoQuality: true });
     data.set(`bathurst.quality.v1.${JSON.stringify(['test-device', [390, 844], 3, false])}`, JSON.stringify({ quality: 'low', pixelRatio: 0.75, automatic: true }));
-    expect(loadSettings()).toMatchObject({ quality: 'high', autoQuality: true });
-    expect(loadQualityChoice(loadSettings())).toEqual({ quality: 'high', pixelRatio: 2, automatic: true });
+    data.set('bathurst.quality.v2', JSON.stringify({ quality: 'medium', pixelRatio: null, automatic: false }));
+    expect(loadSettings()).toMatchObject({ quality: 'high', autoQuality: false });
+    expect(loadQualityChoice(loadSettings())).toEqual({ quality: 'high', pixelRatio: 2, automatic: false });
   });
 
-  it('starts a phone on High with automatic quality, like a desktop', () => {
+  it('starts a phone on High with automatic quality off, like a desktop', () => {
     vi.stubGlobal('matchMedia', () => ({ matches: true }));
-    expect(loadSettings()).toMatchObject({ quality: 'high', autoQuality: true });
-    expect(loadQualityChoice(loadSettings())).toEqual({ quality: 'high', pixelRatio: 2, automatic: true });
+    expect(loadSettings()).toMatchObject({ quality: 'high', autoQuality: false });
+    expect(loadQualityChoice(loadSettings())).toEqual({ quality: 'high', pixelRatio: 2, automatic: false });
   });
 
   it('recovers from malformed saved data and unavailable storage', () => {
@@ -73,7 +74,7 @@ describe('saved graphics result', () => {
     vi.stubGlobal('localStorage', { getItem: () => { throw new Error('blocked'); }, setItem: () => { throw new Error('blocked'); } });
     expect(() => saveQualityChoice({ quality: 'low', pixelRatio: 0.5, automatic: true })).not.toThrow();
     expect(loadQualityChoice(auto).quality).toBe('high');
-    expect(loadSettings()).toMatchObject({ quality: 'high', autoQuality: true });
+    expect(loadSettings()).toMatchObject({ quality: 'high', autoQuality: false });
   });
 
   it('choosing Graphics quality explicitly disables automatic changes and restores tier density', () => {
@@ -87,7 +88,7 @@ describe('saved graphics result', () => {
   });
 
   it('other Settings changes retain the learned density and automatic policy', () => {
-    expect(qualityFromSettings({ ...DEFAULT_SETTINGS, quality: 'low', masterVolume: 0.3 }, { quality: 'low', pixelRatio: 0.75, automatic: true })).toEqual({ quality: 'low', pixelRatio: 0.75, automatic: true });
+    expect(qualityFromSettings({ ...DEFAULT_SETTINGS, quality: 'low', autoQuality: true, masterVolume: 0.3 }, { quality: 'low', pixelRatio: 0.75, automatic: true })).toEqual({ quality: 'low', pixelRatio: 0.75, automatic: true });
   });
 
   it('applies an explicit learned density to the actual renderer', () => {

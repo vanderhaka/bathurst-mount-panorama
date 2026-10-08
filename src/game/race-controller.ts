@@ -7,6 +7,7 @@ import type { CarEntity } from '@/game/car-entity';
 import { buildHudState } from '@/game/hud-bridge';
 import { mirrorView } from '@/game/mirror-view';
 import type { RaceSession } from '@/game/race-session';
+import { trackLapsDriven, trackRaceStart } from '@/game/usage-analytics';
 import { PhoneVibration } from '@/input/phone-vibration';
 import type { InputManager } from '@/input/input-manager';
 import { impactSeverity } from '@/physics/damage';
@@ -86,6 +87,8 @@ export class RaceController {
   constructor(readonly session: RaceSession, readonly player: CarEntity, private readonly d: RaceDeps) {
     this.profiles = new SessionProfiles(player.vehicle, session.line);
     d.lineMesh.setProfile(this.profiles.player);
+    // One RaceController per race started from the menu (Restart reuses it, so it is not counted again).
+    trackRaceStart(session.track.id, session.car);
   }
 
   frame(dt: number, fps: number | null): void {
@@ -138,7 +141,9 @@ export class RaceController {
         input.rumble(0.4 + sev, 0.6, 120 + sev * 300);
         if (sev > 0.35) this.session.say(settings.damage === 'full' ? 'HEAVY IMPACT — DAMAGE' : 'HEAVY IMPACT', 'warn');
       }
-      this.session.update(h);
+      const lap = this.session.update(h);
+      // The verification autopilot never counts.
+      if (lap && !this.autopilot) trackLapsDriven(this.session.track.id, this.session.car, this.session.sessionLaps.length);
       if (settings.autoRecover && !this.autopilot && this.session.racing) {
         const offTrack = v.wheels.every((w) => w.surface !== 'road' && w.surface !== 'kerb');
         const wrongWay = facingWrongWay(this.session.track, v.tp.index, v.heading);

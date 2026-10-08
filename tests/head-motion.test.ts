@@ -110,7 +110,7 @@ describe('head movement setting', () => {
       touchAnalogThrottle: true, touchAutoThrottle: true, touchLeftHanded: true });
     values.set('bathurst.settings.v1', JSON.stringify({ quality: 'low' }));
     expect(loadSettings().headMotion).toBe(DEFAULT_SETTINGS.headMotion);
-    expect(loadSettings().quality).toBe('low');
+    expect(loadSettings().quality).toBe(DEFAULT_SETTINGS.quality);
     for (const [raw, expected] of [[5, 1], [-1, 0], ['bad', DEFAULT_SETTINGS.headMotion], [null, DEFAULT_SETTINGS.headMotion]] as const) {
       values.set('bathurst.settings.v1', JSON.stringify({ headMotion: raw }));
       expect(loadSettings().headMotion).toBe(expected);

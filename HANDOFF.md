@@ -10,6 +10,7 @@ That link is a frozen copy of the reviewed build (game code at `d0e6f89`). A pus
 
 - Branch `codex/bathurst-plan` holds Codex's overnight work plus this review's 51 commits.
 - On 8 October you asked for a release. `main` fast-forwarded to this branch, and production at https://bathurst-mount-panorama.vercel.app deploys from `main`. The previous production commit was `3f157e9`.
+- Later on 8 October you asked for High as the default. Automatic quality kept dropping it to Medium, so automatic quality is now off by default on every device. Every browser resets once to High (the quality store moved to `bathurst.quality.v3`).
 - All 750 tests pass. Types are clean. Desktop, phone-emulation and WebKit smokes pass on both circuits ([Verification](#verification-of-this-build)).
 
 **Your next steps**
@@ -27,7 +28,7 @@ For each check, record the device, the iOS or browser version, the quality shown
 | 1 | **Steering question.** Use a private Safari tab (no saved settings), then tap **Start time trial**. | "Choose how to steer" appears with Finger and Tilt. After you answer, it does not appear again, even after a reload. |
 | 2 | **Tilt.** Choose **Tilt**. | iOS shows its motion-access prompt. If you allow it, the race starts in tilt mode, and the pose you hold at the lights is straight ahead. If you refuse, the screen says "Motion access is off — using Finger" and waits for **Start**. |
 | 3 | **Change later.** Go to Settings > Steering > Touch steering mode. | Drag, Tilt and Buttons all work. Test real left/right tilt, partial and full analog throttle, auto-throttle and left-handed controls (2.7). iOS may not ask for motion access again after a refusal until the tab is closed. |
-| 4 | **Graphics.** Phones now start on **High** with automatic quality. Drive three laps. | Note the fps at Pit Straight, Mountain Straight, Skyline and Conrod (target ≥ 50). If quality steps down, a notice shows, and the result survives a reload. Then choose Medium by hand and check that it survives a reload too (1.0, 1.11, 2.4). |
+| 4 | **Graphics.** Phones now start on **High** with automatic quality off. Drive three laps. | Note the fps at Pit Straight, Mountain Straight, Skyline and Conrod (target ≥ 50). Quality stays on High. Then turn automatic quality on: if quality steps down, a notice shows, and the result survives a reload. Then choose Medium by hand and check that it survives a reload too (1.0, 1.11, 2.4). |
 | 5 | **Wheel lift.** Take Forrest's Elbow, The Chase and Murray's flat out. | The car stays on four wheels. Only a kerb strike or a crest may unload one wheel. |
 | 6 | **Fuel.** Run a long stint. | When the tank cannot finish the next lap, crossing the line refills it and shows **REFUELLED**. |
 | 7 | **Screen awake (2.1).** Race for three minutes without touching the screen to keep it awake. | The screen does not dim. After a lock and return, the race pauses and the screen stays awake again on Resume. |
@@ -172,6 +173,7 @@ Review the 15 matched pairs and the preview. Send any graphics-tuner values you 
 | D3 | At least 50 fps on your iPhone. The physical check is still open (checklist row 4). |
 | D4 | Playwright WebKit for Safari-engine checks. Real iPhone checks are still open. |
 | Review, 8 October | Fuel refills at the line, and the altitude derate applies at Bathurst only. The kerb's outer step stays. Phones start on High. Touch players are asked once how to steer. |
+| Graphics, 8 October (later) | High is the default on every device. Automatic quality is off by default, and players can turn it on in Settings. |
 
 ## Delivery
 

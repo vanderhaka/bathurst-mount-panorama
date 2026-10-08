@@ -1,6 +1,7 @@
 import { Game } from '@/game/game';
 import { installAndroidPresentation } from '@/phone/android-presentation';
 import { installTouchGuards } from '@/input/touch-guards';
+import { initUsageAnalytics } from '@/game/usage-analytics';
 import { ACTIVE_CIRCUIT, CIRCUITS } from '@/track/circuits';
 
 if (ACTIVE_CIRCUIT === 'adelaide') document.title = `${CIRCUITS.adelaide.name} â€” Gen3 time trial`;
@@ -8,6 +9,9 @@ if (ACTIVE_CIRCUIT === 'adelaide') document.title = `${CIRCUITS.adelaide.name} â
 declare global {
   interface Window { __game?: Game; __shotReady?: boolean }
 }
+
+// Before the WebGL checks, so that visitors whose device cannot run the game are counted as page views too.
+initUsageAnalytics();
 
 const root = document.getElementById('game');
 const showError = (message: string) => {
