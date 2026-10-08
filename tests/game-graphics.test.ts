@@ -77,9 +77,78 @@ describe('tier changes rebuild live visual resources', () => {
   it('persists an automatic result, synchronizes Settings and shows the player a note', async () => {
     const s = setup(); mocks.build.mockResolvedValueOnce(world('medium'));
     s.graphics.startRace();
-    for (let i = 0; i < 20; i++) s.graphics.sample(0.1, 0);
+    feed(s.graphics, 5, 0.1);
     await vi.waitFor(() => expect(mocks.save).toHaveBeenCalledWith({ quality: 'medium', pixelRatio: 1.5, automatic: true }));
     expect(s.changed).toHaveBeenCalledWith(expect.objectContaining({ quality: 'medium', autoQuality: true }));
     expect(s.notify).toHaveBeenCalledWith(expect.stringContaining('Settings'));
+  });
+});
+
+function feed(graphics: GameGraphics, seconds: number, interval: number): void {
+  for (let i = 0, n = Math.round(seconds / interval); i < n; i++) graphics.sample(interval, 0);
+}
+
+describe('automatic quality evidence around rebuilds', () => {
+  it('keeps High through a 350 ms first race frame, steady 60 fps and a 3.5 s block', () => {
+    const s = setup();
+    s.graphics.startRace();
+    s.graphics.sample(0.35, 0);
+    feed(s.graphics, 5, 1 / 60);
+    s.graphics.sample(3.5, 0);
+    feed(s.graphics, 25, 1 / 60);
+    expect(mocks.save).not.toHaveBeenCalled();
+    expect(mocks.build).not.toHaveBeenCalled();
+    expect(s.changed).not.toHaveBeenCalled();
+  });
+
+  it('ignores every frame while a rebuild is in flight, including the rebuild block after it lands', async () => {
+    const s = setup();
+    let finish: (w: World) => void = () => {};
+    mocks.build.mockImplementationOnce(() => new Promise<World>((r) => { finish = r; }));
+    s.graphics.startRace();
+    feed(s.graphics, 5, 1 / 40);
+    expect(mocks.save.mock.calls).toEqual([[{ quality: 'medium', pixelRatio: 1.5, automatic: true }]]);
+    feed(s.graphics, 60, 1 / 40);
+    expect(mocks.save).toHaveBeenCalledTimes(1);
+    finish(world('medium'));
+    await vi.waitFor(() => expect(s.current().root.name).toBe('medium'));
+    s.graphics.sample(3.5, 0);
+    feed(s.graphics, 20, 1 / 50);
+    expect(mocks.save).toHaveBeenCalledTimes(1);
+    expect(s.changed).toHaveBeenCalledTimes(1);
+  });
+
+  it('starts a fresh verdict once a rebuild lands', async () => {
+    const s = setup();
+    s.graphics.startRace();
+    feed(s.graphics, 3, 1 / 40); // warm-up and one over-budget window
+    mocks.build.mockResolvedValueOnce(world('tuned'));
+    await s.graphics.rebuildWorld();
+    feed(s.graphics, 3, 1 / 40);
+    expect(mocks.save).not.toHaveBeenCalled();
+    feed(s.graphics, 2, 1 / 40);
+    expect(mocks.save).toHaveBeenCalledWith({ quality: 'medium', pixelRatio: 1.5, automatic: true });
+  });
+
+  it('ignores the first second after the race resumes', () => {
+    const s = setup();
+    s.graphics.startRace();
+    feed(s.graphics, 3, 1 / 40);
+    s.graphics.settle();
+    feed(s.graphics, 1, 0.2);
+    feed(s.graphics, 3, 1 / 40);
+    expect(mocks.save).not.toHaveBeenCalled();
+  });
+
+  it('never changes or saves a manual choice', async () => {
+    const s = setup();
+    await s.graphics.applySettings({ ...DEFAULT_SETTINGS, quality: 'high', autoQuality: false });
+    vi.clearAllMocks();
+    s.graphics.startRace();
+    feed(s.graphics, 30, 0.1);
+    feed(s.graphics, 10, 0.3);
+    expect(mocks.save).not.toHaveBeenCalled();
+    expect(s.changed).not.toHaveBeenCalled();
+    expect(s.stage.setQuality).not.toHaveBeenCalled();
   });
 });

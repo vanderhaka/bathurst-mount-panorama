@@ -33,6 +33,17 @@ describe('per-device graphics result', () => {
     expect(loadQualityChoice('high')).toEqual({ quality: 'high', pixelRatio: 2, automatic: true });
   });
 
+  it('discards automatic results saved by the old monitor but keeps manual choices', () => {
+    const legacy = deviceQualityKey().replace('.v2.', '.v1.');
+    data.set(legacy, JSON.stringify({ quality: 'low', pixelRatio: 0.75, automatic: true }));
+    expect(loadQualityChoice('high')).toEqual({ quality: 'high', pixelRatio: 2, automatic: true });
+    expect(loadSettings()).toMatchObject({ quality: 'high', autoQuality: true });
+    data.set(legacy, JSON.stringify({ quality: 'medium', pixelRatio: 1.5, automatic: false }));
+    expect(loadQualityChoice('high')).toEqual({ quality: 'medium', pixelRatio: 1.5, automatic: false });
+    saveQualityChoice({ quality: 'low', pixelRatio: 1, automatic: true });
+    expect(loadQualityChoice('high')).toEqual({ quality: 'low', pixelRatio: 1, automatic: true });
+  });
+
   it('recovers from malformed saved data and unavailable storage', () => {
     data.set(deviceQualityKey(), JSON.stringify({ quality: 'ultra', pixelRatio: -1, automatic: true }));
     expect(loadQualityChoice('medium')).toEqual({ quality: 'medium', pixelRatio: 1.5, automatic: true });

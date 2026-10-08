@@ -27,6 +27,9 @@ export class GameGraphics {
 
   startRace(): void { this.adaptive.startRace(); }
 
+  /** After a pause: the first second of frames is not frame-rate evidence. */
+  settle(): void { this.adaptive.settle(); }
+
   applySettings(settings: Settings): Promise<void> {
     this.settings = settings;
     const choice = qualityFromSettings(settings, this.choice);
@@ -35,6 +38,8 @@ export class GameGraphics {
   }
 
   sample(rawSeconds: number, cap: Settings['frameRate']): void {
+    // Frames during a rebuild say nothing about the new tier; the block itself lands in the warm-up.
+    if (this.building) return;
     const choice = this.adaptive.sample(rawSeconds, cap);
     if (!choice) return;
     this.settings = { ...this.settings, quality: choice.quality, autoQuality: true };
@@ -65,7 +70,7 @@ export class GameGraphics {
     if (this.building) return this.building;
     this.building = this.build().catch(() => {
       this.host.notify('Graphics could not finish updating. Try again in Settings.');
-    }).finally(() => { this.building = null; });
+    }).finally(() => { this.building = null; this.adaptive.settle(); });
     return this.building;
   }
 

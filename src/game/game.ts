@@ -194,6 +194,7 @@ export class Game {
     if (this.state !== 'paused') return;
     this.state = 'race';
     this.audio?.resume();
+    this.graphics.settle();
   }
 
   private restart(): void {
