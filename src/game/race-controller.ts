@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { tyreScrubUse } from '@/audio/dsp/tyre-scrub';
-import type { CameraRig } from '@/camera/camera-rig';
+import { cockpitHeaveScale, type CameraRig } from '@/camera/camera-rig';
 import { getHandling } from '@/config/handling';
 import type { Particles } from '@/fx/particles';
 import type { CarEntity } from '@/game/car-entity';
@@ -141,7 +141,7 @@ export class RaceController {
         if (this.stuckT > 2.5) { this.session.resetToTrack(); this.stuckT = 0; }
       }
     }
-    this.player.sync(dt);
+    this.player.sync(dt, cockpitHeaveScale(this.d.rig.mode, settings.headMotion));
     this.d.startLights(this.session.lights);
     mirrorView().update(this.d.stage.renderer, this.d.stage.scene, this.player.model, this.d.rig.mode === 'cockpit' && !this.d.rig.lookBack);
     emitWheelEffects(this.player, this.d.particles, dt);

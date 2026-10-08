@@ -21,7 +21,7 @@ const PHYS_DT = 1 / 360;
 export class CarEntity {
   readonly vehicle: Vehicle;
   readonly model: CarModel;
-  /** Local body heave from tyre damage, separated from physical suspension pose. */
+  /** Local body heave from tyre damage as applied to the body, separated from physical suspension pose. */
   flatSpotHeave = 0;
   /** False = impacts do not dent the body (damage setting "Off"). */
   visualDamage = true;
@@ -72,8 +72,8 @@ export class CarEntity {
     return this.impacts;
   }
 
-  /** Updates the 3D model from the interpolated physics state. */
-  sync(_dt: number): void {
+  /** Updates the 3D model from the interpolated physics state. `heaveScale` (0..1) scales only the synthetic flat-spot heave. */
+  sync(_dt: number, heaveScale = 1): void {
     const a = this.acc / PHYS_DT;
     const p = this.prev, c = this.cur, m = this.model, v = this.vehicle;
     let dh = c.heading - p.heading;
@@ -96,7 +96,7 @@ export class CarEntity {
       this.spins[i] = w.spin;
       m.setWheel(i as 0 | 1 | 2 | 3, w.spin, w.steer, Math.max(-0.06, Math.min(0.06, w.compression)));
     });
-    this.flatSpotHeave = v.flatSpots.vibration(this.spins, v.speed) * Math.max(0, Math.min(1, getGraphics().cameraShake));
+    this.flatSpotHeave = v.flatSpots.vibration(this.spins, v.speed) * Math.max(0, Math.min(1, getGraphics().cameraShake)) * heaveScale;
     m.setBodyAttitude(0, 0, this.flatSpotHeave);
     m.setSteeringWheel(v.steerAngle * 9);
     const braking = v.telemetry.brake > 0.05;

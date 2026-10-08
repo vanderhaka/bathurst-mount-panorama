@@ -7,14 +7,21 @@ import type { CameraMode } from '@/types/session';
 
 export const CAMERA_ORDER: CameraMode[] = ['chase', 'chaseFar', 'bonnet', 'cockpit', 'tv'];
 
+/**
+ * Scale for the player car's synthetic (flat-spot) body heave. The cockpit camera and the whole interior
+ * ride on the body, so the head movement setting must scale the heave itself: scaling it on the camera
+ * alone leaves the interior shaking against a fixed lens. Every other view keeps the full heave.
+ */
+export function cockpitHeaveScale(mode: CameraMode, headMotion: number): number {
+  return mode === 'cockpit' ? headMotionAmount(headMotion) : 1;
+}
+
 export interface CameraTarget {
   /** Car root transform (world). */
   position: THREE.Vector3;
   quaternion: THREE.Quaternion;
   heading: number;
   speed: number;
-  /** Artificial body heave, so cockpit comfort can scale it independently. */
-  flatSpotHeave?: number;
   /** Measured longitudinal (+ accelerating) and lateral (+ left) acceleration in g. */
   gLong: number;
   gLat: number;
@@ -85,10 +92,6 @@ export class CameraRig {
     } else if (this.mode === 'cockpit' || this.mode === 'bonnet') {
       const anchor = this.mode === 'cockpit' ? t.cockpit : t.bonnet;
       anchor.getWorldPosition(cam.position);
-      if (this.mode === 'cockpit') {
-        const amount = headMotionAmount(t.headMotion);
-        cam.position.add(new THREE.Vector3(0, -(t.flatSpotHeave ?? 0) * (1 - amount), 0).applyQuaternion(t.quaternion));
-      }
       // The model's anchors are pre-oriented like three.js cameras (they look along the car's +Z).
       anchor.getWorldQuaternion(cam.quaternion);
       if (this.mode === 'cockpit') {

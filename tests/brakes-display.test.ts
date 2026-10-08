@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { afterEach, expect, it, vi } from 'vitest';
-import { CameraRig } from '@/camera/camera-rig';
+import { CameraRig, cockpitHeaveScale } from '@/camera/camera-rig';
 import { CAR_SPECS } from '@/car/car-specs';
 import { getGraphics, setGraphics } from '@/config/graphics';
 import { CarEntity } from '@/game/car-entity';
@@ -13,7 +13,7 @@ import { computeRacingLine } from '@/track/racing-line';
 import { computeSpeedProfile } from '@/track/speed-profile';
 import { Track } from '@/track/track-model';
 import type { CarModel } from '@/types/car-model';
-import { DEFAULT_SETTINGS } from '@/types/session';
+import { DEFAULT_SETTINGS, type CameraMode } from '@/types/session';
 import { TouchElement } from './touch-dom-fixture';
 
 const track = new Track(), line = computeRacingLine(track), kerbs = placeKerbs(track, line);
@@ -81,27 +81,37 @@ it('uses actual disc temperature for glow and bounded tyre-phase heave for body 
   v.brakes.reset(22); car.sync(1 / 60); expect(fixture.glow()).toBe(0);
 });
 
-it('scales only flat-spot cockpit displacement with head movement while keeping body pose and grip', () => {
+it('scales the flat-spot heave on the body for the cockpit view only, keeping pose, grip and the bonnet view', () => {
   const { car, body } = entity(), v = car.vehicle;
   for (let w = 0; w < 4; w++) { v.flatSpots.advance(w, 2, 50, 4000, 'road', 2); v.wheels[w].spin = Math.PI / 2; }
   v.vx = Math.sin(v.heading) * 50; v.vz = Math.cos(v.heading) * 50;
-  setGraphics({ cameraShake: 1 }); car.sync(1 / 60);
-  car.model.root.rotation.set(0.12, 0.4, -0.08); car.model.root.position.set(2, 1, 3);
-  car.model.root.updateMatrixWorld(true);
-  const target = { position: car.model.root.position, quaternion: car.model.root.quaternion, heading: v.heading, speed: v.speed,
-    cockpit: car.model.cockpitCamera, bonnet: car.model.bonnetCamera, s: v.tp.s, flatSpotHeave: car.flatSpotHeave,
-    gLong: 0, gLat: 0, headMotion: 1 };
+  setGraphics({ cameraShake: 1 });
+  const root = car.model.root, cockpit = car.model.cockpitCamera, bonnet = car.model.bonnetCamera;
+  /** Syncs the model for a camera mode and head movement, then tilts the car so heave must follow its own up axis. */
+  const sync = (mode: CameraMode, amount: number) => {
+    car.sync(1 / 60, cockpitHeaveScale(mode, amount));
+    root.rotation.set(0.12, 0.4, -0.08); root.position.set(2, 1, 3); root.updateMatrixWorld(true);
+  };
+  const target = { position: root.position, quaternion: root.quaternion, heading: v.heading, speed: v.speed,
+    cockpit, bonnet, s: v.tp.s, gLong: 0, gLat: 0, headMotion: 1 };
   const rig = new CameraRig(new THREE.PerspectiveCamera(), track); rig.mode = 'cockpit';
-  const anchor = car.model.cockpitCamera.getWorldPosition(new THREE.Vector3());
-  const heave = new THREE.Vector3(0, car.flatSpotHeave, 0).applyQuaternion(target.quaternion);
-  rig.update({ ...target, headMotion: 0 }, 1 / 60);
-  expect(rig.camera.position.distanceTo(anchor.clone().sub(heave))).toBeLessThan(1e-10);
-  expect(rig.camera.quaternion.angleTo(car.model.cockpitCamera.getWorldQuaternion(new THREE.Quaternion()))).toBeLessThan(1e-7);
-  rig.update({ ...target, headMotion: 0.5 }, 1 / 60);
-  expect(rig.camera.position.distanceTo(anchor.clone().addScaledVector(heave, -0.5))).toBeLessThan(1e-10);
-  rig.update(target, 1 / 60); expect(rig.camera.position.distanceTo(anchor)).toBeLessThan(1e-10);
-  rig.mode = 'bonnet'; rig.update({ ...target, headMotion: 0 }, 1 / 60);
-  expect(rig.camera.position.distanceTo(car.model.bonnetCamera.getWorldPosition(new THREE.Vector3()))).toBeLessThan(1e-10);
-  expect(body.position.y).toBe(car.flatSpotHeave); expect(body.position.y).toBeGreaterThan(0);
+  sync('cockpit', 0);
+  expect(car.flatSpotHeave).toBe(0); expect(body.position.y).toBe(0);
+  const rest = cockpit.getWorldPosition(new THREE.Vector3());
+  sync('chase', 1);
+  const full = car.flatSpotHeave, up = new THREE.Vector3(0, 1, 0).applyQuaternion(root.quaternion);
+  expect(full).toBeGreaterThan(0);
+  for (const amount of [0, 0.5, 1]) {
+    sync('cockpit', amount);
+    expect(car.flatSpotHeave).toBeCloseTo(full * amount, 12); expect(body.position.y).toBe(car.flatSpotHeave);
+    rig.update({ ...target, headMotion: amount }, 1 / 60);
+    // The lens rides the (scaled) body with the interior: no camera-only offset on top of it.
+    expect(rig.camera.position.distanceTo(cockpit.getWorldPosition(new THREE.Vector3()))).toBeLessThan(1e-10);
+    expect(rig.camera.position.distanceTo(rest.clone().addScaledVector(up, full * amount))).toBeLessThan(1e-10);
+    expect(rig.camera.quaternion.angleTo(cockpit.getWorldQuaternion(new THREE.Quaternion()))).toBeLessThan(1e-7);
+  }
+  rig.mode = 'bonnet'; sync('bonnet', 0); rig.update({ ...target, headMotion: 0 }, 1 / 60);
+  expect(rig.camera.position.distanceTo(bonnet.getWorldPosition(new THREE.Vector3()))).toBeLessThan(1e-10);
+  expect(body.position.y).toBe(full); expect(car.flatSpotHeave).toBe(full);
   expect(v.flatSpots.tyres[0].gripMultiplier).toBeLessThan(1);
 });

@@ -290,7 +290,7 @@ export class Game {
     if (this.stage.camera.view) this.stage.camera.clearViewOffset();
     const v = entity.vehicle;
     const m = entity.model;
-    this.rig.update({ position: m.root.position, quaternion: m.root.quaternion, heading: v.heading, speed: v.speed, cockpit: m.cockpitCamera, bonnet: m.bonnetCamera, s: v.tp.s, flatSpotHeave: entity.flatSpotHeave, gLong: v.telemetry.gLong, gLat: v.telemetry.gLat, headMotion: this.settings.headMotion }, dt);
+    this.rig.update({ position: m.root.position, quaternion: m.root.quaternion, heading: v.heading, speed: v.speed, cockpit: m.cockpitCamera, bonnet: m.bonnetCamera, s: v.tp.s, gLong: v.telemetry.gLong, gLat: v.telemetry.gLat, headMotion: this.settings.headMotion }, dt);
     m.setInteriorVisible(this.rig.mode === 'cockpit' || this.rig.mode === 'bonnet');
     this.focus.copy(m.root.position);
   }
