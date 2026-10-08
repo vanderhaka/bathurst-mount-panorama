@@ -51,7 +51,7 @@ value; its tier switch still decides whether it runs.
 | Feature | Low | Medium | High |
 |---|---|---|---|
 | Sky / haze | simple dome / fog | dome / aerial perspective | physical sky / aerial perspective |
-| Shadows | 1 × 512 | 2 × 768 | 3 × 2048 |
+| Shadows (maps, reach) | 1 × 1024, 40 m | 2 × 1024, 100 m | 3 × 2048, 400 m |
 | Vertex / contact AO | baked | baked | baked |
 | Screen AO / bloom / SMAA / camera effects | off | off | on |
 | Asphalt aggregate, repairs and wear | base | base | detailed |

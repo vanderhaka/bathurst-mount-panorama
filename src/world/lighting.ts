@@ -8,7 +8,7 @@ import { createShadowRig } from '@/world/shadows';
 export interface SceneLighting {
   sun: THREE.DirectionalLight;
   hemi: THREE.HemisphereLight;
-  /** Moves the shadow frustum so that it covers `focus` (call every frame). */
+  /** Refits the shadow cascades to the camera and keeps `focus` inside them (call every frame). */
   follow(focus: THREE.Vector3): void;
   setQuality(q: QualityPreset): void;
   /** Applies live graphics values (intensities, colours, fog). Call after Sky.apply(). */
@@ -36,7 +36,7 @@ export function createLighting(scene: THREE.Scene, quality: QualityPreset = 'hig
     get sun() { return shadows.sun; },
     hemi,
     // Haze owns the inner shader hook; CSM wraps it so changing cascades cannot erase it.
-    follow() { aerial.prepare(camera); shadows.update(); },
+    follow(focus) { aerial.prepare(camera); shadows.update(focus); },
     resize() { shadows.resize(); },
     dispose() { shadows.dispose(); scene.remove(hemi); scene.onBeforeRender = previousRender; },
     setQuality(q) {

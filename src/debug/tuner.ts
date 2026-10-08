@@ -72,7 +72,7 @@ export class GraphicsTuner {
     live(bloom, 'bloomThreshold', 0.5, 8, 0.1);
     live(bloom, 'bloomRadius', 0.5, 3, 0.1);
     const shadows = gui.addFolder('Shadows & AO');
-    live(shadows, 'shadowDistance', 300, 800, 10);
+    live(shadows, 'shadowDistance', 30, 800, 10);
     live(shadows, 'screenAo', 0, 1, 0.01);
     const grade = gui.addFolder('Colour grade');
     live(grade, 'saturation', 0, 2, 0.01);
