@@ -56,13 +56,13 @@ export async function buildWorld(
     rubberGroove: cfg.rubberGroove, skids: cfg.roadSkids && tier.skids,
     kerbWear: cfg.kerbWear, lineWear: cfg.lineWear,
   }));
-  root.add(buildVerges(track, kerbs));
   await progress(0.4, 'Building concrete walls and catch fences');
   root.add(buildBarriers(track, renderer, quality));
   root.add(buildWallSigns(track, quality));
   await progress(0.55, circuitWorld.terrainLabel);
   const terrain = await circuitWorld.terrain(track, quality);
   root.add(terrain.group);
+  root.add(buildVerges(track, kerbs, terrain.material));
   await progress(0.7, circuitWorld.sceneryLabel);
   const scenery = await circuitWorld.scenery(track, terrain, profile, quality);
   scenery.contactAo.bake(terrain.group, tier.bakedAo ? cfg.bakedAo : 0);

@@ -12,11 +12,11 @@ export const SKY = {
 } as const;
 
 export const GROUND = {
-  grassLight: 0x9ca263,
-  grass: 0x7a874c,
-  grassDark: 0x5a663b,
-  grassDry: 0xb3a06c,
-  clay: 0xa06c45,
+  grassLight: 0x939c58,
+  grass: 0x6f7f3d,
+  grassDark: 0x4e5c31,
+  grassDry: 0xb9a46a,
+  clay: 0x9a6a3f,
   clayDark: 0x7a4f33,
   gravel: 0xbfab8c,
   sand: 0xcdb98f,

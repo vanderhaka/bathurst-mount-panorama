@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import featuresJson from '@/track/data/features.json';
 import { linearColour, vertexColourMaterial } from '@/art/materials';
 import type { Terrain } from '@/world/terrain';
+import { applyTerrainAttributes } from '@/world/terrain-detail';
 import { orientedBox, pointInPolygon, type SpatialMask, type XZ } from '@/world/scenery/geo';
 
 const F = featuresJson as unknown as { vineyards: Array<{ kind: string; poly: XZ[] }> };
@@ -46,7 +47,9 @@ export function buildVineyards(terrain: Terrain, mask: SpatialMask): THREE.Mesh 
   geo.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
   // Foliage rows are lit like the ground they cover (normals up), not like walls in their own shade.
   geo.setAttribute('normal', new THREE.Float32BufferAttribute(new Float32Array(pos.length).map((_, i) => (i % 3 === 1 ? 1 : 0)), 3));
-  const mesh = new THREE.Mesh(geo, vertexColourMaterial({ roughness: 0.95, flat: false }));
+  // The rows share the terrain's material so they pick up its albedo detail and green/straw patchiness.
+  if (terrain.material) applyTerrainAttributes(geo, 1, 1.5);
+  const mesh = new THREE.Mesh(geo, terrain.material ?? vertexColourMaterial({ roughness: 0.95, flat: false }));
   mesh.name = 'vineyards';
   // Low rows 3 m apart would shade each other almost black; they only receive shadows.
   mesh.castShadow = false;

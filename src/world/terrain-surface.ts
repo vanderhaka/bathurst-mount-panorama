@@ -27,12 +27,13 @@ export const TERRAIN_MOWN = { width: 1.8, reach: 14, contrast: 0.055 };
 /** Normalised generated cover weights, independent of mesh resolution and chunk edges. */
 export function terrainSplat(s: TerrainSurfaceSample): TerrainSplat {
   const slope = clamp(1 - s.normalY);
-  const patch = fbm(s.x / 65, s.z / 65, 3, 33) * 0.5 + 0.5;
+  // Two scales (~25 m and ~120 m); fbm clusters near 0, so stretch it to use the whole range.
+  const patch = clamp(0.5 + (fbm(s.x / 25, s.z / 25, 2, 33) * 0.55 + fbm(s.x / 120, s.z / 120, 3, 35) * 0.9) * 1.25);
   const rock = smooth((slope - 0.17) / 0.22) * 0.96;
   const clay = smooth((slope - 0.055) / 0.15) * (1 - rock) * 0.9;
   const gravel = (1 - smooth(Math.max(0, s.trackDistance) / 3.5)) * (1 - smooth(slope / 0.12)) * (1 - rock - clay) * 0.72;
   const vegetation = Math.max(0, 1 - rock - clay - gravel);
-  const dry = clamp(0.2 + smooth((s.height - 60) / 140) * 0.25 + (1 - patch) * 0.45);
+  const dry = Math.max(0.12, Math.min(0.88, 0.1 + smooth((s.height - 60) / 140) * 0.2 + (1 - patch) * 0.7));
   return { green: vegetation * (1 - dry), dry: vegetation * dry, clay, rock, gravel };
 }
 

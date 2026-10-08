@@ -42,6 +42,8 @@ export interface Terrain {
   clearance(x: number, z: number): number;
   box: { x0: number; z0: number; x1: number; z1: number };
   grass: NearGrass;
+  /** The terrain's shared material, for meshes that must match the ground (see applyTerrainAttributes). */
+  material?: THREE.Material;
   dispose(): void;
 }
 
@@ -122,7 +124,7 @@ export function buildTerrain(track: Track, material?: THREE.Material, quality: Q
   let disposed = false;
 
   return {
-    group, grass,
+    group, grass, material: mat,
     dispose: () => { if (disposed) return; disposed = true; grass.dispose(); if (owned) disposeTerrainMaterial(owned); },
     heightAt: (x, z) => (x > box.x0 && x < box.x1 && z > box.z0 && z < box.z1 ? carved(queryCorridor(x, z), x, z) : demHeight(x, z)),
     clearance: (x, z) => {
@@ -266,6 +268,7 @@ function gridGeometry(
       }
     } else {
       landCover(x, z, tmp);
+      cover.setXYZ(v, 1, 1e4, 0); // far land: full vegetation detail, no mown stripes
     }
     col[v * 3] = tmp.r; col[v * 3 + 1] = tmp.g; col[v * 3 + 2] = tmp.b;
   }
