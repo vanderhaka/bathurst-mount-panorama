@@ -177,7 +177,7 @@ export class RaceSession {
   }
 
   telemetrySnapshot(): SessionTelemetry {
-    return { laps: this.telemetryLaps.slice(), best: this.bestTelemetry, ghost: this.ghost ? this.bestTelemetry : null,
+    return { laps: this.telemetryLaps.slice(), best: this.bestTelemetry,
       corners: this.track.corners.map((c) => ({ distanceM: this.track.wrapS(c.s - this.track.startLineS), turn: c.turn, name: c.name })) };
   }
 

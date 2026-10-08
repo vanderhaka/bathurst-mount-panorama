@@ -11,6 +11,9 @@ import { computeRacingLine } from '@/track/racing-line';
 import { Track } from '@/track/track-model';
 import { restoreTelemetry, type LapTelemetry } from '@/types/telemetry';
 import { tracePath } from '@/ui/telemetry-chart';
+import { adjust } from '@/ui/screen';
+import { TelemetryScreen } from '@/ui/screens/telemetry';
+import { type MenuNode, stubMenuDom } from './menu-dom-fixture';
 
 const track = new Track();
 const line = computeRacingLine(track);
@@ -57,10 +60,10 @@ describe('session telemetry and its ghost', () => {
     const data = session.telemetrySnapshot();
     expect(data.laps).toHaveLength(2);
     expect(data.best).toBe(data.laps[0]);
-    expect(data.ghost).toBe(data.best);
+    expect(Math.abs(session.ghost!.duration - data.best!.timeS)).toBeLessThan(0.5); // the ghost replays the best lap
     expect(data.laps[1].samples[10]).toMatchObject({ speedKmh: 162, throttle: 0.5, brake: 0.3 });
     expect(data.best?.samples[10]).toMatchObject({ speedKmh: 180, throttle: 0.75, brake: 0.1 });
-    const comparison = compareLaps(data.laps[1], data.ghost!, data.corners);
+    const comparison = compareLaps(data.laps[1], data.best!, data.corners);
     expect(comparison.corners).toHaveLength(23);
     expect(comparison.corners[0].fromM).toBe(0);
     expect(comparison.corners.at(-1)?.toM).toBe(track.length);
@@ -70,13 +73,30 @@ describe('session telemetry and its ghost', () => {
     const restored = loadRecords('camaro');
     expect(restored?.ghost).toBeDefined();
     expect(restored?.telemetry).toEqual(data.best);
-    const reload = fixture().session.telemetrySnapshot();
+    const reloaded = fixture().session, reload = reloaded.telemetrySnapshot();
     expect(reload.best).toEqual(data.best);
-    expect(reload.ghost).toEqual(data.best);
+    expect(reloaded.ghost).not.toBeNull();
     expect(reload.laps).toHaveLength(0);
     const [laps, best] = sessionResults(session);
     expect(laps).toHaveLength(3);
     expect(best.camaro?.timeS).toBe(data.best?.timeS);
+  });
+
+  it('offers each recorded lap once as a reference: the ghost is the best lap, not a second entry', () => {
+    const { session, vehicle } = fixture();
+    completeLap(session, vehicle, 50, 1, 0); // standing
+    completeLap(session, vehicle, 50, 1, 0); // best (and ghost)
+    completeLap(session, vehicle, 45, 1, 0);
+    completeLap(session, vehicle, 44, 1, 0);
+    expect(session.ghost).not.toBeNull();
+    stubMenuDom();
+    const screen = new TelemetryScreen(() => session.telemetrySnapshot(), () => {}, () => 'kmh');
+    screen.onShow(); // inspects the latest lap (4)
+    const row = screen.items()[1] as unknown as MenuNode;
+    const value = (): string => row.querySelectorAll('.mn-value__v')[0].textContent.replace(/ ·.*/, '');
+    const seen = [value()];
+    for (let i = 0; i < 6 && (seen.length === 1 || seen.at(-1) !== seen[0]); i++) { adjust(row as unknown as HTMLElement, 1); seen.push(value()); }
+    expect(seen.slice(0, -1)).toEqual(['Best lap', 'Lap 3']);
   });
 
   it('starts Results empty for a new session even with saved laps, then lists only the laps driven', () => {
@@ -103,7 +123,7 @@ describe('session telemetry and its ghost', () => {
     const data = session.telemetrySnapshot();
     expect(data.laps.at(-1)?.valid).toBe(false);
     expect(data.best).toBe(best);
-    expect(data.ghost).toBe(best);
+    expect(Math.abs(session.ghost!.duration - best!.timeS)).toBeLessThan(0.5);
   });
 
   it('leaves legacy saved ghosts without a pedal reference until a recorded new best is driven', () => {
@@ -111,11 +131,12 @@ describe('session telemetry and its ghost', () => {
     const { session, vehicle } = fixture();
     completeLap(session, vehicle, 50, 1, 0);
     completeLap(session, vehicle, 50, 1, 0); // slower than legacy best
+    expect(session.ghost?.duration).toBeCloseTo(110, 0); // the legacy ghost still runs, without a trace
     expect(session.telemetrySnapshot().best).toBeNull();
-    expect(session.telemetrySnapshot().ghost).toBeNull();
     completeLap(session, vehicle, 58, 1, 0); // faster than legacy best
-    expect(session.telemetrySnapshot().best?.timeS).toBeLessThan(110);
-    expect(session.telemetrySnapshot().ghost).toBe(session.telemetrySnapshot().best);
+    const best = session.telemetrySnapshot().best;
+    expect(best?.timeS).toBeLessThan(110);
+    expect(Math.abs(session.ghost!.duration - best!.timeS)).toBeLessThan(0.5);
   });
 });
 

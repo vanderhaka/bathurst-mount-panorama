@@ -23,9 +23,8 @@ export interface TelemetryCorner {
 
 export interface SessionTelemetry {
   laps: readonly LapTelemetry[];
+  /** The best lap, which the ghost replays; null when it has no pedal trace (saved by older versions). */
   best: LapTelemetry | null;
-  /** The best lap that owns the current ghost; older ghosts may have no pedal trace. */
-  ghost: LapTelemetry | null;
   corners: TelemetryCorner[];
 }
 

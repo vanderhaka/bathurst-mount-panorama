@@ -16,7 +16,7 @@ function lap(lapNumber: number, pace: number): LapTelemetry {
 /** Bathurst has 23 named turns; the screen lists one row per turn. */
 function data(): SessionTelemetry {
   const best = lap(2, 1.24);
-  return { laps: [best, lap(3, 1.25)], best, ghost: best, corners: Array.from({ length: 23 }, (_, i) => ({ distanceM: 100 + i * 260, turn: i + 1, name: `Corner ${i + 1}` })) };
+  return { laps: [best, lap(3, 1.25)], best, corners: Array.from({ length: 23 }, (_, i) => ({ distanceM: 100 + i * 260, turn: i + 1, name: `Corner ${i + 1}` })) };
 }
 
 const text = (el: HTMLElement): string => (el as unknown as MenuNode).textContent;

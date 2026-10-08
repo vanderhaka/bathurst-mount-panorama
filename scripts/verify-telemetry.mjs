@@ -26,8 +26,7 @@ export function checkCapture(data, probe) {
   assert.deepEqual(probe.completions.map(lap => lap.standing), [true, false, false]);
   assert.deepEqual(probe.completions.map(lap => lap.recordedLaps), [0, 1, 2]);
   assert.deepEqual(data.laps.map(lap => lap.lapNumber), [2, 3]);
-  assert.ok(data.best && data.ghost, 'Actual valid flying lap must populate Best and Ghost');
-  assert.equal(data.best.lapNumber, data.ghost.lapNumber);
+  assert.ok(data.best, 'Actual valid flying lap must populate Best (the lap the ghost replays)');
   const key = s => `${s.lapNumber}|${s.distanceM}|${s.timeS}`;
   const live = new Map(probe.live.map(sample => [key(sample), sample]));
   let matchedSamples = 0;
@@ -79,7 +78,7 @@ function readScreen() {
 export function checkScreen(view, data) {
   assert.equal(view.screen, 'telemetry'); assert.equal(view.state, 'paused');
   const lap = data.laps.find(l => l.lapNumber === Number(/^Lap (\d+)/.exec(view.lap)?.[1]));
-  const reference = view.reference.startsWith('Best lap') ? data.best : view.reference.startsWith('Ghost') ? data.ghost
+  const reference = view.reference.startsWith('Best lap') ? data.best
     : data.laps.find(l => l.lapNumber === Number(/^Lap (\d+)/.exec(view.reference)?.[1]));
   assert.ok(lap && reference && lap.lapNumber !== reference.lapNumber, 'Selectors must compare two distinct real laps');
   assert.equal(view.graphs.length, 3);
@@ -190,9 +189,7 @@ async function main() {
     await pause(); await button('pause', 'Telemetry').tap();
     const nonBest = text => Number(/^Lap (\d+)/.exec(text)?.[1]) !== report.telemetry.best.lapNumber;
     await choose('Lap to inspect', nonBest);
-    for (const reference of ['Best lap', 'Ghost']) {
-      await choose('Compare with', text => text.startsWith(reference)); await checkView(`pause-${reference.toLowerCase().replace(' ', '-')}`);
-    }
+    await choose('Compare with', text => text.startsWith('Best lap')); await checkView('pause-best-lap');
     const previous = await page.locator('.mn-screen--telemetry [aria-label="Lap to inspect"] .mn-value__v').textContent();
     await page.locator('.mn-screen--telemetry [aria-label="Next lap to inspect"]').tap();
     assert.notEqual(await page.locator('.mn-screen--telemetry [aria-label="Lap to inspect"] .mn-value__v').textContent(), previous);

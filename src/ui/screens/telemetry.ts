@@ -55,12 +55,13 @@ export class TelemetryScreen implements Screen {
     this.render();
   }
 
+  /** Each other recorded lap once: the best lap (the one the ghost replays) first, then the rest, newest first. */
   private references(lap: LapTelemetry): Reference[] {
     const data = this.data!;
     const refs: Reference[] = [];
-    if (data.best && data.best !== lap) refs.push({ name: 'Best lap', lap: data.best });
-    if (data.ghost && data.ghost !== lap) refs.push({ name: 'Ghost', lap: data.ghost });
-    for (const other of [...data.laps].reverse()) if (other !== lap) refs.push({ name: `Lap ${other.lapNumber}${other.valid ? '' : ' (invalid)'}`, lap: other });
+    const add = (name: string, other: LapTelemetry): void => { if (other !== lap && !refs.some((r) => r.lap === other)) refs.push({ name, lap: other }); };
+    if (data.best) add('Best lap', data.best);
+    for (const other of [...data.laps].reverse()) add(`Lap ${other.lapNumber}${other.valid ? '' : ' (invalid)'}`, other);
     return refs;
   }
 
