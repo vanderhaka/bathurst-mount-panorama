@@ -234,7 +234,7 @@ Status: blocked — three focused wet-film, reflection and cloud/ground fixes re
 - **Do:** time of day as a session setting (morning to sunset); rain with a wet track (darker, reflective), spray behind cars, less grip, wet tyres, wipers in the cockpit, and a drying line.
 - **Done when:** a wet lap is slower by a realistic amount; the look passes the scorecard for a wet viewpoint.
 ## Follow-up — Adelaide Parklands circuit
-Status: done — awaiting the user's physical phone check (commit Adelaide implementation commit; evidence `artifacts/review/adelaide/`).
+Status: done — awaiting the user's physical phone check (commit b9b25e359c07a4cf7f793bc7b0b3bb902ec5c164; evidence `artifacts/review/adelaide/`).
 - **Depends on:** all Bathurst items processed; blockers recorded above.
 - **Do:** add the current 2026 Supercars 3.219 km clockwise, 14-turn circuit with generated street/parkland scenery; retain the three cars, handling, controls and default Bathurst circuit.
 - **Done when:** all cars complete valid laps; native desktop/phone/WebKit flows, all five cameras, records/ghost/telemetry isolation, generated scenery and all measurable tier budgets pass; exact Preview revision is Ready with clean live checks. Physical phone behavior remains a user check.
