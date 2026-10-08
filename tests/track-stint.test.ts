@@ -16,23 +16,33 @@ import { sampleArray } from '@/track/track-query';
 const track = new Track(), line = computeRacingLine(track), kerbs = placeKerbs(track, line), DT = 1 / 360;
 const neutral = { throttle: 0, brake: 0, steer: 0, shiftUp: false, shiftDown: false };
 
-function nativeStop(kind: CarKind, brakeBiasFront: number): number {
+/** Full-brake stop from 200 km/h in Murray's braking zone, planted along the road (the setup-physics case). */
+function nativeStop(kind: CarKind, brakeBiasFront: number, mockRubber = false): number {
   const v = new Vehicle(CAR_SPECS[kind], track, kerbs);
   v.setup = { ...defaultSetup(kind), brakeBiasFront }; v.assists.autoGears = false;
-  v.reset(4350, 0); v.vx = Math.sin(v.heading) * 100 / 3.6; v.vz = Math.cos(v.heading) * 100 / 3.6; v.pt.gear = 3;
-  const x = v.x, z = v.z;
-  for (let t = 0; t < 8 && v.speed > .3; t += DT) expect(v.step({ ...neutral, brake: 1 }, DT)).toHaveLength(0);
-  expect(Math.abs(v.speed)).toBeLessThan(.4); expect(v.wheels.every((w) => w.surface === 'road')).toBe(true);
-  return Math.hypot(v.x - x, v.z - z);
+  const s = 6000, i = Math.round(s / track.spacing) % track.n, speed = 200 / 3.6;
+  v.reset(s, 0);
+  const along = speed * Math.hypot(track.tx[i], track.tz[i]);
+  v.vx = Math.sin(v.heading) * along; v.vz = Math.cos(v.heading) * along; v.vy = track.ty[i] * speed; v.pt.gear = 5;
+  const rubber = mockRubber ? vi.spyOn(v.trackGrip, 'at').mockReturnValue(1) : null;
+  try {
+    const x = v.x, z = v.z;
+    for (let t = 0; t < 8 && v.speed > .3; t += DT) expect(v.step({ ...neutral, brake: 1 }, DT)).toHaveLength(0);
+    expect(Math.abs(v.speed)).toBeLessThan(.4); expect(v.wheels.every((w) => w.surface === 'road')).toBe(true);
+    return Math.hypot(v.x - x, v.z - z);
+  } finally { rubber?.mockRestore(); }
 }
 
 describe('track grip with the setup and brake stint', () => {
   for (const kind of ['camaro', 'mustang', 'supra'] as CarKind[]) {
-    it(`${kind}: native rubber retains the measured shorter stop from increased front bias`, () => {
-      const standardM = nativeStop(kind, .6), biasedM = nativeStop(kind, .68);
-      // Native 3.7 runs measured 0.1866–0.1869 m; retain its signed effect and magnitude.
-      expect(standardM - biasedM).toBeGreaterThan(.15);
-      expect(standardM - biasedM).toBeLessThan(.25);
+    it(`${kind}: native rubber retains the shorter stop from increased front bias`, () => {
+      const gain = nativeStop(kind, .6) - nativeStop(kind, .68);
+      const mockedGain = nativeStop(kind, .6, true) - nativeStop(kind, .68, true);
+      console.log(JSON.stringify({ kind, gain, mockedGain }));
+      // The rubbered groove neither erases nor doubles the bias gain of the bare surface.
+      expect(gain).toBeGreaterThan(.15);
+      expect(gain).toBeLessThan(.6);
+      expect(Math.abs(gain - mockedGain)).toBeLessThan(.25 * mockedGain);
     });
 
     it(`${kind}: applies pressure, tyre, flat spot, rubber and damage once while retaining bias and fade`, () => {
