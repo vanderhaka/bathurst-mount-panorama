@@ -6,7 +6,7 @@ import { steerOnboarded, touchOptions } from '@/input/touch-model';
 const KEY = 'bathurst.settings.v1';
 
 export function loadSettings(): Settings {
-  // Every device starts on High with automatic quality: it steps down only after two slow windows.
+  // Every device starts on High; automatic quality is opt-in.
   const defaults: Settings = { ...DEFAULT_SETTINGS };
   let saved: Partial<Settings> = {};
   try {
@@ -14,9 +14,9 @@ export function loadSettings(): Settings {
     if (raw) saved = (JSON.parse(raw) as Partial<Settings> | null) ?? {};
   } catch { /* storage unavailable */ }
   const settings = { ...defaults, ...saved };
-  // Without a stored graphics result the quality saved here still applies, except an automatic
-  // one: it is learned again (the old monitor saved automatic results that were far too low).
-  const graphics = loadQualityChoice(saved.autoQuality === true ? defaults : settings);
+  // Graphics come only from the quality store, so a quality saved here by an older version
+  // (often a low automatic result) does not survive the move to High by default.
+  const graphics = loadQualityChoice(defaults);
   const touch = touchOptions(settings);
   return { ...settings, headMotion: headMotionAmount(settings.headMotion), quality: graphics.quality, autoQuality: graphics.automatic,
     touchMode: touch.mode, touchAnalogThrottle: touch.analogThrottle,

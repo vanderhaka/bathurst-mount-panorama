@@ -6,7 +6,8 @@ const production = process.env.VERCEL_ENV === 'production';
 
 export default defineConfig({
   // Dev tools on everywhere except the Vercel production deployment (src/config/build-flags.ts).
-  define: { __DEV_TOOLS__: JSON.stringify(!production) },
+  // Anonymous usage events only on the Vercel production deployment (src/config/build-flags.ts).
+  define: { __DEV_TOOLS__: JSON.stringify(!production), __USAGE_ANALYTICS__: JSON.stringify(production) },
   resolve: { alias: { '@': resolve(root, 'src') } },
   build: {
     target: 'es2022',
@@ -29,5 +30,8 @@ export default defineConfig({
     // Diagnostic traces (no assertions): run with `npx vitest run tests/debug/<file> --silent=false`.
     exclude: ['tests/debug/**', 'node_modules/**'],
     environment: 'node',
+    // Many tests drive whole laps of car physics (up to ~4.5 s each on a quiet machine, 4x that under load).
+    // The 5 s default failed them when the CPU was busy; tests with a longer timeout of their own keep it.
+    testTimeout: 30_000,
   },
 });

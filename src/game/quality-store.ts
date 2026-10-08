@@ -10,8 +10,9 @@ export interface QualityChoice {
 
 /** One entry per browser profile, which is already local to this device. It deliberately
  * ignores the user agent and pixel ratio, so browser updates and desktop zoom keep it.
- * Version 1 automatic results came from a monitor that ratcheted healthy hardware down. */
-const KEY = 'bathurst.quality.v2';
+ * Version 1 automatic results came from a monitor that ratcheted healthy hardware down.
+ * Version 2 results came from automatic quality being on by default; version 3 starts every device on High. */
+const KEY = 'bathurst.quality.v3';
 
 /** Stored density: null is the tier default for the current display and zoom; a number is a learned reduction. */
 type StoredChoice = Omit<QualityChoice, 'pixelRatio'> & { pixelRatio: number | null };
