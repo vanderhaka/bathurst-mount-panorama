@@ -6,6 +6,7 @@ import { RaceSession } from '@/game/race-session';
 import { Vehicle } from '@/physics/vehicle';
 import { GRID_SLOTS, gridSlot } from '@/race/grid';
 import { createAdelaideTrack } from '@/track/adelaide';
+import { createGoldCoastTrack } from '@/track/gold-coast';
 import { placeKerbs } from '@/track/kerbs';
 import { computeRacingLine } from '@/track/racing-line';
 import { Track } from '@/track/track-model';
@@ -33,7 +34,7 @@ function paintedBars(track: Track): Bar[] {
   return bars;
 }
 
-describe.each([['Bathurst', new Track()], ['Adelaide', createAdelaideTrack()]] as const)('%s grid boxes', (_name, track) => {
+describe.each([['Bathurst', new Track()], ['Adelaide', createAdelaideTrack()], ['Gold Coast', createGoldCoastTrack()]] as const)('%s grid boxes', (_name, track) => {
   const line = computeRacingLine(track), kerbs = placeKerbs(track, line), bars = paintedBars(track);
   const vehicle = new Vehicle(CAR_SPECS.camaro, track, kerbs);
   const dim = vehicle.spec.dimensions;

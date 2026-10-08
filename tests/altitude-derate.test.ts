@@ -18,6 +18,7 @@ describe('the altitude derate belongs to the circuit', () => {
   it('derates Bathurst (700-870 m) to 92 % and leaves sea-level Adelaide at the rated curve', () => {
     expect(CIRCUITS.bathurst.altitudeDerate).toBe(0.92);
     expect(CIRCUITS.adelaide.altitudeDerate).toBe(1);
+    expect(CIRCUITS['gold-coast'].altitudeDerate).toBe(1);
     for (const kind of CARS) {
       expect(peakNm(kind, 'adelaide')).toBe(660);
       expect(peakNm(kind, 'bathurst')).toBe(Math.round(660 * 0.92));

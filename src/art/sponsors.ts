@@ -30,3 +30,18 @@ export const ADELAIDE_SPONSORS: readonly Sponsor[] = [
   { name: 'WATTLE', tag: 'CREDIT UNION', bg: '#ffd23f', fg: '#1b1c1e', accent: '#0d5c63' },
   { name: 'CITY GRID', tag: 'FIBRE', bg: '#0a8f8f', fg: '#10151a', accent: '#ffffff' },
 ];
+
+/**
+ * Generated fictional sponsors for the Gold Coast street circuit's wall signs. They share no name
+ * with a Bathurst or Adelaide brand or any real corner sponsor, and are never used on car liveries.
+ */
+export const GOLD_COAST_SPONSORS: readonly Sponsor[] = [
+  { name: 'SANDBAR', tag: 'SURF CO.', bg: '#0b3c5d', fg: '#ffffff', accent: '#ffb703' },
+  { name: 'HINTERLAND', tag: 'DAIRY', bg: '#f6f1e7', fg: '#1b4332', accent: '#d62828' },
+  { name: 'BREAKWALL', tag: 'MARINE', bg: '#d8f3dc', fg: '#081c15', accent: '#e76f51' },
+  { name: 'SEVENTY FIVE', tag: 'SUNSCREEN', bg: '#fb8500', fg: '#10151a', accent: '#ffffff' },
+  { name: 'LONGBOARD', tag: 'LAGER', bg: '#2a1a0f', fg: '#fdf0d5', accent: '#48cae4' },
+  { name: 'TIDEWATER', tag: 'INSURANCE', bg: '#5a189a', fg: '#ffffff', accent: '#ffd166' },
+  { name: 'CORAL SEA', tag: 'FREIGHT', bg: '#ef476f', fg: '#10151a', accent: '#fff3b0' },
+  { name: 'PANDANUS', tag: 'HOTELS', bg: '#06d6a0', fg: '#10151a', accent: '#073b4c' },
+];

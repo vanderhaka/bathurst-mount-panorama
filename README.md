@@ -29,12 +29,24 @@ npm run dev        # http://127.0.0.1:5180/
 
 Production build: `npm run build`, then `npm run preview` (http://127.0.0.1:5181/).
 
-Choose **Circuit** on the title screen to switch between Mount Panorama and
-Adelaide Parklands. Adelaide also opens directly with `?track=adelaide`. Switching
-reloads the scene. The current 2026 Supercars layout is 3.219 km, clockwise, with
-14 numbered turns and generated city/parkland surroundings. Geometry sources and
-the estimated elevation, widths, sectors and timing lines are documented in
-[`docs/research/adelaide.md`](docs/research/adelaide.md).
+Choose **Circuit** on the title screen to step through Mount Panorama, Adelaide
+Parklands and Surfers Paradise. Switching reloads the scene.
+
+- **Adelaide** opens directly with `?track=adelaide`. The current 2026 Supercars
+  layout is 3.219 km, clockwise, with 14 numbered turns and generated
+  city/parkland surroundings. Sources and estimates:
+  [`docs/research/adelaide.md`](docs/research/adelaide.md).
+- **Surfers Paradise (Gold Coast)** opens directly with `?track=gold-coast`. The
+  2025 Gold Coast 500 layout is 2.960 km, anticlockwise, with 15 numbered turns,
+  the beach chicane, the OSM high-rise skyline, the beach and the Broadwater.
+  The hairpins, the beach chicane and Hill Parade are measured from Queensland
+  Government aerial photos. The G:link tram and the public Gold Coast Highway
+  run beside the pit straight, and three pedestrian bridges cross the track.
+  Sources and estimates:
+  [`docs/research/gold-coast.md`](docs/research/gold-coast.md).
+
+Elevation, road widths, sectors and timing lines on both street circuits are
+documented estimates.
 
 ## Controls
 
@@ -93,7 +105,7 @@ The cockpit view has a live rear-view mirror (a small second render at half rate
 
 ## Records
 
-Best laps, sectors, the delta trace and the ghost are saved per circuit and car in the browser (localStorage keys `bathurst.records.v2.<car>` and `adelaide.records.v2.<car>`). Existing Bathurst records keep their original key. A lap counts only after you drive at least 90 % of it forwards. The standing-start lap (from the grid) is shown, but it never becomes your best lap, delta reference or ghost. Version 2 drops records from older builds, because those builds could save a ghost that replayed too fast.
+Best laps, sectors, the delta trace and the ghost are saved per circuit and car in the browser (localStorage keys `bathurst.records.v2.<car>`, `adelaide.records.v2.<car>` and `gold-coast.records.v2.<car>`). Existing Bathurst records keep their original key. A lap counts only after you drive at least 90 % of it forwards. The standing-start lap (from the grid) is shown, but it never becomes your best lap, delta reference or ghost. Version 2 drops records from older builds, because those builds could save a ghost that replayed too fast.
 
 ## Play on a phone
 
@@ -190,5 +202,6 @@ The independent review rubric is in `docs/VERIFICATION.md`.
 - © OpenStreetMap contributors (ODbL).
 - SRTM via opentopodata.org.
 - NSW Spatial Services topographic contours.
+- Gold Coast geometry: includes material © State of Queensland (Department of Natural Resources and Mines, Manufacturing and Regional and Rural Development), CC BY 4.0. The aerial photos were used for measurement only.
 
 The cars and liveries are generic and do not use real team or sponsor branding.

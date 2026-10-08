@@ -2,18 +2,20 @@ import trackJson from '@/track/data/mount-panorama.json';
 import { computeSides, type OsmSides, type SideArrays } from '@/track/apply-layout';
 import { CORNERS, NAMED_PLACES, SECTOR_STARTS_S } from '@/track/layout';
 import { KERB_CORNERS, type CornerKerb } from '@/track/kerb-data';
-import { adelaideSides } from '@/track/adelaide-layout';
 import { CIRCUITS, type CircuitId } from '@/track/circuits';
 
 export type { SideArrays } from '@/track/apply-layout';
 
 export interface Corner { turn: number; name: string; s: number; dir: 'L' | 'R' }
 
+export type SidesBuilder = (n: number, spacing: number, length: number, corners: readonly Corner[]) => { left: SideArrays; right: SideArrays; bank: Float32Array };
+
 export interface TrackSource {
   meta: { id?: CircuitId; lengthM: number; elevationBaseM: number; elevationMinM: number; elevationMaxM: number; finishLineS?: number; startLineS?: number };
   points: number[][];
   sections: Array<{ name: string; startIndex: number }>;
   sides?: OsmSides;
+  buildSides?: SidesBuilder;
   corners?: readonly Corner[];
   places?: ReadonlyArray<{ s: number; name: string }>;
   sectorStarts?: readonly number[];
@@ -108,7 +110,7 @@ export class Track {
       for (let j = -2; j <= 2; j++) acc += k[(i + j + n) % n];
       this.curvature[i] = acc / 5;
     }
-    const sides = this.id === 'adelaide' ? adelaideSides(n, this.spacing, this.length, this.corners) : computeSides(n, this.spacing, this.length, src.sides);
+    const sides = src.buildSides ? src.buildSides(n, this.spacing, this.length, this.corners) : computeSides(n, this.spacing, this.length, src.sides);
     this.left = sides.left;
     this.right = sides.right;
     this.bank = sides.bank;

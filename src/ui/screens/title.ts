@@ -3,7 +3,7 @@
 import { h } from '@/hud/dom';
 import { flushRecords } from '@/race/records-queue';
 import { hintBar, menuButton, type Screen, screenEl, STD_HINTS, valueRow } from '@/ui/screen';
-import { ACTIVE_CIRCUIT, CIRCUITS, switchCircuit } from '@/track/circuits';
+import { ACTIVE_CIRCUIT, CIRCUITS, nextCircuit, switchCircuit } from '@/track/circuits';
 
 export interface TitleActions {
   race(): void;
@@ -19,10 +19,11 @@ function fullScreenTip(): HTMLElement | null {
 }
 
 function geometryCredit(): HTMLElement | null {
-  if (ACTIVE_CIRCUIT !== 'adelaide') return null;
+  const dataUrl = CIRCUITS[ACTIVE_CIRCUIT].centrelineDataUrl;
+  if (!dataUrl) return null;
   const credit = h('p', 'mn-tip');
   credit.append(h('a', undefined, { href: 'https://www.openstreetmap.org/copyright', target: '_blank', rel: 'noopener' }, ['© OpenStreetMap contributors']),
-    ' · ', h('a', undefined, { href: '/data/adelaide-centerline.json', target: '_blank', rel: 'noopener' }, ['Circuit data (ODbL)']));
+    ' · ', h('a', undefined, { href: dataUrl, target: '_blank', rel: 'noopener' }, ['Circuit data (ODbL)']));
   return credit;
 }
 
@@ -36,9 +37,9 @@ export class TitleScreen implements Screen {
   constructor(actions: TitleActions) {
     const circuit = CIRCUITS[ACTIVE_CIRCUIT];
     // The page reloads for the other circuit: pending records are written first.
-    this.circuitRow = valueRow('Circuit', () => {
+    this.circuitRow = valueRow('Circuit', (dir) => {
       flushRecords();
-      switchCircuit(ACTIVE_CIRCUIT === 'bathurst' ? 'adelaide' : 'bathurst');
+      switchCircuit(nextCircuit(ACTIVE_CIRCUIT, dir));
     });
     this.circuitRow.value.textContent = circuit.name;
     this.circuitRow.el.setAttribute('aria-label', `Circuit: ${circuit.name}. Left and right to change.`);

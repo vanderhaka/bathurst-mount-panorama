@@ -1,12 +1,28 @@
-export type CircuitId = 'bathurst' | 'adelaide';
+/** Every circuit, in title-screen cycle order. */
+export const CIRCUIT_IDS = ['bathurst', 'adelaide', 'gold-coast'] as const;
+export type CircuitId = (typeof CIRCUIT_IDS)[number];
 
-/** altitudeDerate: engine torque at the circuit's air density (Bathurst 700-870 m, docs/research/car-specs.md; Adelaide is at sea level). */
+interface CircuitInfo {
+  name: string; city: string; title: readonly [string, string]; location: string; lengthM: number;
+  facts: ReadonlyArray<readonly [string, string, string]>; altitudeDerate: number;
+  /** Whether the HUD flags the elevation as an estimate. */
+  elevationEstimated: boolean;
+  /** The distributed ODbL centreline the title screen credits; null = no OSM credit shown. */
+  centrelineDataUrl: string | null;
+}
+
+/** altitudeDerate: engine torque at the circuit's air density (Bathurst 700-870 m, docs/research/car-specs.md; Adelaide and the Gold Coast are at sea level). */
 export const CIRCUITS = {
   bathurst: { name: 'Mount Panorama', city: 'Bathurst', title: ['Mount', 'Panorama'], location: 'Bathurst · New South Wales', lengthM: 6213,
-    facts: [['Length', '6.213', 'km'], ['Turns', '23', ''], ['Elevation change', '174', 'm']], altitudeDerate: 0.92 },
+    facts: [['Length', '6.213', 'km'], ['Turns', '23', ''], ['Elevation change', '174', 'm']], altitudeDerate: 0.92,
+    elevationEstimated: false, centrelineDataUrl: null },
   adelaide: { name: 'Adelaide Parklands', city: 'Adelaide', title: ['Adelaide', 'Parklands'], location: 'Adelaide · South Australia', lengthM: 3219,
-    facts: [['Length', '3.219', 'km'], ['Turns', '14', ''], ['Direction', 'Clockwise', '']], altitudeDerate: 1 },
-} as const;
+    facts: [['Length', '3.219', 'km'], ['Turns', '14', ''], ['Direction', 'Clockwise', '']], altitudeDerate: 1,
+    elevationEstimated: true, centrelineDataUrl: '/data/adelaide-centerline.json' },
+  'gold-coast': { name: 'Surfers Paradise', city: 'Gold Coast', title: ['Surfers', 'Paradise'], location: 'Gold Coast · Queensland', lengthM: 2960,
+    facts: [['Length', '2.960', 'km'], ['Turns', '15', ''], ['Direction', 'Anticlockwise', '']], altitudeDerate: 1,
+    elevationEstimated: true, centrelineDataUrl: '/data/gold-coast-centerline.json' },
+} as const satisfies Record<CircuitId, CircuitInfo>;
 
 /** Last circuit chosen on the title screen; read when the address names none (a Home Screen launch opens "/"). */
 const STORAGE_KEY = 'bathurst.circuit.v1';
@@ -19,7 +35,7 @@ function browserStorage(): CircuitStorage | null {
 
 function parseCircuit(value: string | null | undefined): CircuitId | null {
   const name = value?.trim().toLowerCase();
-  return name === 'adelaide' || name === 'bathurst' ? name : null;
+  return CIRCUIT_IDS.find((id) => id === name) ?? null;
 }
 
 /** The circuit named by ?track= (any letter case), or null when it is missing or unknown. */
@@ -49,12 +65,17 @@ export function resolveCircuit(search: string, saved: CircuitId | null): Circuit
   return explicitCircuit(search) ?? saved ?? 'bathurst';
 }
 
-/** Adelaide is named in the address; Bathurst is the default, so its parameter is dropped unless `keepParam`. */
+/** Every circuit but the default Bathurst is named in the address; Bathurst's parameter is dropped unless `keepParam`. */
 export function circuitUrl(url: string, circuit: CircuitId, keepParam = false): string {
   const next = new URL(url);
-  if (circuit === 'adelaide' || keepParam) next.searchParams.set('track', circuit);
+  if (circuit !== 'bathurst' || keepParam) next.searchParams.set('track', circuit);
   else next.searchParams.delete('track');
   return next.href;
+}
+
+/** The neighbouring circuit in CIRCUIT_IDS order, wrapping at both ends. */
+export function nextCircuit(current: CircuitId, dir: -1 | 1): CircuitId {
+  return CIRCUIT_IDS[(CIRCUIT_IDS.indexOf(current) + dir + CIRCUIT_IDS.length) % CIRCUIT_IDS.length];
 }
 
 /**

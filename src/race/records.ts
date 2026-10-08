@@ -9,8 +9,8 @@ import { CIRCUITS, type CircuitId } from '@/track/circuits';
 // records saved then are its records and an older build still reads them.
 const KEY = (car: CarKind, circuit: CircuitId, level: DrivingLevel) =>
   `${circuit}.records.v2.${car}${level === 'experienced' ? '' : `.${level}`}`;
-/** Reject corrupt/impossible times while allowing Adelaide's shorter laps. */
-const MIN_PLAUSIBLE_LAP_S = { bathurst: 100, adelaide: 50 } as const;
+/** Per circuit; rejects corrupt or impossible times. */
+const MIN_PLAUSIBLE_LAP_S: Record<CircuitId, number> = { bathurst: 100, adelaide: 50, 'gold-coast': 45 };
 
 export interface CarRecords {
   bestS: number;

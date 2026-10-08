@@ -11,6 +11,7 @@ const BUDGET: Record<InstancedPropKind, [min: number, max: number]> = {
   eucalyptus: [200, 450],
   eucalyptusYoung: [150, 450],
   pine: [150, 450],
+  palm: [500, 1600],
   shrub: [20, SMALL],
   gumShrub: [20, SMALL],
   fallenBark: [20, 60],

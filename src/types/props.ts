@@ -12,6 +12,7 @@ export type InstancedPropKind =
   | 'eucalyptus' // tall gum tree, pale trunk, clumpy grey-green crown
   | 'eucalyptusYoung'
   | 'pine'
+  | 'palm' // coastal palm: ringed trunk, drooping frond crown
   | 'shrub'
   | 'gumShrub' // native under-tree bush on the Mountain
   | 'fallenBark'
