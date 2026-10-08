@@ -77,6 +77,19 @@ Tracked source: `data/raw/adelaide-osm-circuit.json`; distributed derived geomet
 
 The coordinates supply horizontal route geometry only. Elevation, banking, road width, kerb dimensions, braking boards, barrier offsets, grip and exact timing-loop positions are **unmeasured**. Any flat terrain, widths, corner speeds and scenery placement in the preview are implementation estimates. Do not transfer Bathurst's mountain elevation or its named corners into Adelaide.
 
+### Displayed altitude above sea level
+
+The HUD map shows `52 M (EST)` on Adelaide. `elevationBaseM = 52` in `src/track/adelaide.ts` is the only height the circuit carries: the road, terrain and physics stay flat at the model's zero (`track.py = 0`), and only `buildHudState` adds the base to the car's height for the readout. The "(EST)" marker stays because this is one constant for a flat model, not a surveyed profile.
+
+Source, looked up 2026-10-08 through the same service the Bathurst builder used ([OpenTopoData](https://www.opentopodata.org), the public API at `api.opentopodata.org/v1/<dataset>?locations=<lat>,<lon>`):
+
+| Dataset | At the estimated start line (-34.930309, 138.620436) | 21 points spaced around the lap |
+|---|---:|---|
+| SRTM 30 m (`srtm30m`) | **52 m** | 48 to 63 m, mean 54.4 m |
+| ASTER GDEM 30 m (`aster30m`) | 41 m | 36 to 56 m, mean 45.5 m |
+
+The 52 m value is the SRTM reading at the start line, the same dataset and method as Bathurst. Both datasets are surface models at about 30 m resolution with several metres of vertical error and include buildings and trees, so the bare ground may sit nearer the lower ASTER figures; the two datasets disagree by about 10 m. Neither the 15 m spread around the lap nor that difference is modelled. Replace the constant if a surveyed value for the pit straight is found.
+
 OSM data and these derived coordinate datasets are **ODbL 1.0**. Retain the source dataset and license with the geometry and display **© OpenStreetMap contributors**, linked to [OSM copyright/licensing](https://www.openstreetmap.org/copyright). Link the distributed data to the [ODbL license](https://opendatacommons.org/licenses/odbl/1-0/). This data licensing does not automatically relicense unrelated game code. The cached organiser/Supercars images have separate copyright and should remain research references.
 
 Final geometry hashes:
