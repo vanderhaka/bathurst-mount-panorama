@@ -11,6 +11,11 @@ export function propMaterial(): THREE.MeshStandardMaterial {
   return vertexColourMaterial({ roughness: PROPS_LOOK.shading.roughness, flat: PROPS_LOOK.shading.flat });
 }
 
+/** Boulders: smooth-shaded, rough stone. */
+export function rockMaterial(): THREE.MeshStandardMaterial {
+  return vertexColourMaterial({ roughness: PROPS_LOOK.rock.roughness, flat: false });
+}
+
 /** Foliage / trees (slightly rougher). */
 export function foliageMaterial(): THREE.MeshStandardMaterial {
   return vertexColourMaterial({ roughness: PROPS_LOOK.shading.foliageRoughness, flat: PROPS_LOOK.shading.flat });

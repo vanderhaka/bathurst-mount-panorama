@@ -43,38 +43,6 @@ export function buildShrub(variant: number): BuiltProp {
   return { geometry: m.build() };
 }
 
-/** Granite boulders: single rounded stones, slabs and small clusters, lichen on top faces. */
-export function buildRock(variant: number): BuiltProp {
-  const look = PROPS_LOOK.rock;
-  const rng = createRng(500 + variant * 29);
-  const m = new Mesher();
-  const base = new THREE.Color().setHex(look.colours[variant % look.colours.length]);
-  const lichen = new THREE.Color().setHex(look.lichen);
-  const colour = (f: FaceInfo) => {
-    const c = base.clone();
-    if (f.normal.y > 0.55 && Math.sin(f.centroid.x * 7 + f.centroid.z * 5) > 0.2) c.lerp(lichen, 0.45);
-    return c.multiplyScalar(f.normal.y < -0.1 ? 0.7 : 1);
-  };
-  const stones: Array<[number, number, number, number, number]> = [
-    // x, z, radius, height scale, detail
-    ...([
-      [[0, 0, 0.7, 0.75, 1]],
-      [[0, 0, 1.4, 0.6, 1]],
-      [[0, 0, 0.9, 0.7, 1], [0.95, 0.3, 0.5, 0.8, 0], [-0.6, 0.7, 0.35, 0.8, 0]],
-      [[0, 0, 1.9, 0.35, 1]],
-      [[0, 0, 0.45, 0.8, 0], [0.5, -0.2, 0.3, 0.9, 0], [-0.3, 0.4, 0.25, 0.8, 0]],
-      [[0, 0, 1.1, 0.95, 1], [-1.0, 0.5, 0.55, 0.7, 0]],
-    ][variant] as Array<[number, number, number, number, number]>),
-  ];
-  for (const [x, z, r, hs, detail] of stones) {
-    const g = blob(new THREE.Vector3(r * (1 + rng() * 0.25), r * hs, r), detail, rng, detail ? 0.16 : 0.2, 1);
-    g.rotateY(rng() * Math.PI);
-    g.translate(x, r * hs * 0.55, z);
-    m.add(clampBelow(g), colour, { jitter: 0.07 });
-  }
-  return { geometry: m.build() };
-}
-
 /** Grass tussock: a fan of thin double-sided blades; dry variants are straw coloured. */
 export function buildGrassTuft(variant: number): BuiltProp {
   const look = PROPS_LOOK.grass;

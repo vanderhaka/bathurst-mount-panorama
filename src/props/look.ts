@@ -63,7 +63,7 @@ export interface PropsLook {
   pine: { height: Range; foliage: number; foliageDark: number; trunk: number; tiers: Range; faceJitter: number };
   shrub: { colours: number[]; faceJitter: number };
   grass: { colours: number[] };
-  rock: { colours: number[]; lichen: number };
+  rock: { colours: number[]; lichen: number; rust: number; soil: number; roughness: number };
   /** Distance hints (m) for the world builder: where to swap to lodGeometry, and where to stop drawing. */
   lod: { treeSwitch: number; treeHide: number; spectatorSwitch: number; spectatorHide: number; smallPropHide: number };
   people: {
@@ -137,7 +137,7 @@ function defaultLook(): PropsLook {
     pine: { height: [10, 22], foliage: FOLIAGE.pine, foliageDark: FOLIAGE.pineDark, trunk: FOLIAGE.pineTrunk, tiers: [5, 7], faceJitter: 0.07 },
     shrub: { colours: [FOLIAGE.shrub, FOLIAGE.eucalyptB, FOLIAGE.eucalyptSilver, GROUND.grassDark], faceJitter: 0.1 },
     grass: { colours: [GROUND.grass, GROUND.grassLight, GROUND.grassDry, GROUND.grassDark] },
-    rock: { colours: [GROUND.rock, TRACKSIDE.concreteDark, GROUND.gravel], lichen: GROUND.grassDry },
+    rock: { colours: [0x6f685c, 0x675f55, 0x766d60], lichen: 0x7c8060, rust: 0x8a6a48, soil: 0x4a3d30, roughness: 0.9 },
     lod: { treeSwitch: 140, treeHide: 2600, spectatorSwitch: 60, spectatorHide: 400, smallPropHide: 700 },
     people: {
       shirts: [
