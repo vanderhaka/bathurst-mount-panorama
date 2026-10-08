@@ -70,6 +70,20 @@ describe('gum surface assets', () => {
     }
   });
 
+  it('gives every wood vertex a unit normal, including the two-sided dead fins of far trees', () => {
+    // A zero normal becomes NaN in the shader (normalize(0)); the HDR post chain spreads it as black specks.
+    const assets = [...Array.from({ length: TREE_VARIANTS.eucalyptus }, (_, v) => buildEucalyptus(v)),
+      ...Array.from({ length: TREE_VARIANTS.eucalyptusYoung }, (_, v) => buildYoungEucalyptus(v))];
+    for (const geo of assets.flatMap(tree => [tree.near, tree.far])) {
+      const n = geo.getAttribute('normal'), surface = geo.getAttribute('treeSurface'), normal = new THREE.Vector3();
+      for (let i = 0; i < n.count; i++) {
+        if (surface.getX(i) >= 2) continue; // Crown cards carry deliberately unnormalised radial fields.
+        expect(normal.fromBufferAttribute(n, i).length()).toBeCloseTo(1, 4);
+      }
+      geo.dispose();
+    }
+  });
+
   it('uses one radial field instead of a card-facing lighting bias', () => {
     const centre = new THREE.Vector3(2, 8, -1), radii = new THREE.Vector3(3, 2, 2.5);
     const card = crownCards({ centre, radii });

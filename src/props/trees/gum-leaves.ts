@@ -80,7 +80,11 @@ export function decorateGumGeometry(g: THREE.BufferGeometry, woodVertices: numbe
     const key = vertexKey(i), n = smooth.get(key) ?? new THREE.Vector3();
     n.x += normals.getX(i); n.y += normals.getY(i); n.z += normals.getZ(i); smooth.set(key, n);
   }
-  for (let i = 0; i < woodVertices; i++) { const n = smooth.get(vertexKey(i))!.clone().normalize(); normals.setXYZ(i, n.x, n.y, n.z); }
+  for (let i = 0; i < woodVertices; i++) {
+    const n = smooth.get(vertexKey(i))!;
+    // The two windings of a two-sided dead fin cancel; keep that face's own normal (normalize(0) is NaN on the GPU).
+    if (n.lengthSq() > 1e-6) { const u = n.clone().normalize(); normals.setXYZ(i, u.x, u.y, u.z); }
+  }
   surface.fill(bark === 'box' ? 1 : 0, 0, woodVertices);
   for (let i = 0; i < woodVertices; i += 3) {
     const around = [0, 1, 2].map((j) => Math.atan2(p.getZ(i + j), p.getX(i + j)) / (Math.PI * 2) + 0.5);
