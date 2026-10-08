@@ -9,6 +9,11 @@ import type { SurfaceKind } from '@/track/track-query';
 
 export interface StintStart { fuelL?: number; compound?: TyreCompound; tempC?: number; wear?: number }
 
+/** As LapTimer: a crossing completes a lap only after this fraction of the lap was driven forwards. */
+const MIN_COVERED = 0.9;
+/** A larger position change in one step is a teleport, never driving (m). */
+const MAX_STEP_M = 50;
+
 /** Owned by one Vehicle, advanced only from fixed physics steps. */
 export class VehicleStint {
   readonly fuel = new FuelModel();
@@ -19,6 +24,8 @@ export class VehicleStint {
   private readonly brakeWork: BrakeContact = { powerW: 0, lockUse: 0 };
   completedLaps = 0;
   private previousS: number | null = null;
+  /** Forward metres since the last line crossing; null until the stint's first crossing, which always counts. */
+  private covered: number | null = null;
 
   reset(start: StintStart = {}): void {
     this.fuel.reset(start.fuelL ?? FUEL_REFERENCE_L);
@@ -26,6 +33,7 @@ export class VehicleStint {
     this.brakes.reset();
     this.completedLaps = 0;
     this.previousS = null;
+    this.covered = null;
   }
 
   /** Replacing tyres preserves the tank and hot discs; a new stint resets them separately. */
@@ -49,15 +57,33 @@ export class VehicleStint {
     this.fuel.cancelLap();
   }
 
-  advance(t: VehicleTelemetry, dt: number, s: number, lineS: number, enginePedal = t.throttle): void {
+  /** `s` is the car's track distance; the timing line is at `lineS` on a lap of `lapLength` metres. */
+  advance(t: VehicleTelemetry, dt: number, s: number, lineS: number, lapLength: number, enginePedal = t.throttle): void {
     if (!(Number.isFinite(dt) && dt > 0)) return;
-    const prev = this.previousS;
-    if (prev !== null && prev < lineS && s >= lineS && s - prev < 50) {
-      this.fuel.crossLine();
-      this.completedLaps++;
-    }
+    if (this.previousS !== null) this.crossLine(this.previousS, s, lineS, lapLength);
     this.previousS = s;
     this.fuel.advance(enginePedal, dt);
     this.tyreModel.advance(t, t.speed, dt);
+  }
+
+  /**
+   * Counts a forward crossing of the line in wrapped lap distance (a line at distance 0 works). Like
+   * LapTimer, reversing back over the line and driving forward again restarts the lap instead.
+   */
+  private crossLine(prev: number, s: number, lineS: number, lapLength: number): void {
+    // The signed step wraps into (-L/2, L/2], never [0, L): a car is never half a lap from its last step.
+    let ds = (s - prev) % lapLength;
+    if (ds > lapLength / 2) ds -= lapLength;
+    else if (ds <= -lapLength / 2) ds += lapLength;
+    if (!(Math.abs(ds) < MAX_STEP_M)) return;
+    if (this.covered !== null && ds > 0) this.covered += ds;
+    const before = (((prev - lineS) % lapLength) + lapLength) % lapLength;
+    if (ds <= 0 || before + ds < lapLength) return;
+    const after = before + ds - lapLength;
+    if (this.covered === null || this.covered - after >= lapLength * MIN_COVERED) {
+      this.fuel.crossLine();
+      this.completedLaps++;
+    } else this.fuel.cancelLap();
+    this.covered = after;
   }
 }

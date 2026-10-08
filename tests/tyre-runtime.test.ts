@@ -90,7 +90,7 @@ describe('tyre runtime wiring without a renderer', () => {
     expect(v.stint.tyres[0].tempC).toBe(95);
     v.stint.reset({ fuelL: 15, tempC: 52, wear: 0.5 });
     v.stint.placeOnTrack(track.startLineS - 1);
-    v.stint.advance(v.telemetry, 1 / 360, track.startLineS + 1, track.startLineS);
+    v.stint.advance(v.telemetry, 1 / 360, track.startLineS + 1, track.startLineS, track.length);
     attract.frame(1 / 360, true, () => {}, new THREE.Vector3());
     expect(v.stint.fuel.litres).toBeGreaterThan(79.99);
     expect(v.stint.tyres[0].tempC).toBeGreaterThan(94.9);

@@ -79,12 +79,12 @@ describe('simulation fuel in Vehicle and HUD', () => {
   it('counts only forward line crossings and abandons teleported consumption samples', () => {
     const v = car();
     v.stint.placeOnTrack(track.startLineS - 1);
-    v.stint.advance(v.telemetry, 0.1, track.startLineS + 1, track.startLineS);
+    v.stint.advance(v.telemetry, 0.1, track.startLineS + 1, track.startLineS, track.length);
     expect(v.stint.completedLaps).toBe(1);
-    v.stint.advance(v.telemetry, 0.1, track.startLineS - 1, track.startLineS);
+    v.stint.advance(v.telemetry, 0.1, track.startLineS - 1, track.startLineS, track.length);
     expect(v.stint.completedLaps).toBe(1);
     v.stint.placeOnTrack(track.startLineS - 1000);
-    v.stint.advance(v.telemetry, 0.1, track.startLineS + 1, track.startLineS);
+    v.stint.advance(v.telemetry, 0.1, track.startLineS + 1, track.startLineS, track.length);
     expect(v.stint.completedLaps).toBe(1);
   });
 });

@@ -265,7 +265,7 @@ export class Vehicle {
     t.gLat = (ax * cos - az * sin) / G;
     t.airborne = !anyGround;
     t.load = input.throttle > 0.05 && this.stint.fuel.litres > 0 ? input.throttle : 0;
-    this.stint.advance(t, dt, this.tp.s, track.startLineS, this.assists.autoGears && t.gear === -1 ? t.brake : t.throttle);
+    this.stint.advance(t, dt, this.tp.s, track.startLineS, track.length, this.assists.autoGears && t.gear === -1 ? t.brake : t.throttle);
     this.trackGrip.advance(dt, t.speed);
     this.simulationS += dt;
     return impacts;
