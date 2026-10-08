@@ -2,7 +2,7 @@ import { getGraphics, QUALITY } from '@/config/graphics';
 import type { QualityPreset } from '@/render/renderer';
 import type { Track } from '@/track/track-model';
 import { createTrackPoint, pointAt, projectToTrack } from '@/track/track-query';
-import { GOLD_COAST_ENV, coastXAt, inSea, inWater, onIsland } from '@/world/gold-coast-geo';
+import { GOLD_COAST_ENV, coastXAt, inSea, inWater, onIsland, transitDistance } from '@/world/gold-coast-geo';
 import type { TowerSpec, TowerStyle } from '@/world/gold-coast-towers';
 import { rng } from '@/world/scenery/geo';
 import type { Terrain } from '@/world/terrain';
@@ -13,12 +13,12 @@ type Footprint = { x: number; z: number; width: number; depth: number; yaw: numb
 const BEACH = 55, Q1_ID = 188325694;
 
 /** Samples the whole rotated rectangle (corners alone miss a road crossing the interior), the sea, the water and the beach. */
-export function goldCoastFootprintFits(terrain: Pick<Terrain, 'clearance'>, p: Footprint, margin = 2): boolean {
+export function goldCoastFootprintFits(terrain: Pick<Terrain, 'clearance'>, p: Footprint, margin = 2, transitMargin = 1.0): boolean {
   const c = Math.cos(p.yaw), s = Math.sin(p.yaw);
   const nx = Math.max(2, Math.ceil(p.width / 6)), nz = Math.max(2, Math.ceil(p.depth / 6));
   for (let i = 0; i <= nx; i++) for (let j = 0; j <= nz; j++) {
     const u = p.width * (i / nx - 0.5), v = p.depth * (j / nz - 0.5), x = p.x + c * u + s * v, z = p.z - s * u + c * v;
-    if (terrain.clearance(x, z) < margin || inSea(x, z) || inWater(x, z) || x > coastXAt(z) - BEACH) return false;
+    if (terrain.clearance(x, z) < margin || inSea(x, z) || inWater(x, z) || x > coastXAt(z) - BEACH || transitDistance(x, z) < transitMargin) return false;
   }
   return true;
 }

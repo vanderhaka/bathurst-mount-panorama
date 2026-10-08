@@ -51,7 +51,7 @@ describe('Gold Coast skyline, infill and palms', { timeout: 60000 }, () => {
 
   it('adds street infill outside the lap, off the beachfront and clear of the towers', () => {
     const towers = goldCoastTowerSpecs(track, high, 'high'), infill = goldCoastInfillSpecs(track, high, 'high', towers);
-    expect(infill.length).toBeGreaterThanOrEqual(25);
+    expect(infill.length).toBeGreaterThanOrEqual(15);
     expect(goldCoastInfillSpecs(track, low, 'low', towers)).toHaveLength(0);
     for (const b of infill) {
       expect(insideLap(track, b.x, b.z)).toBe(false);

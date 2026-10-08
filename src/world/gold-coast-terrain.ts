@@ -5,7 +5,7 @@ import { GROUND } from '@/art/palette';
 import type { QualityPreset } from '@/render/renderer';
 import type { Track } from '@/track/track-model';
 import { createTrackPoint, heightAt, pointAt, projectToTrack, sampleArray } from '@/track/track-query';
-import { GOLD_COAST_ENV, coastXAt, inSea, inWater, shoreDistance } from '@/world/gold-coast-geo';
+import { GOLD_COAST_ENV, coastXAt, inSea, inWater, shoreDistance, transitDistance } from '@/world/gold-coast-geo';
 import { createNearGrass } from '@/world/near-grass';
 import type { Terrain } from '@/world/terrain';
 import { createTerrainMaterial, disposeTerrainMaterial } from '@/world/terrain-detail';
@@ -43,7 +43,7 @@ export function buildGoldCoastTerrain(track: Track, quality: QualityPreset): Ter
   };
   // Grass grows on park ground only: not on sand, sea, water, footpaths or the pit lane.
   const grassSurface = (x: number, z: number): TerrainSurfaceSample => {
-    const c = corridor(x, z), s = surface(x, z), grassy = x < coastXAt(z) - BEACH && !inWater(x, z) && !pitLane(c) && c.clearance > 3.7;
+    const c = corridor(x, z), s = surface(x, z), grassy = x < coastXAt(z) - BEACH && !inWater(x, z) && !pitLane(c) && c.clearance > 3.7 && transitDistance(x, z) >= 0.5;
     return grassy ? s : { ...s, normalY: 0 };
   };
   const margin = 420, snap = (v: number) => Math.floor(v / cell) * cell;
@@ -81,13 +81,15 @@ export function buildGoldCoastTerrain(track: Track, quality: QualityPreset): Ter
   group.add(seaMesh, waterMesh); geometries.push(sea, lakes);
   const pavingMaterial = new THREE.MeshStandardMaterial({ color: 0xffffff, vertexColors: true, roughness: 0.94 });
   const clearance = (x: number, z: number) => corridor(x, z).clearance;
+  // Footpaths stop short of the public road and the tram bed.
+  const footClear = (x: number, z: number) => (transitDistance(x, z) < 0.3 ? -1 : clearance(x, z));
   const foot = (side: 1 | -1) => (i: number): [number, number] => {
     const wall = (side > 0 ? track.left : track.right).wall[i];
     return [wall + 0.65, wall + 3.65];
   };
   const paving: [string, THREE.BufferGeometry][] = [
-    ['gold-coast-footpath-left', pavingRibbon(track, 0, track.length, 1, foot(1), 0xb6b0a1, heightFn, clearance)],
-    ['gold-coast-footpath-right', pavingRibbon(track, 0, track.length, -1, foot(-1), 0xb6b0a1, heightFn, clearance)],
+    ['gold-coast-footpath-left', pavingRibbon(track, 0, track.length, 1, foot(1), 0xb6b0a1, heightFn, footClear)],
+    ['gold-coast-footpath-right', pavingRibbon(track, 0, track.length, -1, foot(-1), 0xb6b0a1, heightFn, footClear)],
     ['gold-coast-pit-lane', pavingRibbon(track, -298, 294, 1, () => [15, 23], 0x555b5b, heightFn, clearance)],
   ];
   for (const [name, geo] of paving) { group.add(Object.assign(new THREE.Mesh(geo, pavingMaterial), { name, receiveShadow: true })); geometries.push(geo); }

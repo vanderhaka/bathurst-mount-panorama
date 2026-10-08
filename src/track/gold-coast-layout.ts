@@ -36,5 +36,12 @@ export function goldCoastSides(n: number, spacing: number, length: number, corne
     right.wall[i] = Math.min(right.wall[i], cap);
     right.edge[i] = Math.max(4.9, Math.min(right.edge[i], right.wall[i] - 1.0));
   }
+  // Qld photos: the real right edge of the pit straight is 4.0-5.0 m off this line; the grass median with the stands lies beyond.
+  const ramp = (v: number) => { const u = Math.max(0, Math.min(1, v)); return u * u * (3 - 2 * u); };
+  for (let i = 0; i < n; i++) {
+    const s = i * spacing, w = s >= 2640 || s <= 360 ? 1 : s > 2600 ? ramp((s - 2600) / 40) : s < 400 ? ramp((400 - s) / 40) : 0;
+    if (w <= 0 || right.edge[i] <= 4.9) continue;
+    right.edge[i] -= (right.edge[i] - 4.9) * w; right.wall[i] = right.edge[i] + 1.2;
+  }
   return { left, right, bank: new Float32Array(n) };
 }

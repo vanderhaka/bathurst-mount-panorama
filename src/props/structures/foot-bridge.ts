@@ -9,7 +9,9 @@ import { StructureParts, stairFlight, V } from '@/props/structures/parts';
 const WIDTH = 3.0;
 const TRUSS_H = 2.4;
 
-export function buildFootBridge(opts: { span: number; clearance: number }): THREE.Group {
+/** `stairs`: 'outward' (default) runs each flight away along X; 'along' turns it parallel to the track beside an inboard tower. */
+export function buildFootBridge(opts: { span: number; clearance: number; stairs?: 'outward' | 'along' }): THREE.Group {
+  const along = opts.stairs === 'along';
   const S = Math.max(6, opts.span);
   const C = Math.max(3, opts.clearance);
   const p = new StructureParts();
@@ -46,12 +48,20 @@ export function buildFootBridge(opts: { span: number; clearance: number }): THRE
   // Light roof.
   p.block(2 * half + 0.6, 0.15, WIDTH + 1.2, 0, C + TRUSS_H + 0.05, 0, BUILDING.roof);
   // End towers on four columns, landings, stairs running away from the track.
+  const flights: THREE.Group[] = [];
   for (const s of [-1, 1] as const) {
-    const x = s * half;
+    const x = s * (along ? half - 1.1 : half);
     for (const dx of [-0.9, 0.9]) for (const dz of [-WIDTH / 2, WIDTH / 2]) p.beam(V(x + dx, 0, dz), V(x + dx, C - 0.45, dz), 0.14, BUILDING.grey, 6);
-    p.block(2.4, 0.4, WIDTH + 0.4, x + s * 1.2, C - 0.4, 0, BUILDING.grey);
-    stairFlight(p, x + s * 2.4, s, C, 0, 1.6);
+    p.block(2.4, 0.4, WIDTH + 0.4, along ? s * (half - 1.2) : x + s * 1.2, C - 0.4, 0, BUILDING.grey);
+    if (along) {
+      // Flight built running along +X, then turned onto Z so it leaves the landing's side face.
+      const q = new StructureParts(); stairFlight(q, 0, 1, C, 0, 1.6);
+      const flight = q.toGroup('foot-bridge-stair'); flight.rotation.y = s * Math.PI / 2; flight.position.set(x, 0, -s * (WIDTH / 2 + 0.2));
+      flights.push(flight);
+    } else stairFlight(p, x + s * 2.4, s, C, 0, 1.6);
     p.block(1.8, 0.3, 1.8, x, 0, 0, TRACKSIDE.concrete);
   }
-  return p.toGroup('foot-bridge');
+  const bridge = p.toGroup('foot-bridge');
+  for (const flight of flights) bridge.add(flight);
+  return bridge;
 }
