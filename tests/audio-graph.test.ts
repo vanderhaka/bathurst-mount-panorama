@@ -9,14 +9,39 @@ import { buildNoiseSet } from '@/audio/graph/noise-set';
 import { SurfaceLayer } from '@/audio/graph/surface-layer';
 import { TyreLayer } from '@/audio/graph/tyre-layer';
 import { makeFrame } from '@/audio/harness/selftest-common';
+import type { CarAudioFrame } from '@/types/audio';
 
 // Records real graph construction, buffer generation and automation without a browser/GPU.
+interface Automation { kind: 'set' | 'target'; value: number; time: number; tc: number }
 class Param {
   value = 0;
-  readonly events: Array<{ value: number; time: number }> = [];
-  setTargetAtTime(value: number, time: number): void { this.value = value; this.events.push({ value, time }); }
-  setValueAtTime(value: number, time: number): void { this.setTargetAtTime(value, time); }
-  cancelScheduledValues(): void {}
+  readonly events: Automation[] = [];
+  private initial: number | null = null;
+  private add(event: Automation): void {
+    this.initial ??= this.value;
+    this.value = event.value;
+    // Web Audio keeps the list ordered by time; a new event goes after the ones already at its time.
+    let i = this.events.length;
+    while (i > 0 && this.events[i - 1].time > event.time) i--;
+    this.events.splice(i, 0, event);
+  }
+  setTargetAtTime(value: number, time: number, tc = 0): void { this.add({ kind: 'target', value, time, tc }); }
+  setValueAtTime(value: number, time: number): void { this.add({ kind: 'set', value, time, tc: 0 }); }
+  cancelScheduledValues(time: number): void {
+    for (let i = this.events.length - 1; i >= 0; i--) if (this.events[i].time >= time) this.events.splice(i, 1);
+  }
+  /** What the automation timeline plays at `time` (setTarget approaches its target exponentially). */
+  at(time: number): number {
+    let held = this.initial ?? this.value, from = held;
+    let curve: Automation | null = null;
+    const now = (t: number): number => !curve ? held : curve.tc <= 0 ? curve.value : curve.value + (from - curve.value) * Math.exp(-(t - curve.time) / curve.tc);
+    for (const e of this.events) {
+      if (e.time > time) break;
+      from = now(e.time);
+      if (e.kind === 'set') { held = e.value; curve = null; } else curve = e;
+    }
+    return now(time);
+  }
 }
 class Buffer {
   readonly data: Float32Array;
@@ -169,5 +194,65 @@ describe('generated driving sound paths', () => {
     audio.update({ ...base, gear: 3, shifted: false }, 1 / 60);
     expect(context.nodes.length).toBe(after);
     audio.dispose();
+  });
+});
+
+/** The game loop against the fake context: returns the gear-whine gain automation and its steady level. */
+async function whineRig(hz: number) {
+  const context = new Context();
+  const audio = createCarAudioDebug('camaro', context as unknown as BaseAudioContext, { forceFallback: true });
+  await audio.init();
+  const osc = context.nodes.find((n) => n.kind === 'osc' && n.wave?.imag.length === 4); // whine mesh tones
+  const level = osc?.outputs[0] instanceof Node ? osc.outputs[0].outputs[0] : undefined;
+  if (!(level instanceof Node)) throw new Error('missing gear whine gain');
+  const base = makeFrame({ rpm: 6000, speedKmh: 180, gear: 4, load: 1, interior: 1 });
+  audio.snap(base);
+  let n = 0;
+  const frame = (over: Partial<CarAudioFrame> = {}): number => {
+    context.currentTime = ++n / hz;
+    audio.update({ ...base, ...over }, 1 / hz);
+    return context.currentTime;
+  };
+  while (n < hz / 2) frame();
+  const full = level.gain.at(n / hz);
+  return { whine: level.gain, frame, full, shift: () => frame({ gear: 5, shifted: true }) };
+}
+
+describe('gear-whine dropout on a shift', () => {
+  it.each([60, 30])('drops at the shift time and returns 70 ms later at %i fps, not a frame late', async (hz) => {
+    const { whine, frame, full, shift } = await whineRig(hz);
+    expect(full).toBeGreaterThan(0.01);
+    const t = shift();
+    for (let i = 0; i < hz / 4; i++) frame({ gear: 5 });
+    expect(whine.at(t - 1e-6)).toBeCloseTo(full, 6);
+    expect(whine.at(t + 0.012)).toBeLessThan(0.1 * full); // 4 ms time constant: gone within 12 ms
+    expect(whine.at(t + 0.069)).toBeLessThan(0.01 * full);
+    const back = whine.at(t + 0.07 + 0.03); // one 30 ms time constant after the 70 ms window
+    expect(back).toBeGreaterThan(0.55 * full);
+    expect(back).toBeLessThan(0.7 * full);
+    expect(whine.at(t + 1)).toBeCloseTo(full, 6);
+  });
+
+  it('keeps the whine out for the whole of a second shift that lands inside the first dropout', async () => {
+    const { whine, frame, full, shift } = await whineRig(60);
+    const t = shift();
+    frame({ gear: 5 }); frame({ gear: 5 });
+    const t2 = frame({ gear: 4, shifted: true });
+    for (let i = 0; i < 15; i++) frame({ gear: 4 });
+    expect(t2 - t).toBeCloseTo(0.05, 9);
+    expect(whine.at(t + 0.075)).toBeLessThan(0.01 * full); // the first dropout's end must not let it back in
+    expect(whine.at(t2 + 0.069)).toBeLessThan(0.01 * full);
+    expect(whine.at(t2 + 0.07 + 0.03)).toBeGreaterThan(0.55 * full);
+  });
+
+  it('returns to the whine level of the frames inside the dropout (torque is cut during a shift)', async () => {
+    const { whine, frame, full, shift } = await whineRig(60);
+    const t = shift();
+    frame({ gear: 5, load: 0.2 }); frame({ gear: 5, load: 0.2 }); frame({ gear: 5, load: 0.2 });
+    const coast = 0.6 * full; // whineGain: 0.5 + 0.5 x load
+    // 5 ms after the 70 ms window, before any frame can have corrected a stale target (the next is at 83 ms).
+    expect(whine.at(t + 0.075)).toBeCloseTo(coast * (1 - Math.exp(-0.005 / 0.03)), 6);
+    for (let i = 0; i < 30; i++) frame({ gear: 5, load: 0.2 });
+    expect(whine.at(t + 1)).toBeCloseTo(coast, 6);
   });
 });

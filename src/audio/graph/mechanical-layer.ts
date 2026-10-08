@@ -14,6 +14,9 @@ import type { Layer } from '@/audio/graph/layer';
 import type { CarAudioFrame } from '@/types/audio';
 
 const MAX_WHINE_HZ = 9000;
+/** Whine gain time constants (s): a fast drop for the shift cut, a slower return to the steady level. */
+const DIP_TC = 0.004;
+const RETURN_TC = 0.03;
 
 /**
  * Drivetrain tones: straight-cut gearbox whine (input gear pair tracks engine
@@ -27,6 +30,8 @@ export class MechanicalLayer implements Layer {
   private readonly valveGain: GainNode;
   private readonly valveOsc: OscillatorNode;
   private dipUntil = 0;
+  /** Steady (no shift) whine gain from the latest update(): what a dropout returns to. */
+  private level = 0;
 
   constructor(
     private readonly env: LayerEnv,
@@ -56,9 +61,18 @@ export class MechanicalLayer implements Layer {
     return osc;
   }
 
-  /** Brief gearbox torque interruption: whine drops out for the shift. */
+  /**
+   * Brief gearbox torque interruption: whine drops out for the shift. The shift is detected after this
+   * frame's update() has already set the whine to full gain, so the dropout is scheduled here, at the
+   * shift's own audio time (an event added later at the same time wins), and so is its return at
+   * `t + seconds`. Waiting for the next update() would start it a frame late and end it a frame late.
+   */
   dip(t: number, seconds: number): void {
+    // A shift inside an unfinished dropout extends it: hold the earlier return at zero.
+    if (t < this.dipUntil) ramp(this.whine.gain, 0, this.dipUntil, DIP_TC);
     this.dipUntil = t + seconds;
+    ramp(this.whine.gain, 0, t, DIP_TC);
+    ramp(this.whine.gain, this.level, this.dipUntil, RETURN_TC);
   }
 
   update(frame: CarAudioFrame, t: number, mix: LayerMix): void {
@@ -67,9 +81,13 @@ export class MechanicalLayer implements Layer {
     const f = gearWhineHz(frame.rpm, frame.speedKmh, spec.dimensions.wheelRadius, spec.finalDrive, m.inputTeeth, m.pinionTeeth);
     ramp(this.inputOsc.frequency, Math.min(f.inputHz, MAX_WHINE_HZ), t, 0.02);
     ramp(this.pinionOsc.frequency, Math.min(f.pinionHz, MAX_WHINE_HZ), t, 0.02);
-    const inShift = t < this.dipUntil;
-    const g = inShift ? 0 : whineGain(frame.gear, frame.load) * m.whineGain * mix.mechanical;
-    ramp(this.whine.gain, g, t, inShift ? 0.004 : 0.03);
+    this.level = whineGain(frame.gear, frame.load) * m.whineGain * mix.mechanical;
+    if (t < this.dipUntil) {
+      ramp(this.whine.gain, 0, t, DIP_TC);
+      ramp(this.whine.gain, this.level, this.dipUntil, RETURN_TC); // the return follows the latest level
+    } else {
+      ramp(this.whine.gain, this.level, t, RETURN_TC);
+    }
     const cam = (frame.rpm / 60) * m.valvetrainOrder;
     ramp(this.valveOsc.frequency, Math.max(1, cam), t, 0.03);
     ramp(this.valveGain.gain, m.valvetrainGain * 20 * mix.mechanical * Math.min(1, frame.rpm / 4000), t, 0.05);
