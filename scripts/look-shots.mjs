@@ -25,6 +25,7 @@ await page.waitForTimeout(2500);
 const shot = (n) => page.screenshot({ path: `${out}/${n}.png` });
 await shot('01-title');
 await page.keyboard.press('Enter'); await page.waitForTimeout(1500);
+await shot('02-car-select');
 await page.getByRole('button', { name: 'Start time trial', exact: true }).click();
 await answerSteerQuestion(page);
 await page.waitForFunction(() => window.__game?.race?.session.lights < 0, null, { timeout: 30000 });
