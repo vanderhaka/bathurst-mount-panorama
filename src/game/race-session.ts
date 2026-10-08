@@ -2,6 +2,7 @@ import type { CarKind } from '@/car/car-specs';
 import type { CarEntity } from '@/game/car-entity';
 import { GhostPlayer, GhostRecorder, type GhostPose } from '@/race/ghost';
 import { formatLapTime } from '@/hud/format';
+import { gridSlot } from '@/race/grid';
 import { LapTimer, type LapResult } from '@/race/lap-timer';
 import { loadRecords, saveRecords, type CarRecords } from '@/race/records';
 import { TelemetryRecorder } from '@/race/telemetry-recorder';
@@ -50,9 +51,8 @@ export class RaceSession {
   placeOnGrid(): void {
     this.entity.vehicle.stint.reset({ compound: this.tyres });
     this.entity.vehicle.trackGrip.reset();
-    const s = this.track.gridLineS - 7;
-    const i = this.track.wrap(Math.round(s / this.track.spacing));
-    this.entity.reset(s, Math.max(-this.track.right.edge[i] + 2, Math.min(this.track.left.edge[i] - 2, -2.2)));
+    const pole = gridSlot(this.track, 0);
+    this.entity.reset(pole.s, pole.d);
     this.entity.repair();
     this.lights = 0;
     this.lightsT = 0;

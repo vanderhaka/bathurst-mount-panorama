@@ -4,10 +4,12 @@ import { GROUND, ROAD, TRACKSIDE } from '@/art/palette';
 import { linearColour } from '@/art/materials';
 import { getGraphics } from '@/config/graphics';
 import type { KerbLayout } from '@/track/kerbs';
+import { GRID_SLOTS, gridBar } from '@/race/grid';
 import { rubberAmount } from '@/track/rubber-line';
 import type { RacingLine } from '@/track/racing-line';
 import type { Track } from '@/track/track-model';
 import { fbm } from '@/world/dem';
+import { buildGridBar } from '@/world/grid-bars';
 import { buildKerbGeometry } from '@/world/kerb-surface';
 import { buildBrakingSkids, buildWallScuffs } from '@/world/road-marks';
 import { createRoadMaterials, roadOptions, type RoadOptions } from '@/world/road-materials';
@@ -122,34 +124,9 @@ export function buildStartMarkings(track: Track, mat: THREE.Material): THREE.Gro
     pos.setXYZ(v, pos.getX(k) + (pos.getX(v) - pos.getX(k)) * lineLength, pos.getY(k) + (pos.getY(v) - pos.getY(k)) * lineLength, pos.getZ(k) + (pos.getZ(v) - pos.getZ(k)) * lineLength);
     lineUv.setY(v, lineUv.getY(k) + (lineUv.getY(v) - lineUv.getY(k)) * lineLength);
   }
-  // Adelaide uses its estimated grid line; retain the existing Bathurst markings.
+  // Grid boxes: one bar per slot, just ahead of where the car stands (src/race/grid.ts places both).
   const bars: THREE.BufferGeometry[] = [line];
-  for (let slot = 0; slot < 12; slot++) {
-    const s = (track.id === 'adelaide' ? track.gridLineS : track.startLineS) - 10 - slot * 8;
-    const i = track.wrap(Math.round(s / track.spacing));
-    const side = slot % 2 === 0 ? 1 : -1;
-    bars.push(
-      buildStrip(track, {
-        include: (k) => k === i || k === track.wrap(i + 1),
-        from: () => (side > 0 ? 0.8 : -4.6),
-        to: () => (side > 0 ? 4.6 : -0.8),
-        segments: 1,
-        lift: () => 0.007,
-        colour: (_k, _u, _d, c) => c.copy(white),
-      }),
-    );
-  }
-  for (const b of bars.slice(1)) {
-    const p = b.getAttribute('position') as THREE.BufferAttribute;
-    const uv = b.getAttribute('uv') as THREE.BufferAttribute;
-    const length = 0.24 / track.spacing;
-    for (let v = 2; v < 4; v++) {
-      const k = v - 2;
-      if (v >= p.count) continue;
-      p.setXYZ(v, p.getX(k) + (p.getX(v) - p.getX(k)) * length, p.getY(k) + (p.getY(v) - p.getY(k)) * length, p.getZ(k) + (p.getZ(v) - p.getZ(k)) * length);
-      uv.setY(v, uv.getY(k) + (uv.getY(v) - uv.getY(k)) * length);
-    }
-  }
+  for (let slot = 0; slot < GRID_SLOTS; slot++) bars.push(buildGridBar(track, gridBar(track, slot), white));
   const merged = mergeGeometries(bars)!;
   merged.computeVertexNormals();
   merged.computeBoundingSphere();
