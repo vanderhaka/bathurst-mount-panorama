@@ -138,7 +138,7 @@ export function buildCarParts(kind: CarKind, options: CarModelOptions): CarParts
   const lights = buildLights(grid, profile, mats.head, mats.tail, high, fasciaGeo?.face ?? null);
   body.add(lights.head, lights.tail);
 
-  const tyreMap = high ? createTyreTexture(look.tyre.colour) : null;
+  const tyreMap = high ? createTyreTexture(look.tyre.colour, profile.wheel?.kind === 'classic') : null;
   if (tyreMap) {
     mats.tyre.map = tyreMap;
     mats.tyre.userData.bakedColour = look.tyre.colour;

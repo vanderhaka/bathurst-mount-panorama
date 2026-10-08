@@ -87,6 +87,8 @@ export interface DashState {
   speedKmh: number;
   /** 0..1 of the shift-light range. */
   shiftLights: number;
+  /** Engine speed for the analogue tachometer; absent = estimated from road speed and gear. */
+  rpm?: number;
   lapS: number | null;
   deltaS: number | null;
   waterTempC: number;

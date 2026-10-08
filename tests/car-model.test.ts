@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { CAR_SPECS, type CarKind } from '@/car/car-specs';
 import { LIVERY_PRESETS } from '@/car/liveries';
 import { CAR_LOOK, applyCarLook, createCarModel, getCarLook } from '@/car/models';
@@ -163,5 +163,63 @@ describe.each(KINDS)('%s model', (kind) => {
     expect(paint.roughness).toBeCloseTo(0.61);
     expect(getCarLook(high)?.ghost.opacity).toBeCloseTo(0.2);
     expect(CAR_LOOK.paint.roughness).not.toBeCloseTo(0.61);
+  });
+});
+
+describe('cockpit style', () => {
+  const names = (m: CarModel) => {
+    const out = new Set<string>();
+    m.root.traverse((o) => out.add(o.name));
+    return out;
+  };
+
+  it('gives the torana a classic cockpit: dials, gear lever, steering wheel and no MoTeC display', () => {
+    const n = names(build('torana'));
+    expect(n.has('motec-display')).toBe(false);
+    expect(n.has('classic-dials')).toBe(true);
+    expect(n.has('gear-lever')).toBe(true);
+    expect(n.has('steering-wheel')).toBe(true);
+  });
+
+  it('keeps the MoTeC display and no classic parts on the camaro', () => {
+    const n = names(build('camaro'));
+    expect(n.has('motec-display')).toBe(true);
+    expect(n.has('classic-dials')).toBe(false);
+    expect(n.has('gear-lever')).toBe(false);
+  });
+});
+
+describe('classic dash gauges', () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('repaints the dial canvas only when the rpm (50) or speed (1 km/h) shown changes', () => {
+    const stroke = vi.fn();
+    const canvases: Array<{ width: number; height: number }> = [];
+    vi.stubGlobal('document', {
+      createElement: () => {
+        const canvas = { width: 0, height: 0, getContext: (): unknown => ctx };
+        const ctx = new Proxy({ canvas, fillText: vi.fn(), stroke }, {
+          get: (t, key) => (key === 'canvas' ? t.canvas : key in t ? Reflect.get(t, key) : () => ({ addColorStop() {} })),
+        });
+        canvases.push(canvas);
+        return canvas;
+      },
+    });
+    const model = build('torana');
+    const tex = model.root.getObjectByName('classic-dials') as THREE.Mesh<THREE.BufferGeometry, THREE.MeshBasicMaterial>;
+    const map = tex.material.map!;
+    expect(canvases.some((c) => c.width === 512 && c.height === 256)).toBe(true);
+    const state = { gear: 3, speedKmh: 100, shiftLights: 0, lapS: null, deltaS: null, waterTempC: 90 };
+    const strokes = () => stroke.mock.calls.length;
+    const built = strokes();
+    model.setDash?.(state);
+    const first = strokes();
+    expect(first).toBeGreaterThan(built);
+    model.setDash?.({ ...state, lapS: 12.3 });
+    expect(strokes()).toBe(first);
+    model.setDash?.({ ...state, speedKmh: 120 });
+    expect(strokes()).toBeGreaterThan(first);
+    expect(map.version).toBeGreaterThan(0);
+    model.dispose();
   });
 });

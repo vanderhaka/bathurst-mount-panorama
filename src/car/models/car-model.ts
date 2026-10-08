@@ -1,6 +1,6 @@
 // Implements the CarModel contract on top of the built parts.
 import * as THREE from 'three';
-import type { CarKind } from '@/car/car-specs';
+import { CAR_SPECS, type CarKind } from '@/car/car-specs';
 import type { CarModel, CarModelOptions, WheelIndex } from '@/types/car-model';
 import { buildCarParts, type CarParts } from '@/car/models/car-parts';
 import { disposeMaterials } from '@/car/models/car-materials';
@@ -8,6 +8,7 @@ import { registerCarLook, setTailGlow, writeMaterials } from '@/car/models/look'
 import { createDamage } from '@/car/models/damage';
 import { makeCurve } from '@/car/models/curves';
 import { paintDisplayLive } from '@/car/models/livery-texture';
+import { dashRpm, paintAnalogue } from '@/car/models/display-analogue';
 import { liveryAtlasSize } from '@/car/models/texture-quality';
 import type { Ctx } from '@/car/models/livery-canvas';
 
@@ -134,12 +135,15 @@ export function buildCarModel(kind: CarKind, options: CarModelOptions): CarModel
       const tex = parts.tex?.display;
       if (!tex || !interior || !interior.group.visible) return;
       // Repaint only when a shown value changes (canvas uploads are not free).
-      const key = `${state.gear}|${Math.round(state.speedKmh)}|${Math.round(state.shiftLights * 12)}|${state.lapS === null ? '' : state.lapS.toFixed(1)}|${state.deltaS === null ? '' : state.deltaS.toFixed(2)}|${state.shiftLights >= 1 ? Math.floor(performance.now() / 90) % 2 : 0}`;
+      const classic = parts.profile.cockpit === 'classic';
+      const rpm = classic ? Math.round(dashRpm(CAR_SPECS[kind], state) / 50) * 50 : 0;
+      const key = classic ? `${rpm}|${Math.round(state.speedKmh)}` : `${state.gear}|${Math.round(state.speedKmh)}|${Math.round(state.shiftLights * 12)}|${state.lapS === null ? '' : state.lapS.toFixed(1)}|${state.deltaS === null ? '' : state.deltaS.toFixed(2)}|${state.shiftLights >= 1 ? Math.floor(performance.now() / 90) % 2 : 0}`;
       if (key === dashKey) return;
       dashKey = key;
       const ctx = (tex.image as HTMLCanvasElement).getContext('2d') as Ctx | null;
       if (!ctx) return;
-      paintDisplayLive(ctx, state);
+      if (classic) paintAnalogue(ctx, CAR_SPECS[kind].engine.redlineRpm, rpm, state.speedKmh);
+      else paintDisplayLive(ctx, state);
       tex.needsUpdate = true;
     },
     setMirrorTexture(tex) {
