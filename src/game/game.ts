@@ -17,6 +17,7 @@ import { GameGraphics } from '@/game/game-graphics';
 import { loadQualityChoice } from '@/game/quality-store';
 import { hudTrackInfo } from '@/game/hud-bridge';
 import { RaceController } from '@/game/race-controller';
+import { RaceEffects } from '@/game/race-effects';
 import { RaceSession } from '@/game/race-session';
 import { loadSettings, saveSettings } from '@/game/settings-store';
 import { Stage } from '@/game/stage';
@@ -55,22 +56,22 @@ export class Game {
   private audio: CarAudio | null = null;
   private fps = 60;
   private readonly focus = new THREE.Vector3();
-  private readonly particles: Particles;
+  private readonly particles: Particles; private readonly effects: RaceEffects;
   private readonly graphics: GameGraphics;
 
   private constructor(private readonly stage: Stage, private world: World, private readonly hud: Hud, private readonly menus: Menus) {
     this.rig = new CameraRig(stage.camera, world.track);
     this.lineMesh = new RacingLineMesh(world.track, world.line, world.profile);
     stage.scene.add(this.lineMesh.mesh);
-    this.particles = new Particles(stage.scene);
+    this.particles = new Particles(stage.scene); this.effects = new RaceEffects(stage.scene, world, this.particles, this.settings.quality);
     this.attract = new AttractMode(stage.scene, stage.camera);
     this.graphics = new GameGraphics(stage, this.settings, {
-      world: () => this.world, replaceWorld: (next) => { this.world = next; },
+      world: () => this.world, replaceWorld: (next) => { this.world = next; this.effects.setWorld(next, this.settings.quality); },
       models: () => [this.race?.player.model ?? null, this.ghostModel, this.attract.model],
       changed: (s) => { this.settings = s; saveSettings(s); this.menus.syncSettings(s); },
       notify: (text) => this.race?.session.say(text, 'info', 4),
     });
-    this.tuner = new GraphicsTuner(() => { void this.graphics.rebuildWorld(); }, { setScale: setHudScale, setOpacity: setHudOpacity });
+    this.tuner = new GraphicsTuner(() => { void this.graphics.rebuildWorld(); }, { setScale: setHudScale, setOpacity: setHudOpacity }, this.effects);
     this.timer.connect(document);
   }
 
@@ -122,8 +123,7 @@ export class Game {
 
   /** Title screen: an AI car laps the mountain behind the menu (attract mode). */
   private enterTitle(): void {
-    this.state = 'title';
-    this.hud.setVisible(false);
+    this.state = 'title'; this.hud.setVisible(false);
     this.attract.drop();
     const entity = this.makeEntity('camaro', 0);
     const s = 900;
@@ -157,7 +157,7 @@ export class Game {
     void this.audio.start().then(() => this.audio?.setMasterVolume(this.settings.masterVolume)).catch(() => {});
     this.race = new RaceController(session, player, {
       input: this.input, rig: this.rig, hud: this.hud, lineMesh: this.lineMesh,
-      audio: this.audio, ghostModel: this.ghostModel, settings: () => this.settings, particles: this.particles, startLights: (n) => this.world.setStartLights(n), stage: this.stage,
+      audio: this.audio, ghostModel: this.ghostModel, settings: () => this.settings, particles: this.particles, effects: this.effects, startLights: (n) => this.world.setStartLights(n), stage: this.stage,
     });
     this.rig.mode = this.settings.camera;
     this.rig.snap();
@@ -201,7 +201,7 @@ export class Game {
   private restart(): void {
     if (!this.race || this.halted) return;
     this.race.session.placeOnGrid();
-    this.race.profiles.reset();
+    this.race.restart();
     this.rig.snap();
     this.state = 'race';
     this.audio?.resume();
@@ -210,7 +210,7 @@ export class Game {
 
   /** Pause menu: back on the racing line here, repaired (the lap becomes invalid). */
   private resetCar(): void {
-    this.race?.session.resetToTrack();
+    this.race?.resetToTrack();
     this.rig.snap();
     this.resume();
   }
@@ -259,7 +259,7 @@ export class Game {
     if (input.consume('pause')) return this.pause();
     const before = JSON.stringify(this.settings);
     if (input.consume('camera')) this.settings.camera = this.rig.cycle();
-    if (input.consume('reset')) race.session.resetToTrack();
+    if (input.consume('reset')) race.resetToTrack();
     if (input.consume('ghost')) this.settings.ghost = !this.settings.ghost;
     if (input.consume('hud')) this.hudHidden = !this.hudHidden;
     const lines: Settings['racingLine'][] = ['off', 'braking', 'full'];

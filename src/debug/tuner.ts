@@ -19,7 +19,7 @@ export class GraphicsTuner {
   private opening = false;
   private readonly model: GraphicsConfig = { ...getGraphics() };
 
-  constructor(private readonly onRebuild: () => void, private readonly hud?: { setScale(n: number): void; setOpacity(n: number): void }) {}
+  constructor(private readonly onRebuild: () => void, private readonly hud?: { setScale(n: number): void; setOpacity(n: number): void }, private readonly fx?: { configure(o: { intensity?: number; flames?: boolean }): void }) {}
 
   async toggle(): Promise<void> {
     if (this.gui) {
@@ -123,6 +123,12 @@ export class GraphicsTuner {
       const h = { scale: 1, opacity: 1 };
       hud.add(h, 'scale', 0.6, 1.6, 0.01).onChange((v: number) => this.hud?.setScale(v));
       hud.add(h, 'opacity', 0.2, 1, 0.01).onChange((v: number) => this.hud?.setOpacity(v));
+    }
+    if (this.fx) {
+      const fx = gui.addFolder('Effects');
+      const e = { intensity: 1, flames: true };
+      fx.add(e, 'intensity', 0, 2, 0.05).name('Smoke, flame, spark intensity').onChange((v: number) => this.fx?.configure({ intensity: v }));
+      fx.add(e, 'flames').name('Exhaust flames').onChange((v: boolean) => this.fx?.configure({ flames: v }));
     }
     const io = gui.addFolder('Save / share');
     io.add({ save: () => saveGraphics() }, 'save').name('Save as my default');

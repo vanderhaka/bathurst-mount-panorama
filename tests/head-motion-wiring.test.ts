@@ -51,7 +51,7 @@ function raceFrame(mode: CameraMode, headMotion: number) {
       update: () => ({ steer: 0, throttle: 0, brake: 0, analogSteer: false }) } as unknown as InputManager,
     rig: { mode, lookBack: false, addShake() {} } as unknown as CameraRig,
     hud: { update() {} }, lineMesh: { setProfile() {}, update() {}, mode: 'off' }, audio: null, ghostModel: null,
-    particles: { emit() {} }, startLights() {}, stage: { renderer, scene: new THREE.Scene() },
+    particles: { emit() {} }, effects: { step() {}, resetAll() {}, resetCar() {} }, startLights() {}, stage: { renderer, scene: new THREE.Scene() },
     settings: () => ({ ...DEFAULT_SETTINGS, headMotion, damage: 'off' as const }),
   } as unknown as RaceDeps;
   const sync = vi.spyOn(car, 'sync');

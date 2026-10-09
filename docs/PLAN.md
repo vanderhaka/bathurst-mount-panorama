@@ -117,7 +117,7 @@ Status: done (commit 1cdabfc66e6c2bd4f0f7a20c52a1cf5ae89d296f).
   3. A subtle sun lens flare, only when the sun is in view.
 - **Done when:** fences and leaves do not shimmer when the camera moves; the setting turns motion blur off.
 ### 1.10 Effects — S
-Status: blocked — three full-speed Conrod checks found no physical floor contact with stock handling; candidate remains isolated. Evidence: `artifacts/review/item-1.10/blocker.md`.
+Status: done (commit 227883ac74b1a6c4cb49727a70d02731a733ea7e). Smoke, dust, exhaust flames and marbles show at their real places; High costs +0.11 ms GPU at Murray's. Floor sparks keep the physical rule (real floor contact) and do not fire with stock handling: the floor stays 10 mm or more above the road on Conrod. Evidence: `artifacts/review/item-1.10/` (`evidence.md`, `blocker.md`).
 - **Do:** exhaust flames on overrun and downshifts; better tyre smoke and off-track dust; floor sparks on the Conrod humps at full speed; rubber marbles off the racing line.
 - **Done when:** each effect shows in a capture at its real place and costs less than 0.5 ms on High.
 ### 1.11 Quality tiers and performance — M
