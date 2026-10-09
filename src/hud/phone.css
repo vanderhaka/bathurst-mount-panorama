@@ -7,11 +7,13 @@
   :root {
     --hud-base-size: clamp(6px, 1.9cqh, 11px);
     --hud-margin-y: max(1.4cqh, env(safe-area-inset-top));
+    /* Caps labels stay legible at a 7 px base. */
+    --hud-fs-label: 0.85em;
   }
   /* Panels scale with their region's font size (all HUD sizes are in em). */
   .hud-region--tl {
     left: max(1.2em, env(safe-area-inset-left));
-    font-size: 0.9em;
+    font-size: 1em;
   }
   .hud-region--tr {
     right: max(1.2em, env(safe-area-inset-right));

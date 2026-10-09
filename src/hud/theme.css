@@ -4,76 +4,91 @@
  *   document.documentElement.style.setProperty('--hud-accent', '#e2231a')
  * setHudScale() / setHudOpacity() (src/hud/index.ts) write --hud-scale / --hud-opacity.
  * Sizes inside the HUD are in em of --hud-font-size, so --hud-scale scales everything.
+ *
+ * Design language (broadcast-sim): near-black translucent surfaces with a 1 px hairline
+ * edge, one red accent rule, a single chamfered corner per panel, condensed caps labels
+ * at 60 % grey, condensed 800 hero numbers, mono only for lap and sector times.
  */
 :root {
-  /* ---- global scale, opacity, spacing */
+  /* ---- global scale, opacity, spacing (4 px grid) */
   --hud-scale: 1;
   --hud-opacity: 1;
   --hud-base-size: clamp(11px, min(0.82vw, 1.46vh), 26px);
   --hud-font-size: calc(var(--hud-base-size) * var(--hud-scale));
   --hud-margin-x: max(1.8em, 2.2vw);
   --hud-margin-y: max(1.5em, 2.6vh);
-  --hud-gap: 0.5em;
-  --hud-radius: 2px;
+  --hud-gap: 4px;
+  --hud-radius: 0;
 
-  /* ---- panels: dark slate base, chamfered corners, one accent band on top */
-  --hud-panel-rgb: 17 21 27;
-  --hud-panel-alpha: 0.93;
-  --hud-panel-bg: rgb(var(--hud-panel-rgb) / var(--hud-panel-alpha));
-  --hud-panel-head-bg: rgb(5 7 10 / 0.55);
-  --hud-row-bg: rgb(255 255 255 / 0.045);
-  --hud-row-you-bg: rgb(255 255 255 / 0.11);
-  --hud-cut: 0.85em;
-  --hud-band: 0.24em;
-  --hud-panel-clip: polygon(0 0, calc(100% - var(--hud-cut)) 0, 100% var(--hud-cut), 100% 100%, var(--hud-cut) 100%, 0 calc(100% - var(--hud-cut)));
-  --hud-strip-clip: polygon(var(--hud-cut) 0, 100% 0, calc(100% - var(--hud-cut)) 100%, 0 100%);
-  --hud-panel-border: rgb(255 255 255 / 0.1);
-  --hud-panel-shadow: 0 0.15em 0.9em rgb(0 0 0 / 0.28);
-  --hud-hairline: rgb(255 255 255 / 0.08);
+  /* ---- surface recipe (shared by every panel; see .hud-panel below) */
+  --hud-surface: rgb(10 12 16 / 0.74);
+  --hud-edge: rgb(255 255 255 / 0.08);
+  --hud-blur: 6px;
+  --hud-cut: 0.5em;
+  --hud-band: 2px;
+  /* One cut corner per panel: top-left on a leading panel, top-right on a trailing one. */
+  --hud-clip-tl: polygon(var(--hud-cut) 0, 100% 0, 100% 100%, 0 100%, 0 var(--hud-cut));
+  --hud-clip-tr: polygon(0 0, calc(100% - var(--hud-cut)) 0, 100% var(--hud-cut), 100% 100%, 0 100%);
+  --hud-panel-clip: var(--hud-clip-tl);
+  --hud-strip-clip: var(--hud-clip-tr);
+  --hud-panel-shadow: 0 2px 8px rgb(0 0 0 / 0.35);
+  /* Legacy names (map.css, dash.css, menus) resolve to the recipe. */
+  --hud-panel-rgb: 10 12 16;
+  --hud-panel-alpha: 0.74;
+  --hud-panel-bg: var(--hud-surface);
+  --hud-panel-head-bg: rgb(255 255 255 / 0.04);
+  --hud-row-bg: rgb(255 255 255 / 0.03);
+  --hud-row-you-bg: rgb(255 255 255 / 0.07);
+  --hud-panel-border: var(--hud-edge);
+  --hud-hairline: var(--hud-edge);
 
-  /* ---- text */
+  /* ---- text: labels 60 % grey caps, numbers white */
   --hud-text: #f3f4f0;
-  --hud-text-dim: #a0a7ac;
-  --hud-text-faint: #5f676d;
+  --hud-label: rgb(243 244 240 / 0.6);
+  --hud-num: #f3f4f0;
+  --hud-text-dim: var(--hud-label);
+  --hud-text-faint: rgb(243 244 240 / 0.32);
   --hud-font-display: 'Barlow Condensed', 'Arial Narrow', 'Roboto Condensed', sans-serif;
   --hud-font-text: 'Barlow', 'Segoe UI', system-ui, sans-serif;
   --hud-font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
-  --hud-fs-label: 0.92em;
-  --hud-fs-value: 1.15em;
-  --hud-fs-lap-time: 2.75em;
-  --hud-fs-delta: 2.45em;
-  --hud-fs-gear: 5.2em;
-  --hud-fs-speed: 3.1em;
+  --hud-fs-label: 0.7em;
+  --hud-fs-value: 0.95em;
+  --hud-fs-lap-time: 2.2em;
+  --hud-fs-delta: 1.5em;
+  --hud-fs-gear: 4.2em;
+  --hud-fs-speed: 2.5em;
   --hud-num-weight: 800;
-  --hud-fs-banner: 1.35em;
+  --hud-fs-banner: 1.1em;
   --hud-label-tracking: 0.08em;
+  --hud-ease: 120ms ease-out;
 
-  /* ---- accents and states */
+  /* ---- accents and states: red = accent / live, amber = warning, muted cyan = data */
   --hud-accent: #d7262e;
   --hud-accent-text: #ffffff;
+  --hud-warn: #f5a524;
+  --hud-data: #6fb7c4;
   --hud-good: #33d17a;
   --hud-bad: #ff4d3a;
-  --hud-warn: #f5a524;
   --hud-info: #c9d3d9;
   --hud-sector-overall: #b44cf0;
   --hud-sector-personal: #33d17a;
   --hud-sector-slower: #f5c518;
-  --hud-sector-none: #3b4247;
+  --hud-sector-none: rgb(255 255 255 / 0.14);
   --hud-sector-live: #f3f4f0;
 
-  /* ---- live delta strip (bar ~9 px tall at 1080p) */
-  --hud-delta-bar-h: 0.6em;
-  --hud-delta-bar-w: 24em;
+  /* ---- live delta strip */
+  --hud-delta-bar-h: 4px;
+  --hud-delta-bar-w: 15em;
   --hud-delta-track: rgb(255 255 255 / 0.12);
 
   /* ---- tyres (temperature bands) and fuel */
-  --hud-tyre-cold: #3b82f6;
-  --hud-tyre-warm: #2bb7c4;
-  --hud-tyre-ok: #2fd16f;
+  --hud-tyre-cold: #5d7791;
+  --hud-tyre-warm: #4f9aa4;
+  --hud-tyre-ok: #2fbf6a;
   --hud-tyre-hot: #f5a524;
-  --hud-tyre-over: #ff3b30;
+  --hud-tyre-over: #e8362a;
   --hud-tyre-text: #0b0d10;
-  --hud-est-bg: rgb(255 255 255 / 0.18);
+  --hud-est-bg: rgb(255 255 255 / 0.12);
   --hud-fuel: #e9ece8;
   --hud-fuel-low: #ff4d3a;
 
@@ -123,4 +138,26 @@
   --menu-focus-room: calc(var(--menu-focus-width) + 2px);
   --menu-font-size: clamp(12px, min(0.9vw, 1.6vh), 28px);
   --menu-title-size: clamp(56px, min(8.4vw, 15vh), 220px);
+}
+
+/* ---- the panel recipe: surface, hairline edge, accent rule on top, one cut corner.
+   Trailing panels add .hud-panel--tr (cut on the top-right instead). */
+.hud-panel {
+  position: relative;
+  padding-top: var(--hud-band);
+  background: var(--hud-surface);
+  box-shadow: inset 0 var(--hud-band) 0 var(--hud-accent), inset 0 0 0 1px var(--hud-edge);
+  clip-path: var(--hud-panel-clip);
+}
+.hud-panel--tr {
+  clip-path: var(--hud-strip-clip);
+}
+.hud-panel--plain {
+  box-shadow: inset 0 0 0 1px var(--hud-edge);
+}
+@media (pointer: fine) {
+  .hud-panel {
+    -webkit-backdrop-filter: blur(var(--hud-blur));
+    backdrop-filter: blur(var(--hud-blur));
+  }
 }

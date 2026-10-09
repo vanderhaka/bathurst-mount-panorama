@@ -1,0 +1,167 @@
+/* Driver inputs + damage strip (bottom left, under tyres). Surface + tokens: map.css. */
+.hud-telemetry {
+  display: flex;
+  align-items: stretch;
+  gap: 0.5em;
+  width: 16em;
+  height: 6.4em;
+  padding: calc(var(--hud-band, 2px) + 0.5em) 0.6em 0.5em;
+}
+.hud-telemetry__rule {
+  width: 1px;
+  background: var(--hud-bl-edge);
+}
+
+/* ---- damage: car outline over a grey base; panels tint amber -> red with the damage level */
+.hud-damage {
+  display: flex;
+  align-items: center;
+  gap: 0.45em;
+  transition: opacity var(--hud-bl-ease);
+}
+.hud-damage[data-pristine='true'] {
+  opacity: 0.7;
+}
+.hud-car {
+  height: 100%;
+  width: auto;
+  aspect-ratio: 64 / 132;
+  overflow: visible;
+}
+.hud-dmg {
+  --d1: 0;
+  --d2: 0;
+  --dmg-c: color-mix(in oklch, var(--hud-dmg-bad, #e8362a) calc(var(--d2) * 100%), var(--hud-dmg-mid, #f2b01e));
+  fill: var(--dmg-c);
+  fill-opacity: var(--d1);
+  transition: fill var(--hud-bl-ease), fill-opacity var(--hud-bl-ease), color var(--hud-bl-ease);
+}
+.hud-car__base {
+  fill: #3b4147;
+}
+.hud-car__cabin {
+  fill: #22262b;
+}
+.hud-car__seams {
+  fill: none;
+  stroke: rgb(10 12 16 / 0.9);
+  stroke-width: 1.5;
+}
+.hud-car__glass {
+  fill: #0a0c0e;
+  stroke: rgb(255 255 255 / 0.25);
+  stroke-width: 0.6;
+}
+.hud-car__outline {
+  fill: none;
+  stroke: rgb(255 255 255 / 0.45);
+  stroke-width: 1;
+}
+/* Parts outside the body clip sit on their own grey: a grey stroke-less fill, then the tint on top. */
+.hud-car__aero,
+.hud-car__suspension {
+  fill-opacity: 1;
+  fill: color-mix(in srgb, var(--dmg-c) calc(var(--d1) * 100%), #3b4147);
+  stroke: rgb(0 0 0 / 0.7);
+  stroke-width: 0.8;
+}
+.hud-systems {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.3em;
+}
+.hud-sys {
+  display: flex;
+  align-items: baseline;
+  gap: 0.35em;
+}
+.hud-sys .hud-telemetry__label {
+  width: 2.6em;
+}
+.hud-sys__pct {
+  font-size: var(--hud-bl-fs-label);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  font-variant-numeric: tabular-nums;
+  color: color-mix(in srgb, var(--dmg-c) calc(var(--d1) * 100%), var(--hud-bl-label));
+}
+
+/* ---- pedals: two thin vertical gauges with the value above */
+.hud-pedals {
+  display: flex;
+  gap: 0.4em;
+}
+.hud-pedal {
+  --pc: var(--hud-throttle, #2fd16f);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25em;
+}
+.hud-pedal--brake {
+  --pc: var(--hud-brake, #ff3b30);
+}
+.hud-pedal__v {
+  width: 1.9em;
+  font-size: var(--hud-bl-fs-label);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  color: var(--hud-bl-num);
+}
+.hud-pedal__track {
+  position: relative;
+  flex: 1;
+  width: 0.45em;
+  overflow: hidden;
+  background: rgb(255 255 255 / 0.1);
+}
+.hud-pedal__fill {
+  position: absolute;
+  inset: 0;
+  background: var(--pc);
+  transform-origin: bottom;
+  transform: scaleY(var(--f, 0));
+}
+.hud-pedal__track::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(0deg, transparent 0 calc(25% - 1px), rgb(10 12 16 / 0.9) calc(25% - 1px) 25%);
+}
+
+/* ---- steering: small rotating arc on a faint ring */
+.hud-wheel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.25em;
+}
+.hud-wheel__rot {
+  width: 3.1em;
+  height: 3.1em;
+  margin: auto 0;
+  transform: rotate(calc(var(--a, 0) * 1deg));
+}
+.hud-wheel__svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+.hud-wheel__ring {
+  fill: none;
+  stroke: rgb(255 255 255 / 0.16);
+  stroke-width: 5;
+}
+.hud-wheel__arc {
+  fill: none;
+  stroke: var(--hud-steer, #f3f4f0);
+  stroke-width: 5;
+  stroke-linecap: round;
+}
+.hud-wheel__mark {
+  fill: var(--hud-accent, #d7262e);
+}

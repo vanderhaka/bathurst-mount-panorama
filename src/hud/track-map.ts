@@ -33,24 +33,27 @@ export class TrackMap {
   constructor(private readonly track: HudTrackInfo) {
     this.rotation = bestFitRotation(track.outline, MAP_ASPECT);
     this.carArrow.append(
-      s('svg', { viewBox: '-10 -10 20 20', 'aria-hidden': 'true' }, [s('path', { d: 'M0,-9 L6.5,6 L0,2.6 L-6.5,6 Z' })]),
+      s('svg', { viewBox: '-10 -10 20 20', 'aria-hidden': 'true' }, [
+        s('path', { d: 'M0,-9.6 L3.4,-4.4 L-3.4,-4.4 Z' }),
+        s('circle', { r: 3.3 }),
+      ]),
     );
     this.car.append(this.carArrow);
     this.view.append(this.canvas, this.ghost, this.car);
     this.ghostOn = new AttrSlot(this.ghost, 'data-on');
     this.turnOn = new AttrSlot(this.turn.el, 'data-on');
     const foot = h('footer', 'hud-map__foot', { 'data-kind': 'corner' }, [
-      h('span', 'hud-map__next', undefined, ['NEXT']),
+      h('span', 'hud-map__label hud-map__next', undefined, ['NEXT']),
       this.turn.el,
       this.corner.el,
       h('span', 'hud-map__alt', { title: track.elevationEstimated ? 'Estimated elevation; flat circuit model' : 'Altitude above sea level' },
-        [this.alt.el, h('span', 'hud-micro', undefined, [track.elevationEstimated ? 'M (EST)' : 'M ASL'])]),
+        [this.alt.el, h('span', 'hud-map__label', undefined, [track.elevationEstimated ? 'M (EST)' : 'M ASL'])]),
     ]);
     this.cornerKind = new AttrSlot(foot, 'data-kind');
-    this.el = h('section', 'hud-panel hud-map', { 'aria-label': 'Track map' }, [
-      h('header', 'hud-panel__head', undefined, [
-        h('span', 'hud-micro hud-micro--strong', undefined, [(track.name ?? 'Mount Panorama').toUpperCase()]),
-        h('span', 'hud-micro', undefined, [`${(track.lengthM / 1000).toFixed(3)} KM`]),
+    this.el = h('section', 'hud-panel hud-panel--tr hud-map', { 'aria-label': 'Track map' }, [
+      h('header', 'hud-map__head', undefined, [
+        h('span', 'hud-map__label', undefined, [(track.name ?? 'Mount Panorama').toUpperCase()]),
+        h('span', 'hud-map__label', undefined, [`${(track.lengthM / 1000).toFixed(3)} KM`]),
       ]),
       this.view,
       foot,
@@ -76,20 +79,22 @@ export class TrackMap {
     ctx.lineCap = 'round';
     const css = getComputedStyle(this.el);
     const v = (name: string): string => css.getPropertyValue(name).trim();
-    const lw = Number(v('--hud-map-line-width')) || 2.6;
+    const lw = Number(v('--hud-map-line-width')) || 2;
     const cur = this.current;
-    this.strokeRange(ctx, 0, 1, lw + 3.2, v('--hud-map-casing'));
+    // Dark casing keeps the line readable over the translucent panel; a soft 1 px lighter edge sits on it.
+    this.strokeRange(ctx, 0, 1, lw + 3, v('--hud-map-casing'));
+    this.strokeRange(ctx, 0, 1, lw + 2, 'rgba(255,255,255,0.14)');
     const starts = [0, ...this.track.sectorStarts, 1];
     for (let k = 0; k < starts.length - 1; k++) {
       const state = this.states[k] ?? 'none';
       const colour = k === cur ? v('--hud-sector-live') : state === 'none' ? v('--hud-map-line') : v(sectorColourVar(state));
-      ctx.globalAlpha = k === cur || state !== 'none' ? 1 : 0.5;
-      this.strokeRange(ctx, starts[k], starts[k + 1], k === cur ? lw + 0.6 : lw, colour);
+      ctx.globalAlpha = k === cur || state !== 'none' ? 1 : 0.55;
+      this.strokeRange(ctx, starts[k], starts[k + 1], k === cur ? lw + 0.5 : lw, colour);
     }
     ctx.globalAlpha = 1;
-    for (const p of this.track.sectorStarts) this.tick(ctx, p, 4.5, 1.4, v('--hud-text-dim'));
-    this.tick(ctx, 0, 7, 3.2, v('--hud-map-casing'));
-    this.tick(ctx, 0, 6, 1.8, v('--hud-accent'));
+    for (const p of this.track.sectorStarts) this.tick(ctx, p, 3.5, 1, 'rgba(255,255,255,0.7)');
+    this.tick(ctx, 0, 5.5, 3, v('--hud-map-casing'));
+    this.tick(ctx, 0, 4.5, 1.5, v('--hud-accent'));
   }
 
   private strokeRange(ctx: CanvasRenderingContext2D, from: number, to: number, width: number, colour: string): void {
