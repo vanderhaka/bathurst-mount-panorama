@@ -1,17 +1,30 @@
-// Classic 1970s rim in the wheel frame (axle along X, outer face towards +X): a flat
-// dark face set back from the outer edge, slim spokes (V pairs at detail 'high'), a
-// flat hub disc, five wheel nuts and a polished deep-dish outer lip.
+// 1979 HDT-style 15 x 10 inch alloy in the wheel frame (axle along X, outer face
+// towards +X): a wide polished deep dish rolling out to a prominent lip, a flat
+// satin-black centre recessed behind it with eight short radial slots (the
+// drilled disc shows through them), a small hub cap and five wheel studs.
+// Low detail keeps the dish, lip and a plain flat face.
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import type { WheelStyle } from '@/car/models/profile-types';
 
 const FACE_COLOUR = 0x161616;
+const HUB_COLOUR = 0x202022;
 const LIP_COLOUR = 0xc9c9c9;
 const NUT_COLOUR = 0x8a8a8a;
-const FACE_SETBACK = 0.06;
-const NUT_PITCH_RADIUS = 0.06;
-const HUB_RADIUS = 0.05;
-const NUT_COUNT = 5;
+/** How far the flat centre sits behind the outer edge of the lip (m). */
+const FACE_SETBACK = 0.078;
+/** Radius where the flat centre meets the dish (m). */
+const FACE_RADIUS = 0.148;
+const SLOT_COUNT = 8;
+/** Slots: radial extent (m) and half width (m). */
+const SLOT_R0 = 0.078;
+const SLOT_R1 = 0.13;
+const SLOT_HALF_W = 0.0055;
+const STUD_PITCH_RADIUS = 0.058;
+const STUD_COUNT = 5;
+const HUB_RADIUS = 0.044;
+/** Lathe segments cap: the classic rim shares the Gen3 car's triangle budget, so it stays under the tyre's count. */
+const MAX_SEGMENTS = 36;
 
 /** Absolute linear vertex colours; the caller turns them into ratios when the material multiplies. */
 function paint(g: THREE.BufferGeometry, hex: number): THREE.BufferGeometry {
@@ -30,66 +43,68 @@ function latheX(points: ReadonlyArray<readonly [number, number]>, segments: numb
   return g;
 }
 
-/** A flat bar (box) from radius r0 to r1 whose angle runs from a0 at r0 to a1 at r1, at lateral x. */
-function bar(r0: number, a0: number, r1: number, a1: number, x: number, width: number, depth: number): THREE.BufferGeometry {
-  const corner = (r: number, a: number, side: number, lat: number): number[] => {
-    const tx = -Math.sin(a) * side * (width / 2);
-    const ty = Math.cos(a) * side * (width / 2);
-    return [x + lat, r * Math.cos(a) + tx, r * Math.sin(a) + ty];
-  };
+/** Flat annular sector at lateral x from radius r0 to r1, angles a0..a1, facing +X, in `steps` angular pieces. */
+function sector(r0: number, r1: number, a0: number, a1: number, x: number, steps: number): THREE.BufferGeometry {
   const pos: number[] = [];
-  for (const [r, a] of [[r0, a0], [r1, a1]] as const) {
-    for (const [side, lat] of [[-1, 0], [1, 0], [1, -depth], [-1, -depth]] as const) pos.push(...corner(r, a, side, lat));
+  const idx: number[] = [];
+  for (let k = 0; k <= steps; k++) {
+    const a = a0 + ((a1 - a0) * k) / steps;
+    pos.push(x, r0 * Math.cos(a), r0 * Math.sin(a), x, r1 * Math.cos(a), r1 * Math.sin(a));
   }
-  // Corners 0-3 at the hub end, 4-7 at the rim end; the front face and the two sides.
-  const idx = [0, 5, 1, 0, 4, 5, 1, 6, 2, 1, 5, 6, 3, 4, 0, 3, 7, 4];
+  for (let k = 0; k < steps; k++) {
+    const i = k * 2;
+    idx.push(i, i + 1, i + 2, i + 1, i + 3, i + 2);
+  }
   const g = new THREE.BufferGeometry();
   g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
   g.setIndex(idx);
   return g.toNonIndexed();
 }
 
-/** Spokes: `spokes` bars at 'high' grouped as V pairs (spokes / 2 pairs), plain radial bars at 'low'. */
-function spokeSet(spokes: number, high: boolean, rOut: number, x: number): THREE.BufferGeometry[] {
-  const out: THREE.BufferGeometry[] = [];
-  const rIn = HUB_RADIUS * 0.8;
-  if (!high) {
-    for (let s = 0; s < spokes; s++) {
-      const a = (s / spokes) * Math.PI * 2;
-      out.push(bar(rIn, a, rOut, a, x, 0.026, 0.01));
-    }
-    return out;
+/** The flat centre: inner and outer rings plus the plates between the slots. */
+function slottedFace(xf: number, segments: number): THREE.BufferGeometry[] {
+  const parts = [
+    latheX([[SLOT_R0 + 0.003, xf], [HUB_RADIUS - 0.004, xf]], segments),
+    latheX([[FACE_RADIUS + 0.004, xf], [SLOT_R1 - 0.003, xf]], segments),
+  ];
+  const step = (Math.PI * 2) / SLOT_COUNT;
+  for (let s = 0; s < SLOT_COUNT; s++) {
+    const mid = s * step + step / 2;
+    // Slot half-angle at the slot's mid radius keeps the slot sides roughly parallel.
+    const half = SLOT_HALF_W / ((SLOT_R0 + SLOT_R1) / 2);
+    parts.push(sector(SLOT_R0 - 0.004, SLOT_R1 + 0.004, mid + half, mid + step - half, xf, 3));
   }
-  const pairs = Math.max(1, Math.floor(spokes / 2));
-  for (let p = 0; p < pairs; p++) {
-    const a = (p / pairs) * Math.PI * 2;
-    for (const side of [-1, 1]) out.push(bar(rIn, a + side * 0.05, rOut, a + side * 0.2, x, 0.018, 0.012));
+  return parts.map((p) => paint(p, FACE_COLOUR));
+}
+
+/** Hub cap and five studs on the face (detail 'high' only; the flat face carries the low tier). */
+function hubAndStuds(xf: number, segments: number, high: boolean): THREE.BufferGeometry[] {
+  if (!high) return [];
+  const out = [paint(latheX([[HUB_RADIUS, xf], [HUB_RADIUS, xf + 0.012], [0.001, xf + 0.016]], Math.max(10, segments / 2)), HUB_COLOUR)];
+  for (let n = 0; n < STUD_COUNT; n++) {
+    const a = (n / STUD_COUNT) * Math.PI * 2 + Math.PI / 2;
+    const stud = new THREE.CylinderGeometry(0.009, 0.01, 0.012, 5).rotateZ(-Math.PI / 2);
+    out.push(paint(stud.translate(xf + 0.008, STUD_PITCH_RADIUS * Math.cos(a), STUD_PITCH_RADIUS * Math.sin(a)), NUT_COLOUR));
   }
   return out;
 }
 
-/** 15 inch style rim; vertex colours are absolute (linear) and must be turned into ratios for a multiplying material. */
-export function classicRimGeometry(style: WheelStyle, segments: number, spokes: number, high: boolean): THREE.BufferGeometry {
+/** 15 inch deep-dish alloy; vertex colours are absolute (linear) and must be turned into ratios for a multiplying material. */
+export function classicRimGeometry(style: WheelStyle, tyreSegments: number, _spokes: number, high: boolean): THREE.BufferGeometry {
   const R = style.rimRadius;
   const W = style.rimHalfWidth;
   const xf = W - FACE_SETBACK;
+  const segments = Math.min(tyreSegments, MAX_SEGMENTS);
   const parts: THREE.BufferGeometry[] = [];
-  // Dark inner barrel behind the face (high only) and the flat hub disc.
-  if (high) parts.push(paint(latheX([[R - 0.014, -W + 0.01], [R - 0.014, xf]], segments), FACE_COLOUR));
-  parts.push(paint(new THREE.CircleGeometry(HUB_RADIUS, Math.max(10, segments / 2)).rotateY(Math.PI / 2).translate(xf + 0.004, 0, 0), FACE_COLOUR));
-  for (const s of spokeSet(spokes, high, R - 0.012, xf)) parts.push(paint(s, FACE_COLOUR));
-  // Polished deep-dish lip from the face out to the outer edge.
-  const lip = high
-    ? [[R - 0.014, xf], [R - 0.014, W - 0.01], [R - 0.002, W + 0.003], [R + 0.012, W + 0.002], [R + 0.013, W - 0.012]]
-    : [[R - 0.014, xf], [R - 0.014, W - 0.01], [R + 0.012, W + 0.002]];
-  parts.push(paint(latheX(lip as Array<[number, number]>, segments), LIP_COLOUR));
-  if (high) {
-    for (let n = 0; n < NUT_COUNT; n++) {
-      const a = (n / NUT_COUNT) * Math.PI * 2 + Math.PI / 2;
-      const nut = new THREE.CylinderGeometry(0.011, 0.012, 0.014, 6).rotateZ(-Math.PI / 2);
-      parts.push(paint(nut.translate(xf + 0.011, NUT_PITCH_RADIUS * Math.cos(a), NUT_PITCH_RADIUS * Math.sin(a)), NUT_COLOUR));
-    }
-  }
+  // Polished dish: from the edge of the flat centre, a concave sweep out to the rolled lip. (The drilled
+  // disc sits right behind the slots, so no barrel is needed behind the face.)
+  const dish = high
+    ? [[FACE_RADIUS, xf], [FACE_RADIUS + 0.014, xf + 0.008], [R - 0.012, W - 0.02], [R + 0.005, W], [R + 0.015, W - 0.012]]
+    : [[FACE_RADIUS, xf], [R - 0.01, W - 0.018], [R + 0.013, W + 0.002]];
+  parts.push(paint(latheX(dish as Array<[number, number]>, segments), LIP_COLOUR));
+  if (high) parts.push(...slottedFace(xf, segments));
+  else parts.push(paint(new THREE.CircleGeometry(FACE_RADIUS + 0.002, Math.max(10, segments)).rotateY(Math.PI / 2).translate(xf, 0, 0), FACE_COLOUR));
+  parts.push(...hubAndStuds(xf, segments, high));
   const flat = parts.map((p) => {
     const g = p.index ? p.toNonIndexed() : p;
     g.deleteAttribute('uv');
