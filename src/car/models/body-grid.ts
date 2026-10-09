@@ -34,6 +34,18 @@ export interface GridOptions { detail: RingDetail; step: number; archRows: numbe
 
 interface Ring { pts: P2[]; z: number[] }
 
+/** Loft density along z: coarser over the flat roof, doors and windscreen between the arches, denser in the
+ *  nose and tail sweep zones where the rings warp in plan and the caps round off. */
+const STEP_FLAT = 1.5;
+const STEP_CAP = 0.7;
+
+function stepAt(p: BodyProfile, zf: number, z: number, base: number): number {
+  const R = p.arch.radius;
+  const flat = z > p.z.roofRear + 0.05 && z < p.z.cowl - 0.05 && Math.abs(z) < zf - R - 0.05;
+  const cap = z > p.nose.zStart - p.nose.sweepZone || z < p.tail.zStart + p.tail.sweepZone;
+  return base * (flat ? STEP_FLAT : cap ? STEP_CAP : 1);
+}
+
 function mainStations(p: BodyProfile, dims: CarDimensions, o: GridOptions): { z: number[]; required: number[] } {
   const zf = dims.wheelbase / 2;
   const R = p.arch.radius;
@@ -49,7 +61,7 @@ function mainStations(p: BodyProfile, dims: CarDimensions, o: GridOptions): { z:
   const out: number[] = [z[0]];
   for (let i = 1; i < z.length; i++) {
     const gap = z[i] - z[i - 1];
-    const k = Math.ceil(gap / o.step - 1e-6);
+    const k = Math.ceil(gap / stepAt(p, zf, (z[i] + z[i - 1]) / 2, o.step) - 1e-6);
     for (let j = 1; j < k; j++) out.push(z[i - 1] + (gap * j) / k);
     out.push(z[i]);
   }
@@ -121,7 +133,8 @@ export function buildBodyGrid(p: BodyProfile, dims: CarDimensions, o: GridOption
   const cv = compileCurves(p.curves);
   const { z: zs } = mainStations(p, dims, o);
   const main = zs.map((z) => mainRing(p, cv, layout, dims, z));
-  const rounding = Math.max(1, Math.ceil(o.capRows * 0.55));
+  // Most cap rows go to the edge rounding (the flat face needs few; at high detail the nose face is the fascia mesh).
+  const rounding = Math.max(1, Math.ceil(o.capRows * 0.7));
   const fascia = Math.max(1, o.capRows - rounding);
   const nose = capRings(main[main.length - 1].pts, p.nose, 1, rounding, fascia);
   const tail = capRings(main[0].pts, p.tail, -1, rounding, fascia).reverse();

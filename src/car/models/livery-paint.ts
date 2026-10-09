@@ -1,10 +1,11 @@
 // Paints a generated livery (base colour, pattern, sponsor decals, numbers,
-// banner text) and the painted-on details (grilles, light housings, vents,
-// shut lines) onto the atlas.
+// banner text) and the painted-on details (grilles, light housings, vents;
+// shut lines and glass seals are in livery-trim.ts) onto the atlas.
 import type { Livery } from '@/types/car-model';
 import type { CarKind } from '@/car/car-specs';
 import type { BodyProfile, Outline } from '@/car/models/profile-types';
 import { contrastOn, fillPoly, grow, hex, inRegion, luminance, mirrorX, poly, roundRect, worldText, type Ctx } from '@/car/models/livery-canvas';
+import { drawTrim } from '@/car/models/livery-trim';
 import { drawSponsors } from '@/car/models/livery-sponsors';
 import { drawHdt79, drawHdt79Board } from '@/car/models/livery-hdt79';
 import { drawBoltOnJoints } from '@/car/models/livery-body';
@@ -178,52 +179,6 @@ function drawFascia(ctx: Ctx, s: LiveryShape): void {
   });
 }
 
-/** Raked outlet at the rear of each front guard, between the wheel arch and the door. */
-function guardOutlet(ctx: Ctx, zDoor: number): void {
-  const o: Outline = [[zDoor + 0.035, 0.55], [zDoor + 0.135, 0.585], [zDoor + 0.165, 0.735], [zDoor + 0.065, 0.715]];
-  fillPoly(ctx, grow(o, 0.01), '#2a2c30');
-  fillPoly(ctx, o, '#0d0e10');
-  ctx.strokeStyle = '#2d3034';
-  ctx.lineWidth = 0.009;
-  for (const t of [0.3, 0.55, 0.8]) {
-    ctx.beginPath();
-    ctx.moveTo(zDoor + 0.035 + t * 0.03 + 0.005, 0.55 + t * 0.165);
-    ctx.lineTo(zDoor + 0.135 + t * 0.03 - 0.005, 0.585 + t * 0.15);
-    ctx.stroke();
-  }
-}
-
-function drawShutLines(ctx: Ctx, s: LiveryShape): void {
-  const p = s.profile;
-  const line = 'rgba(0,0,0,0.55)';
-  for (const r of SIDES) inRegion(ctx, r, () => {
-    if (s.kind !== 'torana') guardOutlet(ctx, p.art.door[0][0]);
-    poly(ctx, p.art.door);
-    ctx.strokeStyle = line;
-    ctx.lineWidth = 0.006;
-    ctx.stroke();
-    ctx.fillStyle = '#141517';
-    ctx.fillRect(-3, -0.2, 6, 0.36);
-    const rearTop = p.art.door[2];
-    roundRect(ctx, rearTop[0] + 0.16, rearTop[1] - 0.07, 0.13, 0.03, 0.012, 'rgba(10,10,12,0.75)');
-    const g = ctx.createLinearGradient(0, 0.08, 0, 0.34);
-    g.addColorStop(0, 'rgba(0,0,0,0.38)');
-    g.addColorStop(1, 'rgba(0,0,0,0)');
-    ctx.fillStyle = g;
-    ctx.fillRect(-3, 0, 6, 0.34);
-  });
-  inRegion(ctx, 'top', () => {
-    ctx.strokeStyle = line;
-    ctx.lineWidth = 0.006;
-    const zc = p.z.cowl + 0.05;
-    const zb = p.z.rearGlassBase - 0.05;
-    ctx.beginPath();
-    ctx.moveTo(s.zFront - 0.05, -0.74); ctx.lineTo(zc, -0.74); ctx.lineTo(zc, 0.74); ctx.lineTo(s.zFront - 0.05, 0.74);
-    ctx.moveTo(s.zRear + 0.04, -0.78); ctx.lineTo(zb, -0.78); ctx.lineTo(zb, 0.78); ctx.lineTo(s.zRear + 0.04, 0.78);
-    ctx.stroke();
-  });
-}
-
 function drawNumbers(ctx: Ctx, l: Livery, s: LiveryShape): void {
   const p = s.profile;
   const panel = luminance(l.primary) > 0.7 ? 0x1b1c1e : 0xf1f1ee;
@@ -235,7 +190,8 @@ function drawNumbers(ctx: Ctx, l: Livery, s: LiveryShape): void {
   for (const r of SIDES) {
     // Number board above the door sponsor strip; the banner text runs along the sill.
     if (boards) {
-      inRegion(ctx, r, () => roundRect(ctx, zc, 0.6, 0.5, 0.38, 0.05, hex(panel)));
+      // Number board: a keyline in the digit colour around the field.
+      inRegion(ctx, r, () => { roundRect(ctx, zc, 0.6, 0.5, 0.38, 0.05, digits); roundRect(ctx, zc, 0.6, 0.46, 0.34, 0.035, hex(panel)); });
       worldText(ctx, r, num, zc, 0.6, 0.33, 0.44, digits);
     }
     worldText(ctx, r, l.banner, zc + 0.05, 0.158, 0.045, 0.9, '#f4f4f0', 800);
@@ -243,7 +199,7 @@ function drawNumbers(ctx: Ctx, l: Livery, s: LiveryShape): void {
   if (boards) {
     const zRoof = (p.z.roofFront + p.z.roofRear) / 2;
     const roofLen = Math.min(0.62, p.z.roofFront - p.z.roofRear - 0.08);
-    inRegion(ctx, 'top', () => roundRect(ctx, zRoof, 0, roofLen, 0.62, 0.06, hex(panel)));
+    inRegion(ctx, 'top', () => { roundRect(ctx, zRoof, 0, roofLen, 0.62, 0.06, digits); roundRect(ctx, zRoof, 0, roofLen - 0.04, 0.58, 0.045, hex(panel)); });
     worldText(ctx, 'top', num, zRoof, 0, 0.5, roofLen * 0.88, digits);
   }
   worldText(ctx, 'front', l.banner, 0, 0.115, 0.05, 0.5, contrastOn(l.primary), 800);
@@ -255,7 +211,7 @@ export function paintLivery(ctx: Ctx, l: Livery, s: LiveryShape): void {
   ctx.fillStyle = hex(l.primary);
   ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
   if (l.pattern === 'hdt79') drawHdt79(ctx, l, s); else drawPattern(ctx, l, s);
-  drawShutLines(ctx, s);
+  drawTrim(ctx, s);
   drawBoltOnJoints(ctx, s);
   drawFascia(ctx, s);
   if (s.kind !== 'torana') drawSponsors(ctx, l, s);
