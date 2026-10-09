@@ -8,6 +8,8 @@ import { extrude, loft, merge } from '@/car/models/geo-utils';
 
 export interface RearAero {
   plastic: THREE.BufferGeometry[];
+  /** Diffuser plate and strakes (satin composite, tinted into the trim mesh). */
+  diffuser: THREE.BufferGeometry[];
   wingCarbon: THREE.BufferGeometry | null;
   wingPlates: THREE.BufferGeometry | null;
   wingHinge: THREE.Vector3 | null;
@@ -46,7 +48,7 @@ function airfoil(zLE: number, zTE: number, yc: number, aoa: number, n: number): 
   return [...upper, ...gurney, ...lower.reverse().slice(0, -1)];
 }
 
-function wing(grid: BodyGrid, p: BodyProfile): Omit<RearAero, 'plastic'> {
+function wing(grid: BodyGrid, p: BodyProfile): Omit<RearAero, 'plastic' | 'diffuser'> {
   const w = p.wing;
   if (!w) return { wingCarbon: null, wingPlates: null, wingHinge: null };
   const sec = airfoil(w.zLE, w.zTE, w.y, w.aoa, 8);
@@ -75,5 +77,5 @@ function wing(grid: BodyGrid, p: BodyProfile): Omit<RearAero, 'plastic'> {
 }
 
 export function buildRearAero(grid: BodyGrid, p: BodyProfile, zTail: number, zDiffuser: number): RearAero {
-  return { plastic: p.diffuser === false ? [] : diffuser(zTail, zDiffuser), ...wing(grid, p) };
+  return { plastic: [], diffuser: p.diffuser === false ? [] : diffuser(zTail, zDiffuser), ...wing(grid, p) };
 }

@@ -14,6 +14,7 @@ import { buildBodyGrid, type BodyGrid } from '@/car/models/body-grid';
 import { buildBodyMeshes, type BodyMeshes } from '@/car/models/body-mesh';
 import { compileCurves } from '@/car/models/body-section';
 import { createWheels, type WheelSet } from '@/car/models/wheels';
+import { GEN3_WHEEL } from '@/car/models/wheel-geometry';
 import { createCarMaterials } from '@/car/models/car-materials';
 import { cloneLook, writeMaterials, type CarLook, type CarMaterialSet } from '@/car/models/look';
 import { createLiveryTextures, createTyreTexture, type LiveryTextures } from '@/car/models/livery-texture';
@@ -24,11 +25,14 @@ import { buildBodyDetails } from '@/car/models/aero-details';
 import { buildFascia } from '@/car/models/fascia';
 import { buildBoltOns } from '@/car/models/body-bolt-on';
 import { merge, tint } from '@/car/models/geo-utils';
+import { CARBON_UV_SCALE, boxUvs } from '@/car/models/carbon';
 import type { BodyProfile } from '@/car/models/profile-types';
 import { createContactShadow } from '@/car/models/contact-shadow';
 import { buildInterior, type Interior } from '@/car/models/interior';
 
 const PROFILES = { camaro: CAMARO_PROFILE, mustang: MUSTANG_PROFILE, supra: SUPRA_PROFILE, torana: TORANA_PROFILE } as const;
+/** Diffuser tone in the trim mesh (satin dark composite). */
+const DIFFUSER_COLOUR = 0x1c1d20;
 
 export interface HingedPart { pivot: THREE.Group; meshes: THREE.Mesh[] }
 
@@ -92,9 +96,9 @@ export function buildCarParts(kind: CarKind, options: CarModelOptions): CarParts
   const l = options.livery;
   const [width, height] = liveryAtlasSize(seg.atlasWidth, seg.atlasHeight, options.quality ?? 'high');
   const tex = createLiveryTextures(l, { kind, profile, zFront, zRear, axleZ: dims.wheelbase / 2, wheelR: dims.wheelRadius }, width, height);
-  const mats: CarParts['mats'] = createCarMaterials({ look, paintMap: tex?.paint ?? null, bannerMap: tex?.banner ?? null, displayMap: tex?.display ?? null, primary: l.primary, high });
+  const mats: CarParts['mats'] = createCarMaterials({ look, paintMap: tex?.paint ?? null, bannerMap: tex?.banner ?? null, displayMap: tex?.display ?? null, primary: l.primary, high, discRadius: (profile.wheel ?? GEN3_WHEEL).discRadius });
   // Amber tail-lamp sections: an unlit amber lens that never takes the brake glow.
-  if (profile.taillight.amber) mats.amber = new THREE.MeshStandardMaterial({ name: 'car-amber', color: 0xff7400, emissive: 0xff5200, emissiveIntensity: 0.5, roughness: 0.2, metalness: 0 });
+  if (profile.taillight.amber) mats.amber = new THREE.MeshStandardMaterial({ name: 'car-amber', color: 0xff7400, emissive: 0xff5200, emissiveIntensity: 0.8, roughness: 0.2, metalness: 0 });
 
   const root = new THREE.Group();
   root.name = `car-${kind}`;
@@ -115,20 +119,22 @@ export function buildCarParts(kind: CarKind, options: CarModelOptions): CarParts
 
   const front = buildFrontAero(grid, profile, cv, dims, l.secondary);
   const rear = buildRearAero(grid, profile, zRear, -dims.wheelbase / 2 - 0.32);
-  const plates = rear.wingPlates ? tint(rear.wingPlates, l.accent) : null;
+  // Endplates in the livery colour; the diffuser and lamp housings join the trim mesh.
+  const plates = rear.wingPlates ? tint(rear.wingPlates, l.primary) : null;
+  const lights = buildLights(grid, profile, mats.head, mats.tail, high, fasciaGeo?.face ?? null, mats.amber ?? null);
   let splitter: HingedPart | null = null;
   let wing: HingedPart | null = null;
   const boltOns = buildBoltOns(grid, profile, cv, dims.wheelbase / 2, dims.wheelRadius, high);
   const plasticParts = [...front.plastic, ...rear.plastic, ...buildBodyDetails(grid, profile, high), ...boltOns.plastic];
   if (fasciaGeo?.strut) plasticParts.push(fasciaGeo.strut);
-  const trimParts = [...front.trim];
+  const trimParts = [...front.trim, ...rear.diffuser.map((g) => tint(g, DIFFUSER_COLOUR)), ...lights.housings.map((h) => tint(h.geometry, h.colour))];
   if (high) {
     if (front.splitter && front.splitterHinge) {
-      splitter = hinged('splitter', front.splitterHinge, [mesh(front.splitter, mats.carbon, 'splitter')]);
+      splitter = hinged('splitter', front.splitterHinge, [mesh(boxUvs(front.splitter, CARBON_UV_SCALE), mats.carbon, 'splitter')]);
       body.add(splitter.pivot);
     }
     if (rear.wingCarbon && rear.wingHinge && plates && profile.wing) {
-      wing = hinged('wing', rear.wingHinge, [mesh(rear.wingCarbon, mats.carbon, 'wing'), mesh(plates, mats.trim, 'wing-endplates')]);
+      wing = hinged('wing', rear.wingHinge, [mesh(boxUvs(rear.wingCarbon, CARBON_UV_SCALE), mats.carbon, 'wing'), mesh(plates, mats.trim, 'wing-endplates')]);
       wing.pivot.userData.uprightX = profile.wing.uprightX;
       wing.pivot.userData.wingY = profile.wing.y;
       body.add(wing.pivot);
@@ -143,8 +149,6 @@ export function buildCarParts(kind: CarKind, options: CarModelOptions): CarParts
   body.add(plastic, trim);
   const flares = boltOns.paint ? mesh(boltOns.paint, mats.paint, 'paint-flares') : null;
   if (flares) body.add(flares);
-
-  const lights = buildLights(grid, profile, mats.head, mats.tail, high, fasciaGeo?.face ?? null, mats.amber ?? null);
   body.add(lights.head, lights.tail);
   if (lights.amber) body.add(lights.amber);
 

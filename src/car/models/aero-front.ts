@@ -1,5 +1,5 @@
 // Front and side aero/trim: splitter, side skirts with side-exit exhausts,
-// door mirrors and the windscreen wiper.
+// door mirrors, the roof aerial and the windscreen wiper.
 import * as THREE from 'three';
 import type { CarDimensions } from '@/car/car-specs';
 import { makeCurve } from '@/car/models/curves';
@@ -70,6 +70,7 @@ function exhausts(p: BodyProfile, cv: CurveSet): THREE.BufferGeometry[] {
   return out;
 }
 
+/** Door mirrors: a teardrop housing in the livery colour, a black bezel and a dark reflective glass face. */
 function mirrors(p: BodyProfile, cv: CurveSet, housing: number): { plastic: THREE.BufferGeometry[]; trim: THREE.BufferGeometry[] } {
   const z = p.mirror.z;
   const y = p.mirror.y;
@@ -78,21 +79,34 @@ function mirrors(p: BodyProfile, cv: CurveSet, housing: number): { plastic: THRE
   const trim: THREE.BufferGeometry[] = [];
   for (const s of [1, -1]) {
     const cx = x0 + 0.115;
-    const sections = [0.07, 0.048, 0.015, -0.022, -0.03].map((dz, i) => {
-      const k = [0.35, 0.8, 1, 1, 0.97][i];
-      return ringSection(new THREE.Vector3(s * cx, y + 0.05, z + dz), X, Y, 0.075 * k, 0.046 * k, 12, 3.2);
+    const c = (dz: number, dy = 0) => new THREE.Vector3(s * cx, y + 0.05 + dy, z + dz);
+    // Housing: pointed nose, full section over the glass, slight taper towards the open back.
+    const sections = [0.085, 0.06, 0.03, 0.0, -0.024, -0.03].map((dz, i) => {
+      const k = [0.3, 0.72, 0.96, 1, 1, 0.98][i];
+      return ringSection(c(dz, (1 - k) * 0.01), X, Y, 0.078 * k, 0.048 * k, 12, 3.2);
     });
     trim.push(tint(loft(sections, true, false), housing));
-    const glass = ringSection(new THREE.Vector3(s * cx, y + 0.05, z - 0.031), X, Y, 0.068, 0.039, 12, 3.2);
-    // Door-mirror glass: dark with a slight sky tint.
-    trim.push(tint(loft([glass, glass.map((v) => v.clone().setZ(v.z - 0.001))], true, false), 0x3b4b5e));
+    // Black bezel ring recessed into the back of the housing, then the glass inside it.
+    const bezel = [-0.03, -0.034].map((dz) => ringSection(c(dz), X, Y, 0.07, 0.041, 12, 3.2));
+    trim.push(tint(loft(bezel, false, true), 0x0d0e10));
+    const glass = ringSection(c(-0.0335), X, Y, 0.063, 0.035, 12, 3.2);
+    trim.push(tint(loft([glass, glass.map((v) => v.clone().setZ(v.z - 0.001))], true, false), 0x26303c));
     // Stalk from the door top (outside the side glass) up to the housing.
     const base = new THREE.Vector3(s * (x0 + 0.035), cv.glassBaseY(z) - 0.012, z + 0.01);
     const tip = new THREE.Vector3(s * (cx - 0.03), y + 0.028, z);
-    const stalk = loft([base, tip].map((c) => ringSection(c, Y, Z, 0.01, 0.026, 6, 2)), true, true);
+    const stalk = loft([base, tip].map((v) => ringSection(v, Y, Z, 0.01, 0.026, 6, 2)), true, true);
     plastic.push(stalk);
   }
   return { plastic, trim };
+}
+
+/** Roof aerial: a short whip on a puck at the rear centre of the roof. */
+function aerial(p: BodyProfile, cv: CurveSet): THREE.BufferGeometry {
+  const z = p.z.roofRear + 0.08;
+  const yTop = cv.topY(z);
+  const puck = new THREE.CylinderGeometry(0.02, 0.026, 0.02, 8).translate(0, yTop + 0.006, z);
+  const whip = new THREE.CylinderGeometry(0.003, 0.006, 0.3, 5).rotateX(0.08).translate(0, yTop + 0.16, z);
+  return merge([puck, whip]);
 }
 
 function wiper(grid: BodyGrid, p: BodyProfile): THREE.BufferGeometry | null {
@@ -115,7 +129,8 @@ export function buildFrontAero(grid: BodyGrid, p: BodyProfile, cv: CurveSet, dim
   const m = mirrors(p, cv, p.mirror.colour ?? housing);
   const w = wiper(grid, p);
   return {
-    plastic: [...(p.sideSkirts === false ? [] : skirts(p, cv, dims)), ...m.plastic, ...(w ? [w] : [])],
+    // The roof aerial is a Gen3 fitting; the classic car goes without.
+    plastic: [...(p.sideSkirts === false ? [] : skirts(p, cv, dims)), ...m.plastic, ...(p.cockpit === 'classic' ? [] : [aerial(p, cv)]), ...(w ? [w] : [])],
     trim: [...exhausts(p, cv), ...m.trim],
     splitter: spl?.geo ?? null,
     splitterHinge: spl?.hinge ?? null,

@@ -5,7 +5,7 @@ import type { CarDimensions } from '@/car/car-specs';
 import type { WheelIndex } from '@/types/car-model';
 import type { CarLook, CarMaterialSet, SegmentLook } from '@/car/models/look';
 import { merge, tint } from '@/car/models/geo-utils';
-import { GEN3_WHEEL, caliperGeometry, discGeometry, nutGeometry, rimGeometry, tyreGeometry } from '@/car/models/wheel-geometry';
+import { GEN3_WHEEL, caliperGeometry, discGeometry, nutGeometry, ratioTint, rimGeometry, tyreGeometry } from '@/car/models/wheel-geometry';
 import { classicRimGeometry } from '@/car/models/wheel-classic';
 import type { WheelStyle } from '@/car/models/profile-types';
 
@@ -17,19 +17,12 @@ export interface WheelSet {
   set(index: WheelIndex, spin: number, steer: number, suspension: number): void;
 }
 
+/** Spinning parts of the right-hand wheels: turned about y so the outer face points to -x. */
 const FLIP = new THREE.Matrix4().makeRotationY(Math.PI);
-
-/** Vertex colours of `colour` relative to a material colour `base` (linear, per channel). */
-function ratioTint(g: THREE.BufferGeometry, colour: number, base: number): THREE.BufferGeometry {
-  const c = new THREE.Color(colour);
-  const b = new THREE.Color(base);
-  const k = [c.r / Math.max(0.01, b.r), c.g / Math.max(0.01, b.g), c.b / Math.max(0.01, b.b)];
-  const n = g.getAttribute('position').count;
-  const col = new Float32Array(n * 3);
-  for (let i = 0; i < n; i++) col.set(k, i * 3);
-  g.setAttribute('color', new THREE.BufferAttribute(col, 3));
-  return g;
-}
+/** Fixed parts (caliper) of the right-hand wheels: turned about z, so the caliper stays at the rear of the disc. */
+const FLIP_FIXED = new THREE.Matrix4().makeRotationZ(Math.PI);
+/** Polished rim lip colour (sRGB); the rest of the rim takes look.rim.colour. */
+const RIM_LIP = 0xc9ccd1;
 
 /** Turns absolute vertex colours into ratios against a material colour that multiplies them. */
 function colourRatios(g: THREE.BufferGeometry, base: number): THREE.BufferGeometry {
@@ -65,7 +58,7 @@ export function createWheels(dims: CarDimensions, mats: CarMaterialSet, seg: Seg
   // rim material multiplies vertex colours, so the nut's colours are nut / rim.
   const rim = classic
     ? (high ? colourRatios(classicRimGeometry(style, seg.tyreRadial, seg.spokes, high), look.rim.colour) : classicRimGeometry(style, seg.tyreRadial, seg.spokes, high))
-    : high ? merge([tint(rimGeometry(seg.tyreRadial, seg.spokes, high), 0xffffff), ratioTint(nutGeometry(), look.nut.colour, look.rim.colour)]) : rimGeometry(seg.tyreRadial, seg.spokes, high);
+    : high ? merge([rimGeometry(seg.tyreRadial, seg.spokes, high, style, { colour: RIM_LIP, base: look.rim.colour }), ratioTint(nutGeometry(), look.nut.colour, look.rim.colour)]) : rimGeometry(seg.tyreRadial, seg.spokes, high, style);
   // Low detail: tyre and rim share one draw call (colours baked; rebuild to retune).
   const meshes = high
     ? [make(tyre, mats.tyre, 'tyre', true), make(rim, mats.rim, 'rim', true)]
@@ -83,7 +76,7 @@ export function createWheels(dims: CarDimensions, mats: CarMaterialSet, seg: Seg
     const right = index === 1 || index === 3;
     steerM.makeRotationY(steer).setPosition(c.x, c.y + suspension, c.z);
     fixed.copy(steerM);
-    if (right) fixed.multiply(FLIP);
+    if (right) fixed.multiply(FLIP_FIXED);
     spinM.makeRotationX(spin);
     m.copy(steerM).multiply(spinM);
     if (right) m.multiply(FLIP);

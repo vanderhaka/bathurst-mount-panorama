@@ -1,6 +1,6 @@
 // Wheel parts in the wheel frame: axle along X, outer face towards +X, centre
 // at the origin. Tyre and rim barrel are lathed profiles; the rim face is made
-// of real tapered, dished spokes; the brake disc and caliper sit inside.
+// of real tapered, dished spokes with a polished lip; the brake disc and caliper sit inside.
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import type { WheelStyle } from '@/car/models/profile-types';
@@ -31,12 +31,26 @@ export function tyreGeometry(radius: number, width: number, segments: number, hi
   return latheX(pts, segments);
 }
 
+/** Vertex colours of `colour` relative to a material colour `base` (linear, per channel), for a multiplying material. */
+export function ratioTint(g: THREE.BufferGeometry, colour: number, base: number): THREE.BufferGeometry {
+  const c = new THREE.Color(colour);
+  const b = new THREE.Color(base);
+  const k = [c.r / Math.max(0.01, b.r), c.g / Math.max(0.01, b.g), c.b / Math.max(0.01, b.b)];
+  const n = g.getAttribute('position').count;
+  const col = new Float32Array(n * 3);
+  for (let i = 0; i < n; i++) col.set(k, i * 3);
+  g.setAttribute('color', new THREE.BufferAttribute(col, 3));
+  return g;
+}
+
+/** Dished, tapered spokes with a centre ridge (two lit faces per spoke) from the hub out to the lip. */
 function spokeGeometry(count: number, high: boolean, rimRadius: number, halfWidth: number): THREE.BufferGeometry {
   const pos: number[] = [];
   const idx: number[] = [];
   const steps = high ? 3 : 1;
-  const rIn = 0.068;
-  const rOut = rimRadius - 0.012;
+  const rIn = 0.062;
+  const rOut = rimRadius - 0.01;
+  const ridge = high ? 0.008 : 0;
   for (let s = 0; s < count; s++) {
     const ang = (s / count) * Math.PI * 2;
     const ca = Math.cos(ang), sa = Math.sin(ang);
@@ -44,21 +58,18 @@ function spokeGeometry(count: number, high: boolean, rimRadius: number, halfWidt
     for (let k = 0; k <= steps; k++) {
       const t = k / steps;
       const r = rIn + (rOut - rIn) * t;
-      const w = 0.086 + (halfWidth - 0.006 - 0.086) * Math.pow(t, 0.7);
-      const half = (0.025 - 0.01 * t) * (high ? 1 : 1.25);
-      const depth = 0.03;
-      // Four corners: front-left, front-right, back-right, back-left (tangent, lateral).
-      for (const [tan, lat] of [[-half, 0], [half, 0], [half * 1.15, -depth], [-half * 1.15, -depth]] as const) {
+      const w = 0.084 + (halfWidth - 0.008 - 0.084) * Math.pow(t, 0.65);
+      const half = (0.031 - 0.013 * t) * (high ? 1 : 1.25);
+      const depth = 0.034;
+      // Corners: front-left, ridge, front-right, back-right, back-left (tangent, lateral).
+      for (const [tan, lat] of [[-half, 0], [0, ridge], [half, 0], [half * 1.15, -depth], [-half * 1.15, -depth]] as const) {
         pos.push(w + lat, r * ca - tan * sa, r * sa + tan * ca);
       }
     }
     for (let k = 0; k < steps; k++) {
-      const a = base + k * 4;
-      const b = a + 4;
-      // front face, side 1 (corners 1-2), side 2 (corners 3-0)
-      idx.push(a, b + 1, a + 1, a, b, b + 1);
-      idx.push(a + 1, b + 2, a + 2, a + 1, b + 1, b + 2);
-      idx.push(a + 3, b, a, a + 3, b + 3, b);
+      const a = base + k * 5;
+      const b = a + 5;
+      for (const [i, j] of [[0, 1], [1, 2], [2, 3], [4, 0]] as const) idx.push(a + i, b + j, a + j, a + i, b + i, b + j);
     }
   }
   const g = new THREE.BufferGeometry();
@@ -67,18 +78,31 @@ function spokeGeometry(count: number, high: boolean, rimRadius: number, halfWidt
   return g.toNonIndexed();
 }
 
-/** Rim: outer lip, inner barrel (seen through the spokes), dished spokes and hub. */
-export function rimGeometry(segments: number, spokes: number, high: boolean, style: WheelStyle = GEN3_WHEEL): THREE.BufferGeometry {
+/**
+ * Rim: inner barrel (seen through the spokes), dished spokes, hub and the polished
+ * outer lip. Vertex colours are ratios against the rim material colour: 1 on the
+ * barrel, spokes and hub; lip / rim on the lip (when `lip` is given).
+ */
+export function rimGeometry(segments: number, spokes: number, high: boolean, style: WheelStyle = GEN3_WHEEL, lip: { colour: number; base: number } | null = null): THREE.BufferGeometry {
   const R = style.rimRadius;
   const W = style.rimHalfWidth;
   const barrel = latheX(
     high
-      ? [[R + 0.01, -W], [R - 0.016, -W + 0.02], [R - 0.02, 0.06], [R - 0.014, W - 0.012], [R - 0.004, W + 0.004], [R + 0.013, W + 0.002], [R + 0.014, W - 0.01]]
+      ? [[R + 0.01, -W], [R - 0.016, -W + 0.02], [R - 0.02, 0.06], [R - 0.014, W - 0.03], [R - 0.012, W - 0.014]]
       : [[R - 0.018, -W + 0.02], [R - 0.016, W - 0.01], [R + 0.012, W + 0.002]],
     segments,
   );
   const hub = latheX(high ? [[0.074, 0.06], [0.072, 0.088], [0.058, 0.1], [0.03, 0.104], [0.001, 0.104]] : [[0.07, 0.08], [0.001, 0.1]], Math.max(10, segments / 2));
   const parts = [barrel.toNonIndexed(), hub.toNonIndexed(), spokeGeometry(spokes, high, R, W)];
+  // Polished lip: a rolled outer edge that steps up from the barrel and turns over the rim.
+  if (high) {
+    const lipGeo = latheX([[R - 0.012, W - 0.014], [R - 0.002, W - 0.004], [R + 0.006, W + 0.004], [R + 0.014, W + 0.002], [R + 0.015, W - 0.012]], segments).toNonIndexed();
+    if (lip) {
+      for (const p of parts) ratioTint(p, lip.base, lip.base);
+      ratioTint(lipGeo, lip.colour, lip.base);
+    }
+    parts.push(lipGeo);
+  }
   for (const p of parts) p.deleteAttribute('uv');
   const g = mergeGeometries(parts.map((p) => { p.deleteAttribute('normal'); return p; }));
   g.computeVertexNormals();
@@ -101,17 +125,25 @@ export function discGeometry(segments: number, outer: number): THREE.BufferGeome
   return latheX([[0.075, 0.07], [0.09, 0.05], [0.105, 0.004], [outer, 0.004], [outer, -0.03], [0.105, -0.03]].reverse() as Array<[number, number]>, segments);
 }
 
-/** Caliper straddling the top of the disc (symmetric, so it works on both sides). */
+/**
+ * Caliper on the rear of the disc, symmetric about the axle height so that the
+ * right-hand wheels (flipped about the wheel's z axis) carry it at the rear too.
+ */
 export function caliperGeometry(outer: number, rimRadius = RIM_RADIUS): THREE.BufferGeometry {
-  const r0 = outer - 0.045;
-  const r1 = Math.min(rimRadius - 0.024, outer + 0.022);
-  const span = 0.42;
+  const r0 = outer - 0.048;
+  const r1 = Math.min(rimRadius - 0.022, outer + 0.024);
+  const span = 0.46;
   const s = new THREE.Shape();
-  s.absarc(0, 0, r1, Math.PI / 2 - span, Math.PI / 2 + span, false);
-  s.absarc(0, 0, r0, Math.PI / 2 + span, Math.PI / 2 - span, true);
-  const g = new THREE.ExtrudeGeometry(s, { depth: 0.085, bevelEnabled: true, bevelThickness: 0.006, bevelSize: 0.006, bevelSegments: 1, curveSegments: 5 });
+  s.absarc(0, 0, r1, -span, span, false);
+  s.absarc(0, 0, r0, span, -span, true);
+  const body = new THREE.ExtrudeGeometry(s, { depth: 0.088, bevelEnabled: true, bevelThickness: 0.007, bevelSize: 0.007, bevelSegments: 1, curveSegments: 6 });
+  // Bridge bolts: two raised bosses across the back of the caliper.
+  const bosses = [-0.2, 0.2].map((a) => new THREE.CylinderGeometry(0.012, 0.012, 0.012, 8).rotateX(Math.PI / 2).translate(Math.cos(a) * (r0 + r1) / 2, Math.sin(a) * (r0 + r1) / 2, 0.094).toNonIndexed());
+  const parts = [body.toNonIndexed(), ...bosses];
+  for (const p of parts) { p.deleteAttribute('uv'); p.deleteAttribute('normal'); }
+  const g = mergeGeometries(parts);
   g.rotateY(Math.PI / 2);
-  g.translate(-0.062, 0, 0);
-  g.deleteAttribute('uv');
+  g.translate(-0.064, 0, 0);
+  g.computeVertexNormals();
   return g;
 }

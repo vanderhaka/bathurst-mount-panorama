@@ -36,9 +36,10 @@ describe.each(KINDS)('%s model', (kind) => {
 
   it('matches the spec bounding box within 3%', () => {
     high.root.updateMatrixWorld(true);
-    // The contact-shadow blob is a ground decal, not part of the car's size.
+    // The contact-shadow blob is a ground decal, and the roof aerial (in the 'aero' plastic mesh) stands
+    // above the spec height, so neither counts towards the car's size.
     const box = new THREE.Box3();
-    high.root.traverse((o) => { if (o instanceof THREE.Mesh && !o.userData.contactShadow) box.expandByObject(o); });
+    high.root.traverse((o) => { if (o instanceof THREE.Mesh && !o.userData.contactShadow && o.name !== 'aero') box.expandByObject(o); });
     const size = box.getSize(new THREE.Vector3());
     expect(Math.abs(size.z - d.length) / d.length).toBeLessThan(0.03);
     expect(Math.abs(size.x - d.width) / d.width).toBeLessThan(0.03);

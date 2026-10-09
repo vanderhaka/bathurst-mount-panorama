@@ -12,7 +12,7 @@ import * as THREE from 'three';
 import type { CarModel } from '@/types/car-model';
 
 export interface PaintLook { roughness: number; metalness: number; clearcoat: number; clearcoatRoughness: number; envMapIntensity: number }
-export interface SurfaceLook { colour: number; roughness: number; metalness: number; envMapIntensity: number }
+export interface SurfaceLook { colour: number; roughness: number; metalness: number; envMapIntensity: number; /** Physical materials only (carbon, trim, head, tail). */ clearcoat?: number }
 export interface GlassLook extends SurfaceLook { opacity: number }
 export interface DiscLook extends SurfaceLook { glowColour: number; glowMax: number }
 export interface LightsLook {
@@ -68,19 +68,22 @@ export const CAR_LOOK: CarLook = {
   paint: { roughness: 0.25, metalness: 0.3, clearcoat: 1, clearcoatRoughness: 0.04, envMapIntensity: 1.7 },
   glass: { colour: 0x080d10, roughness: 0.03, metalness: 0.1, envMapIntensity: 1.4, opacity: 0.82 },
   glassTint: { colour: 0x040608, roughness: 0.03, metalness: 0.15, envMapIntensity: 1.4, opacity: 0.93 },
-  rim: { colour: 0x8b9097, roughness: 0.3, metalness: 0.85, envMapIntensity: 1.2 },
+  // Gunmetal alloy; the polished lip is baked as vertex colours (RIM_LIP in wheels.ts).
+  rim: { colour: 0x5b5f66, roughness: 0.36, metalness: 0.72, envMapIntensity: 1.2 },
   nut: { colour: 0xc8261e, roughness: 0.35, metalness: 0.6, envMapIntensity: 1 },
   tyre: { colour: 0x1b1b1d, roughness: 0.95, metalness: 0, envMapIntensity: 0.6 },
   plastic: { colour: 0x151618, roughness: 0.72, metalness: 0, envMapIntensity: 0.8 },
-  carbon: { colour: 0x17181b, roughness: 0.55, metalness: 0.1, envMapIntensity: 0.9 },
-  trim: { colour: 0xffffff, roughness: 0.45, metalness: 0.2, envMapIntensity: 1 },
-  disc: { colour: 0x6a6c70, roughness: 0.45, metalness: 0.8, envMapIntensity: 1, glowColour: 0xff4a12, glowMax: 3.2 },
+  carbon: { colour: 0x1a1c20, roughness: 0.35, metalness: 0.15, envMapIntensity: 0.8, clearcoat: 0.6 },
+  trim: { colour: 0xffffff, roughness: 0.4, metalness: 0.2, envMapIntensity: 1, clearcoat: 0.45 },
+  // Steel face (the drilled map multiplies it); the glow blooms at full brake temperature.
+  disc: { colour: 0xb4b9c1, roughness: 0.38, metalness: 0.85, envMapIntensity: 1, glowColour: 0xff4a12, glowMax: 3.6 },
   caliper: { colour: 0xb81d1d, roughness: 0.4, metalness: 0.3, envMapIntensity: 1 },
   interior: { colour: 0xffffff, roughness: 0.8, metalness: 0.05, envMapIntensity: 0.6 },
   contactShadow: { opacity: 0.55 },
   lights: {
-    headColour: 0xf4f7ff, headIntensity: 2.4,
-    tailColour: 0xff0606, tailIntensity: 0.9, brakeColour: 0xff0000, brakeIntensity: 1.8,
+    // Bloom starts at about 3.0 on High (threshold 2.2 before exposure): head and brake lights bloom, running tail lights do not.
+    headColour: 0xf4f7ff, headIntensity: 3.6,
+    tailColour: 0xff0606, tailIntensity: 1.4, brakeColour: 0xff0000, brakeIntensity: 3.6,
     brokenColour: 0x161719,
   },
   damage: {
@@ -146,6 +149,7 @@ function setSurface(m: THREE.MeshStandardMaterial | null, s: SurfaceLook): void 
   m.roughness = s.roughness;
   m.metalness = s.metalness;
   m.envMapIntensity = s.envMapIntensity;
+  if (s.clearcoat !== undefined && m instanceof THREE.MeshPhysicalMaterial) m.clearcoat = s.clearcoat;
 }
 
 /** Tail-lamp glow for the running-light or brake state. */
