@@ -25,6 +25,6 @@ export class MinimalReadout {
     this.speed.set(values.speed);
     this.units.set(values.units);
     this.gear.set(values.gear);
-    this.lap.set(values.lapTime);
+    this.lap.set(s.shootout?.phase === 'warmup' || s.shootout?.phase === 'ready' ? 'WARM-UP' : values.lapTime);
   }
 }

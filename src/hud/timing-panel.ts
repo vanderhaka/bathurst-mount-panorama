@@ -26,12 +26,13 @@ export class TimingPanel {
   private readonly sectors: SectorView[] = [];
   private readonly sectorWrap = h('div', 'hud-sectors');
   private readonly tower = new PositionTower();
+  private readonly mode = new TextSlot(h('span'));
 
   constructor(city = 'Bathurst') {
     this.el = h('section', 'hud-panel hud-timing', { 'aria-label': 'Lap timing', 'data-valid': 'true' }, [
       h('header', 'hud-timing__head', undefined, [
         h('span', 'hud-laptab', undefined, [this.lapWord.el, this.lapNo.el]),
-        h('span', 'hud-timing__title', undefined, [h('b', undefined, undefined, [city.toUpperCase()]), h('span', undefined, undefined, ['PRACTICE'])]),
+        h('span', 'hud-timing__title', undefined, [h('b', undefined, undefined, [city.toUpperCase()]), this.mode.el]),
         h('span', 'hud-chip hud-chip--bad', undefined, ['INVALID']),
       ]),
       this.tower.el,
@@ -62,11 +63,13 @@ export class TimingPanel {
 
   update(s: HudState): void {
     const lap = s.lap;
-    this.lapWord.set(lap.number > 0 ? 'LAP' : 'OUT');
-    this.lapNo.set(lap.number > 0 ? String(lap.number) : 'LAP');
+    const warmup = s.shootout && (s.shootout.phase === 'warmup' || s.shootout.phase === 'ready');
+    this.mode.set(s.shootout?.mode === 'shootoutTop10' ? 'TOP 10' : s.shootout ? 'ARCADE' : 'PRACTICE');
+    this.lapWord.set(warmup ? 'WARM' : lap.number > 0 ? 'LAP' : 'OUT');
+    this.lapNo.set(warmup ? 'UP' : lap.number > 0 ? String(lap.number) : 'LAP');
     this.sectorLabel.set(`SECTOR ${lap.currentSector + 1}`);
     this.valid.set(lap.valid ? 'true' : 'false');
-    this.current.set(formatLapTime(lap.currentS));
+    this.current.set(warmup ? 'UNTIMED' : formatLapTime(lap.currentS));
     // No lap yet: a clean dash rather than placeholder digits.
     this.last.set(lap.lastS === null ? '\u2014' : formatLapTime(lap.lastS));
     this.best.set(lap.bestS === null ? '\u2014' : formatLapTime(lap.bestS));

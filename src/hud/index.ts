@@ -36,6 +36,7 @@ interface Parts {
   lights: StartLights;
   banner: Banner;
   fps: TextSlot;
+  shootout: TextSlot;
 }
 
 function build(track: HudTrackInfo): Parts {
@@ -49,6 +50,7 @@ function build(track: HudTrackInfo): Parts {
   const lights = new StartLights();
   const banner = new Banner();
   const fps = new TextSlot(h('span', 'hud-fps', { 'data-on': 'false' }));
+  const shootout = new TextSlot(h('div', 'hud-shootout', { hidden: true, 'aria-live': 'polite' }));
   const root = h('div', 'bx-hud', { 'data-visible': 'true' }, [
     h('div', 'hud-region hud-region--tl', undefined, [timing.el, fps.el]),
     h('div', 'hud-region hud-region--tr', undefined, [map.el]),
@@ -56,8 +58,9 @@ function build(track: HudTrackInfo): Parts {
     h('div', 'hud-region hud-region--bl', undefined, [tyreFuel.el, telemetry.el]),
     h('div', 'hud-region hud-region--br', undefined, [dash.el]),
     minimal.el,
+    shootout.el,
   ]);
-  return { root, timing, minimal, map, dash, telemetry, tyreFuel, delta, lights, banner, fps };
+  return { root, timing, minimal, map, dash, telemetry, tyreFuel, delta, lights, banner, fps, shootout };
 }
 
 /** Creates the HUD. The container must cover the game viewport; it is made position:relative if static. */
@@ -90,6 +93,15 @@ export function createHud(): Hud {
       parts.dash.update(state);
       parts.telemetry.update(state);
       parts.banner.update(state);
+      if (state.shootout) parts.shootout.el.removeAttribute('hidden');
+      else parts.shootout.el.setAttribute('hidden', '');
+      if (state.shootout) {
+        const s = state.shootout;
+        const mode = s.mode === 'shootoutTop10' ? 'TOP 10' : 'ARCADE';
+        const phase = s.phase === 'warmup' ? 'WARM-UP · Timed lap starts at the line' : s.phase === 'ready' ? 'Starting timed lap' : 'SHOOTOUT LAP';
+        const quota = s.mode === 'shootoutTop10' ? s.attempt ? `Attempt ${s.attempt}/3 · ${s.remaining} left` : `${s.remaining} attempts left · Warm-up is free` : 'Unlimited practice · No official score';
+        parts.shootout.set(`${mode} · ${phase} · ${quota}`);
+      }
       const fps = state.fps === null ? -1 : Math.round(state.fps);
       if (fps !== fpsShown) {
         fpsShown = fps;

@@ -146,3 +146,19 @@
 .hud-banner[data-kind='best'] {
   background: color-mix(in srgb, var(--hud-sector-overall) 30%, rgb(var(--hud-panel-rgb) / 0.92));
 }
+.hud-shootout {
+  position: absolute;
+  left: 50%;
+  bottom: max(1.5em, env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  max-width: 90%;
+  padding: 0.65em 1em;
+  font-size: 0.9em;
+  line-height: 1.4;
+  font-weight: 700;
+  text-align: center;
+  background: rgb(12 14 17 / 0.92);
+  border-top: 0.2em solid var(--hud-accent);
+}
+.hud-shootout[hidden] { display: none; }
+@media (max-height: 540px) and (pointer: coarse) { .hud-shootout { bottom: auto; top: 0.4em; max-width: 65%; font-size: 0.8em; } }

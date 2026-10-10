@@ -4,3 +4,7 @@ dist
 artifacts/
 *.log
 .vercel
+.env
+.env.*
+!.env.example
+supabase/.temp/

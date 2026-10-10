@@ -9,6 +9,9 @@ export type CameraMode = 'chase' | 'chaseFar' | 'bonnet' | 'cockpit' | 'tv';
 /** Driving levels, least strict first (src/race/driving-levels.ts). Each has its own best lap and ghost. */
 export type DrivingLevel = 'casual' | 'experienced' | 'superstar';
 
+export type ShootoutMode = 'shootoutArcade' | 'shootoutTop10';
+export type RaceMode = 'timeTrial' | ShootoutMode;
+
 /** Player settings. Persisted in localStorage (best effort). */
 export interface Settings {
   racingLine: 'off' | 'braking' | 'full';
@@ -87,6 +90,8 @@ export const DEFAULT_SETTINGS: Settings = {
 };
 
 export interface SessionConfig {
+  /** Omitted by older callers: time trial. */
+  mode?: RaceMode;
   car: CarKind;
   /** Livery preset index (0..n-1) offered on the car-select screen. */
   liveryIndex: number;

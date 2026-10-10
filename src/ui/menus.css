@@ -29,8 +29,8 @@
   overflow: hidden;
   animation: mn-in 0.22s ease-out both;
 }
-.mn-screen[hidden] {
-  display: none;
+.bx-menus [hidden] {
+  display: none !important;
 }
 .mn-screen--side {
   justify-content: flex-start;

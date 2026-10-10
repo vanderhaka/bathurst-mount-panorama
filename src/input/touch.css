@@ -135,6 +135,9 @@
   border-radius: 50%;
   touch-action: none;
 }
+.tc-btn--shiftUp, .tc-btn--shiftDown { display: none; }
+.bx-touch[data-manual-gears='true'] .tc-btn--shiftUp,
+.bx-touch[data-manual-gears='true'] .tc-btn--shiftDown { display: block; }
 
 /* Mirroring swaps the complete driving layout; steering direction stays the same. */
 .bx-touch[data-left-handed='true'] .tc-steer {

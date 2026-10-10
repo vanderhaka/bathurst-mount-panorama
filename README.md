@@ -48,6 +48,59 @@ Parklands and Surfers Paradise. Switching reloads the scene.
 Elevation, road widths, sectors and timing lines on both street circuits are
 documented estimates.
 
+## Shootout
+
+Both Shootout modes run at Bathurst with the Camaro, Mustang, or Supra. Every run
+has one warm-up lap and one timed flying lap. Both use full damage, track limits,
+tyre wear, manual gears, soft tyres, and the standard setup. Driving assists,
+racing lines, ghosts, and automatic recovery are disabled. Touch controls include
+gear buttons when manual gears are active.
+
+Each warm-up and flying lap ends at the 10-minute limit without a score. The
+result screen explains the timeout and offers another warm-up or the main menu.
+A warm-up timeout uses no competition attempt. A timed Top 10 timeout keeps
+the attempt used; Arcade practice remains unlimited.
+
+- **Shootout Arcade** allows unlimited practice runs. It never uses a competition
+  attempt or publishes an official score.
+- **Shootout Top 10** gives each browser three total competition attempts, shared
+  across all three cars. A warm-up costs nothing. Crossing into the timed lap uses
+  an attempt, including a lap that is abandoned or invalidated.
+- After a valid Top 10 lap, you can submit a public nickname or skip publication.
+  Skipping first shows a warning that the lap receives no leaderboard recognition
+  and the attempt remains used. Failed submissions stay saved for retry.
+
+The global board shows each browser's best published lap and refreshes every
+15 seconds. The introduction shows the rules, remaining attempts, and previous
+results. Competition is unavailable until the shared database is configured.
+Arcade remains available.
+
+### Connect the shared leaderboard
+
+The dedicated [Bathurst Shootout project](https://supabase.com/dashboard/project/ggkqzuqzmkxcvvcpcdue)
+runs in Sydney. Its migration is applied, and the local server and Vercel production
+environment have their credentials. The game source still needs a release to activate
+the competition on the public website.
+
+1. Apply [the Shootout migration](supabase/migrations/20261010003331_shootout_attempts.sql)
+   to a dedicated Supabase project.
+2. Set `SHOOTOUT_SUPABASE_URL` and `SHOOTOUT_SUPABASE_SERVICE_KEY` in the server
+   environment. Use a server secret API key. For local development, copy `.env.example` to the ignored `.env.local` file and
+   restart Vite. For the hosted game, use Vercel environment variables.
+3. Deploy the game and `api/shootout.ts` together. Verify that `GET /api/shootout`
+   returns `available: true`, then verify a published test score from another browser.
+
+The service key stays on the server. The database denies direct access to browser
+roles and enforces three allocations, retry-safe requests, and immutable scores.
+No login is required. Identity follows browser storage, so clearing that storage
+creates a new identity. Lap times come from the client simulation; this is not a
+server-authoritative anti-cheat system.
+
+`node scripts/verify-shootout-live.mjs` checks the local game against its configured
+hosted database. It uses controlled lap positions and the actual API. It creates a
+test score and three attempts. The report in `artifacts/shootout-live/report.json`
+identifies its browser hash and attempt IDs for scoped cleanup after verification.
+
 ## Controls
 
 | Action | Keyboard | Gamepad (standard mapping) |
@@ -192,6 +245,8 @@ All visual values live in a small set of config files:
 
 ```bash
 npm test                                     # 130+ unit tests (physics lap test, timing, ghost, input, HUD, props, cars, audio)
+node scripts/verify-shootout.mjs              # native menu flow and phone layouts with an explicit API/lap fixture
+bash supabase/tests/verify-shootout.sh        # migration, permissions, RPCs, and concurrent quota in a temporary Docker Postgres
 node scripts/capture-evidence.mjs artifacts/review/latest   # frozen evidence set + metrics.json
 ```
 

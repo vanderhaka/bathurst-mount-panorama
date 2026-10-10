@@ -4,8 +4,8 @@ import { presentOnRaceTaps } from '@/phone/android-presentation';
 import { createCarAudio } from '@/audio';
 import { CameraRig } from '@/camera/camera-rig';
 import { circuitCarSpec, type CarKind } from '@/car/car-specs';
-import { getHandling } from '@/config/handling';
-import { getSetup } from '@/config/setup';
+import { DEFAULT_HANDLING, getHandling } from '@/config/handling';
+import { defaultSetup, getSetup } from '@/config/setup';
 import { LIVERY_PRESETS } from '@/car/liveries';
 import { createCarModel } from '@/car/model-factory';
 import { GraphicsTuner } from '@/debug/tuner';
@@ -19,6 +19,9 @@ import { hudTrackInfo } from '@/game/hud-bridge';
 import { RaceController } from '@/game/race-controller';
 import { RaceEffects } from '@/game/race-effects';
 import { RaceSession } from '@/game/race-session';
+import { competitionSettings } from '@/game/shootout-rules';
+import { isShootoutCar } from '@/shootout/model';
+import { ShootoutStore } from '@/shootout/store';
 import { loadSettings, saveSettings } from '@/game/settings-store';
 import { Stage } from '@/game/stage';
 import { installDeviceHooks } from '@/game/device-hooks';
@@ -58,6 +61,9 @@ export class Game {
   private readonly focus = new THREE.Vector3();
   private readonly particles: Particles; private readonly effects: RaceEffects;
   private readonly graphics: GameGraphics;
+  private readonly shootoutStore = new ShootoutStore();
+  private shootoutPreferences: Settings | null = null;
+  private claimingShootout = false;
 
   private constructor(private readonly stage: Stage, private world: World, private readonly hud: Hud, private readonly menus: Menus) {
     this.rig = new CameraRig(stage.camera, world.track);
@@ -68,7 +74,7 @@ export class Game {
     this.graphics = new GameGraphics(stage, this.settings, {
       world: () => this.world, replaceWorld: (next) => { this.world = next; this.effects.setWorld(next, this.settings.quality); },
       models: () => [this.race?.player.model ?? null, this.ghostModel, this.attract.model],
-      changed: (s) => { this.settings = s; saveSettings(s); this.menus.syncSettings(s); },
+      changed: (s) => { this.settings = this.shootoutPreferences ? competitionSettings(s) : s; this.rememberSettings(); this.menus.syncSettings(this.settings); },
       notify: (text) => this.race?.session.say(text, 'info', 4),
     });
     this.tuner = new GraphicsTuner(() => { void this.graphics.rebuildWorld(); }, { setScale: setHudScale, setOpacity: setHudOpacity }, this.effects);
@@ -107,6 +113,11 @@ export class Game {
     installDeviceHooks(root, game.input, settings, () => { if (game?.state === 'race') game.pause(); });
     menus.showLoading(1, 'Ready');
     game.enterTitle();
+    const requestedShootout = new URLSearchParams(location.search).get('shootout');
+    if (requestedShootout === 'arcade' || requestedShootout === 'top10') {
+      menus.showShootout(requestedShootout === 'arcade' ? 'shootoutArcade' : 'shootoutTop10');
+      const url = new URL(location.href); url.searchParams.delete('shootout'); history.replaceState(null, '', url);
+    }
     const limiter = new FrameLimiter();
     stage.renderer.setAnimationLoop((t) => { if (game && limiter.ready(t, game.settings.frameRate)) game.frame(t); });
     return game;
@@ -143,11 +154,19 @@ export class Game {
 
   private startRace(cfg: SessionConfig): void {
     if (this.halted) return;
-    this.applySettings(cfg.settings);
-    this.attract.drop();
     this.endRace();
+    this.applySettings(cfg.settings);
+    const mode = cfg.mode ?? 'timeTrial';
+    if (mode !== 'timeTrial') {
+      this.shootoutPreferences = { ...this.settings };
+      this.applySettings(this.settings);
+      this.menus.syncSettings(this.settings);
+    }
+    this.attract.drop();
     const player = this.makeEntity(cfg.car, cfg.liveryIndex);
-    const session = new RaceSession(cfg.car, this.world.track, this.world.line, player, cfg.tyres ?? 'soft', cfg.settings);
+    if (mode !== 'timeTrial') { player.vehicle.handling = DEFAULT_HANDLING; player.vehicle.setup = defaultSetup(cfg.car); }
+    const session = new RaceSession(cfg.car, this.world.track, this.world.line, player, mode !== 'timeTrial' ? 'soft' : cfg.tyres ?? 'soft', this.settings, mode);
+    if (mode === 'shootoutTop10') session.shootoutRemaining = this.shootoutStore.snapshot().remaining;
     session.placeOnGrid();
     this.ghostModel = createCarModel(cfg.car, { livery: LIVERY_PRESETS[cfg.car][0].livery, detail: 'low', quality: this.settings.quality });
     this.ghostModel.setGhost(true);
@@ -167,6 +186,11 @@ export class Game {
   }
 
   private endRace(): void {
+    const session = this.race?.session;
+    if (session?.shootout?.phase === 'timed') {
+      session.abortShootout('The timed lap was abandoned. This attempt is used.');
+      this.saveShootoutResult(session);
+    }
     if (this.race) {
       this.stage.scene.remove(this.race.player.model.root);
       this.race.player.model.dispose();
@@ -180,19 +204,26 @@ export class Game {
     this.audio?.dispose();
     this.audio = null;
     this.lineMesh.mesh.visible = false;
+    if (this.shootoutPreferences) {
+      const preferences = this.shootoutPreferences;
+      this.shootoutPreferences = null;
+      this.applySettings(preferences);
+      this.menus.syncSettings(preferences);
+    }
   }
 
   private pause(): void {
     this.state = 'paused';
     this.audio?.suspend();
-    this.menus.showPause();
+    const session = this.race?.session;
+    this.menus.showPause(session?.mode !== 'timeTrial' && session?.shootout ? { mode: session.mode, timed: session.shootout.phase === 'timed' } : undefined);
   }
 
   /** The WebGL context is lost and main.ts offers a reload: pause for good, releasing wake lock and audio. */
   halt(): void { this.halted = true; this.wakeLock.setRunning(false); if (this.state === 'race') this.pause(); }
 
   private resume(): void {
-    if (this.state !== 'paused' || this.halted) return;
+    if (this.state !== 'paused' || this.halted || this.claimingShootout || this.race?.session.waitingForShootout) return;
     this.state = 'race';
     this.audio?.resume();
     this.graphics.settle();
@@ -200,6 +231,11 @@ export class Game {
 
   private restart(): void {
     if (!this.race || this.halted) return;
+    if (this.race.session.shootout?.phase === 'timed') {
+      this.race.session.abortShootout('The timed lap was ended. This attempt is used.');
+      this.finishShootout(this.race.session);
+      return;
+    }
     this.race.session.placeOnGrid();
     this.race.restart();
     this.rig.snap();
@@ -211,6 +247,7 @@ export class Game {
   /** Pause menu: back on the racing line here, repaired (the lap becomes invalid). */
   private resetCar(): void {
     this.race?.resetToTrack();
+    if (this.race?.session.shootout?.phase === 'finished') { this.finishShootout(this.race.session); return; }
     this.rig.snap();
     this.resume();
   }
@@ -222,11 +259,62 @@ export class Game {
   }
 
   private applySettings(s: Settings): void {
-    this.settings = { ...s };
-    this.input.configureTouch(touchOptions(s));
+    this.settings = this.shootoutPreferences ? competitionSettings(s) : { ...s };
+    this.input.configureTouch(touchOptions(this.settings), !this.settings.autoGears);
     void this.graphics.applySettings(this.settings);
-    saveSettings(this.settings);
+    this.rememberSettings();
     this.audio?.setMasterVolume(s.masterVolume);
+  }
+
+  private rememberSettings(): void {
+    const original = this.shootoutPreferences;
+    const saved = original ? { ...this.settings, racingLine: original.racingLine, autoGears: original.autoGears, touchAutoThrottle: original.touchAutoThrottle,
+      tractionControl: original.tractionControl, abs: original.abs, steeringAssist: original.steeringAssist,
+      damage: original.damage, trackLimits: original.trackLimits, wear: original.wear, autoRecover: original.autoRecover, ghost: original.ghost } : this.settings;
+    if (original) this.shootoutPreferences = saved;
+    saveSettings(saved);
+  }
+
+  private saveShootoutResult(session: RaceSession): string | undefined {
+    const run = session.shootout;
+    if (run?.phase !== 'finished' || !run.attempt) return;
+    try { this.shootoutStore.complete(run.attempt.id, run.outcome); }
+    catch (error) { return error instanceof Error ? error.message : 'Your result could not be saved. Keep this screen open and retry.'; }
+  }
+
+  private finishShootout(session: RaceSession): void {
+    const run = session.shootout;
+    if (run?.phase !== 'finished' || session.mode === 'timeTrial') return;
+    this.state = 'paused';
+    this.audio?.suspend();
+    const error = this.saveShootoutResult(session);
+    this.menus.showShootoutResult(session.mode, run.attempt, run.outcome, error);
+  }
+
+  private async startShootoutLap(race: RaceController): Promise<void> {
+    const session = race.session;
+    if (session.mode === 'shootoutArcade') { session.beginShootoutTimedLap(null); return; }
+    if (this.claimingShootout || !isShootoutCar(session.car)) return;
+    this.claimingShootout = true;
+    this.state = 'paused';
+    this.audio?.suspend();
+    this.menus.showLoading(1, 'Saving timed Shootout attempt');
+    try {
+      const attempt = await this.shootoutStore.beginTimedLap(session.car, true);
+      if (this.race !== race || this.halted) return;
+      session.beginShootoutTimedLap(attempt);
+      if (!attempt.online) session.say('CONNECTION LOST — SCORE SAVED FOR RETRY AFTER THIS LAP', 'warn', 5);
+      this.menus.hide();
+      this.state = 'race';
+      this.audio?.resume();
+    } catch (error) {
+      if (this.race !== race) return;
+      session.placeOnGrid();
+      session.say(error instanceof Error ? error.message : 'Could not save your attempt. No timed lap started.', 'warn', 8);
+      this.menus.hide();
+      this.state = 'race';
+      this.audio?.resume();
+    } finally { this.claimingShootout = false; }
   }
 
   private frame(time: number): void {
@@ -240,13 +328,13 @@ export class Game {
     this.menus.setPadStyle(this.input.padStyle);
     let nav = this.input.takeMenuNav();
     while (nav) { this.menus.nav(nav); nav = this.input.takeMenuNav(); }
-    if (this.input.consume('tuner')) this.tuner.toggle();
+    if (this.input.consume('tuner') && !this.race?.session.shootout) this.tuner.toggle();
     if (this.state === 'race' && this.race) this.raceFrame(dt);
     else if (this.state !== 'paused') this.demoFrame(dt);
     else {
       this.input.update(dt);
       // Options / Menu toggles the pause, like a console game.
-      if (this.input.consume('pause')) { this.menus.hide(); this.resume(); }
+      if (this.input.consume('pause') && !this.claimingShootout && !this.race?.session.waitingForShootout) { this.menus.hide(); this.resume(); }
     }
     this.world.scenery.update(this.stage.camera.position);
     this.particles.update(this.state === 'paused' ? 0 : dt);
@@ -260,15 +348,18 @@ export class Game {
     const before = JSON.stringify(this.settings);
     if (input.consume('camera')) this.settings.camera = this.rig.cycle();
     if (input.consume('reset')) race.resetToTrack();
-    if (input.consume('ghost')) this.settings.ghost = !this.settings.ghost;
+    if (input.consume('ghost') && !race.session.shootout) this.settings.ghost = !this.settings.ghost;
     if (input.consume('hud')) this.hudHidden = !this.hudHidden;
     const lines: Settings['racingLine'][] = ['off', 'braking', 'full'];
-    if (input.consume('racingLine')) this.settings.racingLine = lines[(lines.indexOf(this.settings.racingLine) + 1) % 3];
+    if (input.consume('racingLine') && !race.session.shootout) this.settings.racingLine = lines[(lines.indexOf(this.settings.racingLine) + 1) % 3];
     // In-race toggles persist and the menus show (and start the next race with) the same values.
-    if (JSON.stringify(this.settings) !== before) { saveSettings(this.settings); this.menus.syncSettings(this.settings); }
+    if (JSON.stringify(this.settings) !== before) { this.rememberSettings(); this.menus.syncSettings(this.settings); }
     this.hud.setVisible(!this.hudHidden);
     this.rig.lookBack = input.isHeld('lookBack');
+    if (this.timeScale !== 1) race.session.invalidateShootout('Changed simulation speed cannot enter the competition.');
     race.frame(dt * this.timeScale, this.settings.showFps ? this.fps : null);
+    if (race.session.shootout?.phase === 'ready') void this.startShootoutLap(race);
+    else if (race.session.shootout?.phase === 'finished') this.finishShootout(race.session);
     this.followCamera(race.player, dt);
   }
   private hudHidden = false;
@@ -280,6 +371,7 @@ export class Game {
   /** Places the player at distance s on the racing line, at the AI target speed, and skips the start lights. */
   debugTeleport(s: number): void {
     if (!this.race) return;
+    this.race.session.invalidateShootout('Teleporting cannot enter the competition.');
     teleport(this.race, this.world, this.race.profiles.ai, s);
     this.rig.snap();
   }

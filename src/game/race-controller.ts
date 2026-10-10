@@ -1,7 +1,8 @@
 import * as THREE from 'three';
 import { tyreScrubUse } from '@/audio/dsp/tyre-scrub';
 import { cockpitHeaveScale, type CameraRig } from '@/camera/camera-rig';
-import { getHandling } from '@/config/handling';
+import { DEFAULT_HANDLING, getHandling } from '@/config/handling';
+import { defaultSetup } from '@/config/setup';
 import type { Particles } from '@/fx/particles';
 import type { CarEntity } from '@/game/car-entity';
 import { buildHudState } from '@/game/hud-bridge';
@@ -88,14 +89,17 @@ export class RaceController {
       else if (settings.damage === 'visual') v.repair();
       this.damageMode = settings.damage;
     }
-    v.handling = getHandling();
-    v.setup = updateRaceSetup(this.session.car, input, (text) => this.session.say(text, 'info', 2));
+    const competition = this.session.mode !== 'timeTrial';
+    v.handling = competition ? DEFAULT_HANDLING : getHandling();
+    v.setup = competition ? defaultSetup(this.session.car) : updateRaceSetup(this.session.car, input, (text) => this.session.say(text, 'info', 2));
+    if (this.autopilot) this.session.invalidateShootout('Verification driving cannot enter the competition.');
     const shiftUp = input.consume('shiftUp');
     const shiftDown = input.consume('shiftDown');
     // Game logic runs in steps of at most 1/60 s of game time (time-scaled runs stay stable).
     const steps = Math.max(1, Math.ceil(dt / (1 / 60) - 1e-6));
     const h = dt / steps;
     for (let k = 0; k < steps; k++) {
+      if (this.session.waitingForShootout) break;
       if (this.autopilot) this.autopilot.drive(v, this.vin);
       else applyAssists(controls, v, { steeringAssist: settings.steeringAssist }, this.vin);
       this.vin.shiftUp = k === 0 && shiftUp;
@@ -122,6 +126,7 @@ export class RaceController {
       const lap = this.session.update(h);
       // The verification autopilot never counts.
       if (lap && !this.autopilot) trackLapsDriven(this.session.track.id, this.session.car, this.session.sessionLaps.length);
+      if (this.session.waitingForShootout) break;
       if (settings.autoRecover && !this.autopilot && this.session.racing) {
         const offTrack = v.wheels.every((w) => w.surface !== 'road' && w.surface !== 'kerb');
         const wrongWay = facingWrongWay(this.session.track, v.tp.index, v.heading);

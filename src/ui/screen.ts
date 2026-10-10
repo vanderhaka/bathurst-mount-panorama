@@ -2,7 +2,7 @@
 import { h } from '@/hud/dom';
 import { padChip } from '@/ui/pad-glyphs';
 
-export type ScreenId = 'loading' | 'title' | 'car' | 'onboarding' | 'steer' | 'settings' | 'pause' | 'controls' | 'results' | 'telemetry';
+export type ScreenId = 'loading' | 'title' | 'car' | 'onboarding' | 'steer' | 'settings' | 'pause' | 'controls' | 'results' | 'telemetry' | 'shootout' | 'shootoutResult';
 
 export interface Screen {
   readonly id: ScreenId;
@@ -12,6 +12,7 @@ export interface Screen {
   /** Escape / B / Backspace. */
   back(): void;
   onShow?(): void;
+  onHide?(): void;
   /** LB / RB or Q / E: previous / next tab (screens with tabs). */
   tab?(dir: -1 | 1): void;
 }

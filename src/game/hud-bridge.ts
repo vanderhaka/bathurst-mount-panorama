@@ -81,6 +81,16 @@ export function buildHudState(session: RaceSession, profile: SpeedProfile, setti
     currentSector: snap.currentSector,
     sectors: snap.sectors,
   };
+  const shootout = session.shootout;
+  if (shootout && session.mode !== 'timeTrial') {
+    const timed = shootout.phase === 'timed' || shootout.phase === 'finished';
+    state.shootout = { mode: session.mode, phase: shootout.phase, attempt: timed ? shootout.attempt?.number ?? null : null, remaining: session.shootoutRemaining };
+    state.lap.number = timed ? 1 : 0;
+    if (!timed) { state.lap.currentS = 0; state.lap.valid = true; }
+    state.lap.lastS = null;
+    state.lap.bestS = null;
+    state.lap.deltaS = null;
+  } else delete state.shootout;
   state.progress = track.lapFraction(v.tp.s);
   state.ghostProgress = session.ghostVisible ? progressOf(session) : null;
   state.playerXZ = [v.x, v.z];

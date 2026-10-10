@@ -12,12 +12,15 @@ import '@/ui/screens-panels.css';
 import '@/ui/tabs.css';
 import '@/ui/phone.css';
 import '@/ui/telemetry.css';
+import '@/ui/shootout.css';
 import { CAR_SPECS, type CarKind } from '@/car/car-specs';
 import { LIVERY_PRESETS, liveryNumber } from '@/car/liveries';
 import { h } from '@/hud/dom';
 import type { PadStyle } from '@/input/pad-style';
 import type { MenuCallbacks, MenuNav, Menus } from '@/types/hud';
-import type { DrivingLevel, LapRecord, SessionConfig, Settings } from '@/types/session';
+import type { DrivingLevel, LapRecord, RaceMode, SessionConfig, Settings, ShootoutMode } from '@/types/session';
+import type { ShootoutAttempt, ShootoutOutcome } from '@/shootout/model';
+import { ShootoutStore } from '@/shootout/store';
 import type { TyreCompound } from '@/physics/tyre-state';
 import { LIVERY_COUNT } from '@/ui/car-data';
 import { applyPadStyle } from '@/ui/pad-glyphs';
@@ -32,7 +35,9 @@ import { SettingsScreen } from '@/ui/screens/settings';
 import { SteerOnboardingScreen } from '@/ui/screens/steer-onboarding';
 import { TitleScreen } from '@/ui/screens/title';
 import { TelemetryScreen } from '@/ui/screens/telemetry';
-import { ACTIVE_CIRCUIT, CIRCUITS } from '@/track/circuits';
+import { ShootoutScreen } from '@/ui/screens/shootout';
+import { ShootoutResultScreen } from '@/ui/screens/shootout-result';
+import { ACTIVE_CIRCUIT, CIRCUITS, circuitUrl, saveCircuit } from '@/track/circuits';
 
 const KEYS: Record<string, MenuNav> = {
   ArrowUp: 'up',
@@ -65,6 +70,8 @@ interface ScreenSet {
   controls: ControlsScreen;
   results: ResultsScreen;
   telemetry: TelemetryScreen;
+  shootout: ShootoutScreen;
+  shootoutResult: ShootoutResultScreen;
 }
 
 class MenuController implements Menus {
@@ -79,6 +86,8 @@ class MenuController implements Menus {
   private lastConfig: SessionConfig | null = null;
   private readonly lastFocus = new WeakMap<Screen, HTMLElement>();
   private padStyle: PadStyle = 'xbox';
+  private mode: RaceMode = 'timeTrial';
+  private readonly shootoutStore = new ShootoutStore();
 
   mount(container: HTMLElement, callbacks: MenuCallbacks, initial: Settings): void {
     this.dispose();
@@ -92,8 +101,8 @@ class MenuController implements Menus {
     const backFromSub = (): void => (this.returnTo ? this.show(this.returnTo) : this.showTitle());
     const screens: ScreenSet = {
       loading: new LoadingScreen(),
-      title: new TitleScreen({ race: () => this.showCarSelect(), settings: () => sub(screens.settings), controls: () => sub(screens.controls) }),
-      car: new CarSelectScreen({ preview: (c, l) => this.cb.onPreviewCar(c, l), start: (c, l, t) => this.start(c, l, t), back: () => this.showTitle() }),
+      title: new TitleScreen({ race: () => { this.mode = 'timeTrial'; this.showCarSelect(); }, shootout: mode => this.showShootout(mode), settings: () => sub(screens.settings), controls: () => sub(screens.controls) }),
+      car: new CarSelectScreen({ preview: (c, l) => this.cb.onPreviewCar(c, l), start: (c, l, t) => this.start(c, l, t), back: () => this.mode === 'timeTrial' ? this.showTitle() : this.showShootout(this.mode) }),
       onboarding: new OnboardingScreen({ get: () => this.settings, set: (s) => this.applySettings(s), back: () => this.showCarSelect() }),
       steer: new SteerOnboardingScreen({ get: () => this.settings, set: (s) => this.applySettings(s), enableTilt: () => this.cb.onEnableTilt?.() ?? Promise.resolve('unavailable'), back: () => this.showCarSelect() }),
       settings: new SettingsScreen({ get: () => this.settings, set: (s) => this.applySettings(s), back: backFromSub, toggleTuner: () => this.cb.onToggleTuner(), car: () => this.lastConfig?.car ?? 'camaro' }),
@@ -121,6 +130,24 @@ class MenuController implements Menus {
         backToSession: () => this.showPause(),
       }),
       telemetry: new TelemetryScreen(() => this.cb.telemetry?.() ?? null, backFromSub, () => this.settings.units),
+      shootout: new ShootoutScreen(this.shootoutStore, {
+        start: () => {
+          if (ACTIVE_CIRCUIT !== 'bathurst') {
+            saveCircuit('bathurst');
+            const url = new URL(circuitUrl(location.href, 'bathurst', true));
+            url.searchParams.set('shootout', this.mode === 'shootoutTop10' ? 'top10' : 'arcade');
+            location.replace(url.href);
+          } else this.showCarSelect();
+        },
+        arcade: () => this.showShootout('shootoutArcade'),
+        resume: saved => { if (saved.outcome) this.showShootoutResult('shootoutTop10', saved.attempt, saved.outcome); },
+        back: () => this.showTitle(),
+      }),
+      shootoutResult: new ShootoutResultScreen(this.shootoutStore, {
+        again: () => { this.cb.onQuitToMenu(); this.showCarSelect(); },
+        leaderboard: () => { this.cb.onQuitToMenu(); this.showShootout('shootoutTop10'); },
+        menu: () => { this.cb.onQuitToMenu(); this.showTitle(); },
+      }),
     };
     this.screens = screens;
     this.root = h('div', 'bx-menus', { 'data-open': 'false' }, Object.values(screens).map((s: Screen) => s.el));
@@ -138,14 +165,14 @@ class MenuController implements Menus {
 
   private start(car: CarKind, liveryIndex: number, tyres: TyreCompound): void {
     const go = (): void => {
-      const config: SessionConfig = { car, liveryIndex, tyres, settings: { ...this.settings } };
+      const config: SessionConfig = { car, liveryIndex, tyres, settings: { ...this.settings }, ...(this.mode === 'timeTrial' ? {} : { mode: this.mode }) };
       this.lastConfig = config;
       this.leave(() => this.cb.onStart(config));
     };
     // First race setup (everyone, once; it opens on its selected card, not a remembered button), then the steering question (touch players, once).
     const { steer, onboarding } = this.screens ?? {};
     const steerThenGo = (): void => { if (steer?.required(this.settings)) { steer.ask(go); this.show(steer); } else go(); };
-    if (onboarding?.required(this.settings)) { onboarding.ask(steerThenGo, steer?.required(this.settings) ? 'Continue' : 'Start'); this.lastFocus.delete(onboarding); this.show(onboarding); } else steerThenGo();
+    if (this.mode === 'timeTrial' && onboarding?.required(this.settings)) { onboarding.ask(steerThenGo, steer?.required(this.settings) ? 'Continue' : 'Start'); this.lastFocus.delete(onboarding); this.show(onboarding); } else steerThenGo();
   }
 
   /** Close the menus, then notify the game (which may open another screen). */
@@ -163,6 +190,7 @@ class MenuController implements Menus {
   private show(screen: Screen): void {
     if (!this.root || !this.screens) return;
     const prev = this.current;
+    if (prev && prev !== screen) prev.onHide?.();
     if (prev && prev !== screen && document.activeElement instanceof HTMLElement && prev.el.contains(document.activeElement)) {
       this.lastFocus.set(prev, document.activeElement);
     }
@@ -197,8 +225,12 @@ class MenuController implements Menus {
 
   private readonly onKey = (e: KeyboardEvent): void => {
     if (!this.current || this.current.id === 'loading') return;
-    // Typing in a field outside the menus (the graphics tuner's number boxes) is not menu input.
-    if (e.target instanceof HTMLInputElement && !this.root?.contains(e.target)) return;
+    const target = e.target;
+    if (target instanceof HTMLElement && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) {
+      if (!this.root?.contains(target)) return;
+      // Native typing, deletion and form submission must work for every nickname.
+      if (e.code !== 'Escape') { e.stopPropagation(); return; }
+    }
     const action = KEYS[e.code];
     if (!action || e.altKey || e.metaKey || e.ctrlKey) return;
     e.preventDefault();
@@ -209,6 +241,7 @@ class MenuController implements Menus {
   };
 
   private readonly onKeyUp = (e: KeyboardEvent): void => {
+    if (e.target instanceof HTMLElement && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable)) return;
     if (this.current && KEYS[e.code]) e.preventDefault();
   };
 
@@ -248,11 +281,30 @@ class MenuController implements Menus {
   }
 
   showCarSelect(): void {
-    if (this.screens) this.show(this.screens.car);
+    if (!this.screens) return;
+    this.screens.car.setMode(this.mode, this.mode === 'shootoutTop10' ? this.shootoutStore.snapshot().remaining : 3);
+    this.show(this.screens.car);
   }
 
-  showPause(): void {
-    if (this.screens) this.show(this.screens.pause);
+  showShootout(mode: ShootoutMode): void {
+    if (!this.screens) return;
+    this.mode = mode;
+    this.screens.shootout.setMode(mode);
+    this.show(this.screens.shootout);
+  }
+
+  showShootoutResult(mode: ShootoutMode, attempt: ShootoutAttempt | null, outcome: ShootoutOutcome, error?: string): void {
+    if (!this.screens) return;
+    this.mode = mode;
+    this.screens.shootoutResult.set(mode, attempt, outcome);
+    if (error) this.screens.shootoutResult.showError(error);
+    this.show(this.screens.shootoutResult);
+  }
+
+  showPause(shootout?: { mode: ShootoutMode; timed: boolean }): void {
+    if (!this.screens) return;
+    this.screens.pause.setShootout(shootout);
+    this.show(this.screens.pause);
   }
 
   syncSettings(s: Settings): void {
@@ -275,6 +327,7 @@ class MenuController implements Menus {
 
   hide(): void {
     if (!this.root || !this.screens) return;
+    this.current?.onHide?.();
     for (const s of Object.values(this.screens) as Screen[]) s.el.hidden = true;
     this.root.dataset.open = 'false';
     this.current = null;
@@ -286,6 +339,7 @@ class MenuController implements Menus {
   }
 
   dispose(): void {
+    this.current?.onHide?.();
     window.removeEventListener('keydown', this.onKey, true);
     window.removeEventListener('keyup', this.onKeyUp, true);
     this.root?.remove();

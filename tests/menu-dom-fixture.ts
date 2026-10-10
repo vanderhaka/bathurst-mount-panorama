@@ -62,6 +62,7 @@ export class MenuNode {
   querySelectorAll(selector: string): MenuNode[] {
     return this.children.flatMap((c) => [...(c.matches(selector) ? [c] : []), ...c.querySelectorAll(selector)]);
   }
+  querySelector(selector: string): MenuNode | null { return this.querySelectorAll(selector)[0] ?? null; }
   /** Class (`.x`), attribute (`[data-x]`) or tag selectors only. */
   matches(selector: string): boolean {
     if (selector.startsWith('.')) return this.classList.contains(selector.slice(1));

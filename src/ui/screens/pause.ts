@@ -1,6 +1,7 @@
 // Pause menu: resume, reset to track, restart, settings, controls, quit. Back resumes.
 import { h, TextSlot } from '@/hud/dom';
 import { hintBar, kicker, menuButton, type Screen, screenEl, STD_HINTS } from '@/ui/screen';
+import type { ShootoutMode } from '@/types/session';
 
 export interface PauseActions {
   resume(): void;
@@ -21,6 +22,7 @@ export class PauseScreen implements Screen {
   readonly el = screenEl('pause', 'Paused', 'mn-screen--dim');
   private readonly buttons: HTMLButtonElement[];
   private readonly session = new TextSlot(h('p', 'mn-pause__session'));
+  private readonly warning = h('p', 'mn-shootout-fine', { hidden: true });
 
   constructor(private readonly actions: PauseActions) {
     this.buttons = [
@@ -35,7 +37,7 @@ export class PauseScreen implements Screen {
     ];
     this.el.append(
       h('div', 'mn-panel mn-panel--pause', undefined, [
-        h('header', 'mn-panel__head', undefined, [kicker('Session'), h('h2', 'mn-h2', undefined, ['Paused']), this.session.el]),
+        h('header', 'mn-panel__head', undefined, [kicker('Session'), h('h2', 'mn-h2', undefined, ['Paused']), this.session.el, this.warning]),
         h('nav', 'mn-list mn-list--compact', { 'aria-label': 'Pause menu' }, this.buttons),
       ]),
       hintBar(STD_HINTS),
@@ -43,7 +45,22 @@ export class PauseScreen implements Screen {
   }
 
   items(): HTMLElement[] {
-    return this.buttons;
+    return this.buttons.filter(b => !b.hidden && !b.disabled);
+  }
+
+  setShootout(shootout?: { mode: ShootoutMode; timed: boolean }): void {
+    const competition = shootout?.mode === 'shootoutTop10';
+    this.warning.hidden = !shootout;
+    this.warning.textContent = competition
+      ? shootout.timed ? 'Your timed lap has started. Restarting, resetting or quitting keeps this attempt used.' : 'Warm-up is free. Restarting or quitting now uses no competition attempt.'
+      : 'Arcade practice. No official score and no competition attempt used.';
+    this.buttons[3].hidden = Boolean(shootout);
+    this.buttons[5].hidden = Boolean(shootout);
+    this.buttons[6].hidden = Boolean(shootout);
+    const label = shootout ? shootout.timed ? 'End this lap' : 'Restart warm-up' : 'Restart';
+    const text = this.buttons[2].querySelector('.mn-btn__label');
+    if (text) text.textContent = label;
+    this.buttons[2].setAttribute('aria-label', label);
   }
 
   back(): void {

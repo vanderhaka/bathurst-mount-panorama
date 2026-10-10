@@ -5,6 +5,8 @@ import { LIVERY_PRESETS, liveryNumber } from '@/car/liveries';
 import { h } from '@/hud/dom';
 import { ACTIVE_CIRCUIT } from '@/track/circuits';
 import { CAR_ORDER, carSheet, hexColour, LIVERY_COUNT } from '@/ui/car-data';
+import { SHOOTOUT_CARS } from '@/shootout/model';
+import type { RaceMode } from '@/types/session';
 import { hintBar, kicker, menuButton, type Screen, screenEl, STD_HINTS, valueRow } from '@/ui/screen';
 
 export interface CarSelectActions {
@@ -30,6 +32,9 @@ export class CarSelectScreen implements Screen {
   private carIdx = 0;
   private livery = 0;
   private tyres: TyreCompound = 'soft';
+  private mode: RaceMode = 'timeTrial';
+  private readonly modeLabel = kicker('Select car');
+  private readonly modeNote = h('p', 'mn-shootout-car-note', { hidden: true });
   private readonly carRow;
   private readonly liveryRow;
   private readonly tyreRow;
@@ -46,7 +51,8 @@ export class CarSelectScreen implements Screen {
     this.backBtn = menuButton('Back', () => actions.back());
     this.el.append(
       h('div', 'mn-side mn-side--car', undefined, [
-        kicker('Select car'),
+        this.modeLabel,
+        this.modeNote,
         this.carRow.el,
         h('div', 'mn-specs-wrap', undefined, [this.specs, this.note]),
         this.liveryRow.el,
@@ -60,11 +66,33 @@ export class CarSelectScreen implements Screen {
   }
 
   get car(): CarKind {
-    return CAR_ORDER[this.carIdx];
+    return this.cars[this.carIdx];
+  }
+
+  private get cars(): readonly CarKind[] { return this.mode === 'timeTrial' ? CAR_ORDER : SHOOTOUT_CARS; }
+
+  setMode(mode: RaceMode, remaining = 3): void {
+    const previous = this.car;
+    this.mode = mode;
+    this.carIdx = Math.max(0, this.cars.indexOf(previous));
+    const shootout = mode !== 'timeTrial';
+    this.modeLabel.textContent = mode === 'timeTrial' ? 'Select car' : mode === 'shootoutArcade' ? 'Shootout Arcade' : 'Shootout Top 10';
+    this.modeNote.hidden = !shootout;
+    this.modeNote.textContent = mode === 'shootoutTop10'
+      ? `Bathurst · ${remaining} of 3 attempts left · Full damage / track limits / manual gears`
+      : 'Bathurst · Unlimited practice · Pro rules · No official score';
+    this.tyreRow.el.hidden = shootout;
+    if (shootout) this.tyres = 'soft';
+    const label = shootout ? 'Start warm-up' : 'Start time trial';
+    const text = this.race.querySelector('.mn-btn__label');
+    if (text) text.textContent = label;
+    this.race.setAttribute('aria-label', label);
+    this.render();
+    this.renderTyres();
   }
 
   private step(what: 'car' | 'livery', dir: -1 | 1): void {
-    if (what === 'car') this.carIdx = (this.carIdx + dir + CAR_ORDER.length) % CAR_ORDER.length;
+    if (what === 'car') this.carIdx = (this.carIdx + dir + this.cars.length) % this.cars.length;
     else this.livery = (this.livery + dir + LIVERY_COUNT) % LIVERY_COUNT;
     this.render();
     this.actions.preview(this.car, this.livery);
@@ -75,7 +103,7 @@ export class CarSelectScreen implements Screen {
     this.carRow.value.replaceChildren(
       h('span', 'mn-car__maker', undefined, [sheet.maker]),
       h('span', 'mn-car__name', undefined, [sheet.name]),
-      dots(CAR_ORDER.length, this.carIdx),
+      dots(this.cars.length, this.carIdx),
     );
     this.carRow.el.setAttribute('aria-label', `Car: ${sheet.name}. Left and right to change.`);
     this.specs.replaceChildren(...sheet.rows.map(([k, v]) => h('div', 'mn-spec', undefined, [h('dt', undefined, undefined, [k]), h('dd', undefined, undefined, [v])])));
@@ -100,7 +128,7 @@ export class CarSelectScreen implements Screen {
   }
 
   items(): HTMLElement[] {
-    return [this.carRow.el, this.liveryRow.el, this.tyreRow.el, this.race, this.backBtn];
+    return [this.carRow.el, this.liveryRow.el, ...(!this.tyreRow.el.hidden ? [this.tyreRow.el] : []), this.race, this.backBtn];
   }
 
   back(): void {

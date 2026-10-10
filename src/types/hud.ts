@@ -1,5 +1,6 @@
 import type { CarKind } from '@/car/car-specs';
-import type { DrivingLevel, LapRecord, SessionConfig, Settings } from '@/types/session';
+import type { DrivingLevel, LapRecord, SessionConfig, Settings, ShootoutMode } from '@/types/session';
+import type { ShootoutAttempt, ShootoutOutcome } from '@/shootout/model';
 import type { PadStyle } from '@/input/pad-style';
 import type { TiltStatus } from '@/input/tilt-steering';
 import type { TyreCompound } from '@/physics/tyre-state';
@@ -81,6 +82,7 @@ export interface HudState {
   car?: CarKind;
   /** Real fuel values; when present they replace the HUD's display-only estimate. lapsLeft null = not known yet. */
   fuel?: { litres: number; lapsLeft: number | null };
+  shootout?: { mode: ShootoutMode; phase: 'warmup' | 'ready' | 'timed' | 'finished'; attempt: number | null; remaining: number | null };
 }
 
 export interface HudTrackInfo {
@@ -136,7 +138,9 @@ export interface Menus {
   showLoading(progress: number, label: string): void;
   showTitle(): void;
   showCarSelect(): void;
-  showPause(): void;
+  showShootout(mode: ShootoutMode): void;
+  showShootoutResult(mode: ShootoutMode, attempt: ShootoutAttempt | null, outcome: ShootoutOutcome, error?: string): void;
+  showPause(shootout?: { mode: ShootoutMode; timed: boolean }): void;
   /** Settings changed in the race (camera, racing line, ghost): menus show and start from these. */
   syncSettings(s: Settings): void;
   /** Controller family of the connected gamepad: menus show its button names (Xbox or PlayStation). */

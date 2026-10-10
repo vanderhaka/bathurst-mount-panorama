@@ -47,7 +47,7 @@ export class TouchControls {
       return b;
     };
     this.el = h('div', 'bx-touch', { 'data-visible': 'false' }, [this.steerZone,
-      h('div', 'tc-buttons', undefined, [button('pause', 'Pause', 'II'), button('camera', 'Change camera', 'View')]),
+      h('div', 'tc-buttons', undefined, [button('shiftDown', 'Shift down', 'Gear −'), button('shiftUp', 'Shift up', 'Gear +'), button('pause', 'Pause', 'II'), button('camera', 'Change camera', 'View')]),
       h('div', 'tc-pedals', undefined, [this.brakeEl, this.throttleEl]),
     ]);
     this.el.addEventListener('pointerdown', this.onDown);
@@ -67,11 +67,12 @@ export class TouchControls {
    * they show, centred on the pose held then. */
   enableTilt(): Promise<TiltStatus> { return this.tilt.enableFromTap(); }
 
-  configure(options: Readonly<TouchOptions>): void {
+  configure(options: Readonly<TouchOptions>, manualGears = false): void {
     this.model.configure(options);
     this.el.dataset.mode = options.mode;
     this.el.dataset.leftHanded = String(options.leftHanded);
     this.el.dataset.autoThrottle = String(options.autoThrottle);
+    this.el.dataset.manualGears = String(manualGears);
     this.tilt.setActive(this.visible && !this.suspended && options.mode === 'tilt');
   }
   private range(): number {
