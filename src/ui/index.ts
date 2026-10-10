@@ -295,7 +295,7 @@ class MenuController implements Menus {
     this.show(this.screens.shootoutResult);
   }
 
-  showPause(shootout?: { mode: ShootoutMode; timed: boolean }): void {
+  showPause(shootout?: { mode: ShootoutMode; timed: boolean; grid?: boolean }): void {
     if (!this.screens) return;
     this.screens.pause.setShootout(shootout);
     this.show(this.screens.pause);

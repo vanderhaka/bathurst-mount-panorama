@@ -3,6 +3,7 @@ import { h } from '@/hud/dom';
 import { formatLapTime } from '@/hud/format';
 import { fetchBoard } from '@/shootout/leaderboard';
 import { type BoardCar, currentSeason, type LeaderboardResult, type SavedShootoutAttempt, type ShootoutSeason } from '@/shootout/model';
+import { loadWarmupStart, saveWarmupStart, warmupChoiceUnlocked } from '@/shootout/warmup-start';
 import type { ShootoutStore } from '@/shootout/store';
 import { ACTIVE_CIRCUIT } from '@/track/circuits';
 import type { ShootoutMode } from '@/types/session';
@@ -31,6 +32,8 @@ export function resetsIn(endsAt: string, now = Date.now()): string {
   return `Resets in ${d > 0 ? `${d}d ${hrs}h` : hrs > 0 ? `${hrs}h ${m}m` : `${Math.max(1, m)}m`}`;
 }
 
+const startLabel = (grid: boolean) => `Warm-up start: ${grid ? 'Grid' : "Forrest's Elbow"}`;
+
 export class ShootoutScreen implements Screen {
   readonly id = 'shootout' as const;
   readonly el = screenEl('shootout', 'Shootout introduction', 'mn-screen--dim');
@@ -52,6 +55,7 @@ export class ShootoutScreen implements Screen {
   private readonly arcade: HTMLButtonElement;
   private readonly resume: HTMLButtonElement;
   private readonly backBtn: HTMLButtonElement;
+  private readonly warmupStart: HTMLButtonElement;
   private boardCar: BoardCar = 'all';
   private available = false;
   /** Why the board is unavailable (offline or server down), once a fetch has said so. */
@@ -67,6 +71,10 @@ export class ShootoutScreen implements Screen {
     this.arcade = menuButton('Practice in Arcade', actions.arcade);
     this.resume = menuButton('Finish last result', () => { if (this.pending) actions.resume(this.pending); });
     this.backBtn = menuButton('Back', actions.back);
+    this.warmupStart = menuButton(startLabel(false), () => {
+      saveWarmupStart(this.mode, loadWarmupStart(this.mode) === 'grid' ? 'rolling' : 'grid');
+      this.render();
+    });
     // Car tabs are ordinary focus stops (left / right move between them, Enter picks one); LB / RB cycle them too.
     this.tabs = BOARD_TABS.map(({ car, label }) => {
       const tab = menuButton(label, () => this.selectBoard(car));
@@ -88,7 +96,7 @@ export class ShootoutScreen implements Screen {
         h('section', 'mn-shootout-intro', undefined, [this.rules, this.proRules, this.history]), this.board,
       ]),
       this.quota,
-      h('div', 'mn-shootout-actions', undefined, [this.start, this.resume, this.arcade, this.backBtn]),
+      h('div', 'mn-shootout-actions', undefined, [this.start, this.warmupStart, this.resume, this.arcade, this.backBtn]),
       this.blocked,
     ]), hintBar([...STD_HINTS, ['Q E', 'LB RB', 'Car']]));
   }
@@ -124,12 +132,18 @@ export class ShootoutScreen implements Screen {
     const top10 = this.mode === 'shootoutTop10';
     this.title.textContent = top10 ? 'Shootout Top 10' : 'Shootout Arcade';
     this.subtitle.textContent = top10 ? 'One flying lap. Three chances a week to make your mark.' : 'Learn the mountain. Chase the fastest lap whenever you like.';
+    const unlocked = warmupChoiceUnlocked(this.mode);
+    const grid = loadWarmupStart(this.mode) === 'grid';
+    this.warmupStart.hidden = !unlocked;
+    const startText = this.warmupStart.querySelector('.mn-btn__label');
+    if (startText) startText.textContent = startLabel(grid);
     const steps = top10 ? [
-      ['Warm up', "A rolling start from Forrest's Elbow on warm tyres. Quitting or restarting here uses no attempt."],
+      ['Warm up', grid ? 'Start on the grid and drive one full warm-up lap. Quitting or restarting here uses no attempt.'
+        : "A rolling start from Forrest's Elbow on warm tyres. Quitting or restarting here uses no attempt."],
       ['Set your time', 'Cross the line to start one full timed lap. That uses one of your three attempts this week, even if you quit or invalidate it.'],
       ['Claim your lap', 'Add a nickname to submit a valid score. Skipping means no recognised leaderboard score; the attempt stays used.'],
     ] : [
-      ['Warm up', "A rolling start from Forrest's Elbow before every run."],
+      ['Warm up', grid ? 'Start on the grid and drive one full warm-up lap before every run.' : "A rolling start from Forrest's Elbow before every run."],
       ['Chase the ghost', 'One flying lap against the current #1 for your car, or your own best when there is none.'],
       ['Try again', 'Unlimited runs. Arcade never uses a Top 10 attempt or posts an official score.'],
     ];
@@ -229,7 +243,7 @@ export class ShootoutScreen implements Screen {
   }
 
   items(): HTMLElement[] {
-    return [this.start, this.resume, this.arcade, this.backBtn, ...this.tabs].filter(b => !b.hidden && !b.disabled);
+    return [this.start, this.warmupStart, this.resume, this.arcade, this.backBtn, ...this.tabs].filter(b => !b.hidden && !b.disabled);
   }
   back(): void { this.actions.back(); }
 }

@@ -14,6 +14,7 @@ import type { Track } from '@/track/track-model';
 import type { HudState } from '@/types/hud';
 import { DEFAULT_SETTINGS, type DrivingLevel, type LapRecord, type RaceMode } from '@/types/session';
 import { isPlausibleShootoutLap, isShootoutCar, MAX_SHOOTOUT_LAP_S, type ShootoutAttempt, type ShootoutOutcome } from '@/shootout/model';
+import type { WarmupStart } from '@/shootout/warmup-start';
 import { TYRE_COMPOUNDS, type TyreCompound } from '@/physics/tyre-state';
 import { restoreTelemetry, type LapTelemetry, type SessionTelemetry, type TelemetrySample } from '@/types/telemetry';
 
@@ -69,6 +70,8 @@ export class RaceSession {
   private shootoutRun: ShootoutRun | null;
   private shootoutFault: string | null = null;
   shootoutRemaining: number | null = null;
+  /** Shootout only: where the warm-up starts (read by placeOnGrid). */
+  warmupStart: WarmupStart = 'rolling';
   /** Lap distance of the rolling warm-up start, until its first crossing. */
   private warmupFrom: number | null = null;
   /** The finished timed lap's ghost frames (the Top 10 replay, the Arcade best's ghost). */
@@ -149,7 +152,7 @@ export class RaceSession {
    * rolling before Forrest's Elbow instead. */
   placeOnGrid(): void {
     if (this.shootoutRun?.phase === 'timed' || this.shootoutRun?.phase === 'finished') throw new Error('A started Shootout lap cannot be restarted. Start a new warm-up.');
-    if (this.shootoutRun) { this.shootoutRun = { phase: 'warmup' }; this.shootoutFault = null; this.timedFrames = null; return this.placeRolling(); }
+    if (this.shootoutRun) { this.shootoutRun = { phase: 'warmup' }; this.shootoutFault = null; this.timedFrames = null; if (this.warmupStart === 'rolling') return this.placeRolling(); }
     this.entity.vehicle.stint.reset({ compound: this.tyres });
     this.entity.vehicle.trackGrip.reset();
     const pole = gridSlot(this.track, 0);
@@ -162,6 +165,8 @@ export class RaceSession {
     this.recorder.reset();
     this.telemetryRecorder.reset();
     // The ghost replays a flying lap: like the delta, it returns at the first crossing.
+    // The Shootout's practice ghost only shows in the timed lap.
+    if (this.shootoutRun) { this.warmupFrom = null; this.ghost = null; }
     this.ghostVisible = false;
   }
 
