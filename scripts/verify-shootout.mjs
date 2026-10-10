@@ -103,7 +103,7 @@ try {
     await press(page, 'Shootout Arcade');
     check('Arcade introduction says unlimited and no official score', /Unlimited runs/.test(await screen(page, 'shootout').innerText()));
     await shot(page, 'arcade-intro-desktop');
-    check('Arcade hides competition-only controls and leaderboard', !await page.getByRole('button', { name: 'Finish last result', exact: true }).isVisible() && !await page.locator('.mn-shootout-board').isVisible());
+    check('Arcade hides competition-only controls and shows the weekly board as the target', !await page.getByRole('button', { name: 'Finish last result', exact: true }).isVisible() && await page.locator('.mn-shootout-board').isVisible());
     await press(page, 'Choose car');
     const cars = [];
     for (let i = 0; i < 4; i++) { cars.push(await page.evaluate(() => window.__game.attract.model.kind ?? document.querySelector('.mn-car__name').textContent)); await page.keyboard.press('ArrowRight'); }
