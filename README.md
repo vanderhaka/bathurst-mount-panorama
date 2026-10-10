@@ -67,38 +67,96 @@ the attempt used; Arcade practice remains unlimited.
 
 - **Shootout Arcade** allows unlimited practice runs. It never uses a competition
   attempt or publishes an official score.
-- **Shootout Top 10** gives each browser three total competition attempts, shared
-  across all three cars. A warm-up costs nothing. Crossing into the timed lap uses
-  an attempt, including a lap that is abandoned or invalidated.
+- **Shootout Top 10** runs in weekly seasons, from Monday 00:00 to the next Monday
+  00:00, Sydney time. Each browser gets three competition attempts per season,
+  shared across all three cars. A warm-up costs nothing. Crossing into the timed lap
+  uses an attempt, including a lap that is abandoned or invalidated. The attempt is
+  saved in the browser at the line and confirmed with the server in the background.
 - After a valid Top 10 lap, you can submit a public nickname or skip publication.
   Skipping first shows a warning that the lap receives no leaderboard recognition
-  and the attempt remains used. Failed submissions stay saved for retry.
+  and the attempt remains used. Failed submissions stay saved for retry. If the
+  server refuses a lap, the reason is shown and the nickname can be changed, or the
+  lap skipped; a refused lap never blocks the next attempt.
+- Nicknames are 1 to 24 characters after Unicode NFKC normalisation and trimming,
+  with no control, format (bidi, zero-width), private-use or unassigned characters,
+  and not on a short blocklist (matched case-insensitively with leetspeak folded).
+  The browser, the API and the database apply the same rules.
 
-The global board shows each browser's best published lap and refreshes every
-15 seconds. The introduction shows the rules, remaining attempts, and previous
-results. Competition is unavailable until the shared database is configured.
-Arcade remains available.
+The boards show the current season only: all cars together, or one car. Each shows
+the fastest published lap per browser, the Top 10, and refreshes every 15 seconds.
+After publishing, the result shows the lap's place among every browser this season.
+Board laps carry a replay that Arcade can race as a ghost. The introduction shows the
+rules, remaining attempts, and previous results. Competition is unavailable until the
+shared database is configured. Arcade remains available.
+
+### Competition rules on the server
+
+- **Lap floors.** The ideal lap of the racing-line speed profile at full grip with
+  `DEFAULT_HANDLING` is 1:56.49 for the Mustang and Supra (sectors 48.30, 30.51 and
+  37.69 s) and 1:56.63 for the Camaro. Laps under 1:52 or with sectors under 46, 29
+  or 36 s (about 97 % of the fastest ideal, rounded down) are refused by the game,
+  the API and the database. `tests/shootout-floors.test.ts` recomputes them.
+- **Timing.** The server records when each attempt starts. A lap submitted sooner
+  than its lap time after that start, less 20 s of slack for the background
+  allocation, is refused as unverified. So a lap whose start never reached the
+  server during the lap cannot be published.
+- **Start limits.** Each network (client IP, hashed with a server salt) may start
+  12 attempts per hour and 40 per day. More get a 429 with a short message.
+- **Replays.** A submission may carry the lap's replay (10 Hz, quantised, base64,
+  at most 48 KB). The API checks that it decodes, lasts the lap time within 1 s and
+  never moves faster than 100 m/s, and refuses the lap otherwise.
+
+`GET /api/shootout?car=all|camaro|mustang|supra` returns `{ available, season, car,
+entries }`, where `season` is `{ id, startsAt, endsAt }` and each entry is `{ id,
+rank, nickname, car, timeS }` (`id` is the attempt id). `GET
+/api/shootout?car=…&replay=RANK` returns `{ season, car, rank, timeS, replay }`. Both
+are cached for 10 s at the edge. `POST` takes `{ action: 'start', format: 'top10',
+browserToken, requestId, car, number, season }` and returns `{ attempt }`, or
+`{ action: 'submit', format: 'top10', browserToken, attemptId, nickname, timeS,
+sectorsS, replay? }` and returns `{ publication: 'published', rank, of }`. Errors are
+`{ error }` with a short message.
 
 ### Connect the shared leaderboard
 
 The dedicated [Bathurst Shootout project](https://supabase.com/dashboard/project/ggkqzuqzmkxcvvcpcdue)
-runs in Sydney. Its migration is applied, and the local server and Vercel production
+runs in Sydney. Its first migration is applied, and the local server and Vercel production
 environment have their credentials. The game source still needs a release to activate
 the competition on the public website.
 
-1. Apply [the Shootout migration](supabase/migrations/20261010003331_shootout_attempts.sql)
-   to a dedicated Supabase project.
+1. Apply the migrations in [supabase/migrations](supabase/migrations) in order to a
+   dedicated Supabase project. `20261010100000_shootout_seasons.sql` is safe to apply
+   before the matching API deploys, and again: the first migration's RPCs keep their
+   signatures and responses (under the season rules), and the new API calls
+   `shootout_start_attempt`, `shootout_submit_lap`, `shootout_board` and `shootout_replay`.
 2. Set `SHOOTOUT_SUPABASE_URL` and `SHOOTOUT_SUPABASE_SERVICE_KEY` in the server
-   environment. Use a server secret API key. For local development, copy `.env.example` to the ignored `.env.local` file and
-   restart Vite. For the hosted game, use Vercel environment variables.
+   environment. Use a server secret API key. Optionally set `SHOOTOUT_IP_SALT` to a
+   long random string (without it, the service key salts the IP hashes). For local
+   development, copy `.env.example` to the ignored `.env.local` file and restart Vite.
+   For the hosted game, use Vercel environment variables.
 3. Deploy the game and `api/shootout.ts` together. Verify that `GET /api/shootout`
    returns `available: true`, then verify a published test score from another browser.
 
 The service key stays on the server. The database denies direct access to browser
-roles and enforces three allocations, retry-safe requests, and immutable scores.
-No login is required. Identity follows browser storage, so clearing that storage
-creates a new identity. Lap times come from the client simulation; this is not a
-server-authoritative anti-cheat system.
+roles and enforces three allocations per browser per season, the start limits,
+retry-safe requests, and immutable scores. No login is required. Identity follows
+browser storage, so clearing that storage creates a new identity. Lap times come
+from the client simulation; the floors, timing and replay checks make faking a lap
+harder, but this is not a server-authoritative anti-cheat system.
+
+To hide a score (it leaves every board, and that browser's next best lap counts),
+run this in the Supabase SQL editor with the attempt id from the board (`entries[].id`):
+
+```sql
+update public.shootout_attempts set hidden = true where id = '00000000-0000-4000-8000-000000000000';
+-- Every lap from the same browser:
+update public.shootout_attempts set hidden = true
+  where browser_hash = (select browser_hash from public.shootout_attempts where id = '00000000-0000-4000-8000-000000000000');
+```
+
+Set `hidden = false` to restore it. `bash supabase/tests/verify-shootout.sh` runs the
+SQL tests in a throwaway PostgreSQL 17 container; without Docker, run it with
+`SHOOTOUT_TEST_LOCAL_PG=1` and the usual `PGHOST`/`PGUSER` variables to use a local
+server (it creates and drops a temporary database).
 
 `node scripts/verify-shootout-live.mjs` checks the local game against its configured
 hosted database. It uses controlled lap positions and the actual API. It creates a
