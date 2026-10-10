@@ -293,7 +293,31 @@
 .mn-title-board[data-available='false'] .mn-table {
   display: none;
 }
+/* Narrow windows and landscape phones: a compact board in the space right of the menu
+   column (which ends near 50vw at these sizes). */
 @media (max-width: 960px), (pointer: coarse) and (max-height: 540px) {
+  .mn-title-board {
+    right: 1.2em;
+    width: min(22em, calc(50vw - 3em));
+    max-height: calc(100% - 2.4em);
+    padding: 0.7em 0.8em 0.5em;
+  }
+  .mn-title-board__head {
+    margin-bottom: 0.3em;
+  }
+  .mn-title-board__title {
+    font-size: 1.25em;
+  }
+  .mn-title-board .mn-table th,
+  .mn-title-board .mn-table td {
+    padding: 0.22em 0.3em;
+  }
+  .mn-title-board .mn-table td:nth-child(2) {
+    max-width: 6em;
+  }
+}
+/* No room beside the menu; the Shootout screen still has the full board. */
+@media (max-width: 640px) {
   .mn-title-board {
     display: none;
   }
