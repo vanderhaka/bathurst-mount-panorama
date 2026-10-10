@@ -1,5 +1,5 @@
-import { describe, expect, it, vi } from 'vitest';
-import { CIRCUIT_IDS, circuitFromSearch, circuitUrl, nextCircuit, loadSavedCircuit, resolveCircuit, saveCircuit, switchCircuit, type CircuitStorage } from '@/track/circuits';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { CIRCUIT_IDS, circuitFromSearch, circuitUrl, nextCircuit, loadSavedCircuit, saveCircuit, switchCircuit, type CircuitStorage } from '@/track/circuits';
 
 /** In-memory stand-in for localStorage. */
 function memoryStorage(initial: Record<string, string> = {}): CircuitStorage & { data: Record<string, string> } {
@@ -13,6 +13,8 @@ const blocked: CircuitStorage = {
 };
 /** Storage that reads fine but is full: the saved choice can not be changed. */
 const full = (saved: string): CircuitStorage => ({ getItem: () => saved, setItem: blocked.setItem });
+
+afterEach(() => { vi.unstubAllGlobals(); vi.resetModules(); });
 
 describe('?track= parsing', () => {
   it('ignores letter case and stray spaces', () => {
@@ -50,20 +52,30 @@ describe('saved circuit', () => {
 });
 
 describe('which circuit opens', () => {
+  it.each(['adelaide', 'gold-coast'].flatMap((saved) =>
+    ['', '?quality=low', '?track=', '?track=unknown&shootout=top10'].map((search) => ({ saved, search })),
+  ))('opens Bathurst for "$search" with $saved saved', async ({ saved, search }) => {
+    vi.stubGlobal('location', { search });
+    vi.stubGlobal('localStorage', memoryStorage({ 'bathurst.circuit.v1': saved }));
+    vi.resetModules();
+    const { ACTIVE_CIRCUIT } = await import('@/track/circuits');
+    expect(ACTIVE_CIRCUIT).toBe('bathurst');
+  });
+
   it('opens Bathurst on first launch', () => {
-    expect(resolveCircuit('', null)).toBe('bathurst');
+    expect(circuitFromSearch('')).toBe('bathurst');
   });
 
-  it('opens the saved circuit when the address names none, as a Home Screen launch does', () => {
-    expect(resolveCircuit('', 'adelaide')).toBe('adelaide');
-    expect(resolveCircuit('?quality=low', 'adelaide')).toBe('adelaide');
-    expect(resolveCircuit('?track=unknown', 'adelaide')).toBe('adelaide');
-  });
-
-  it('lets an explicit ?track= win over the saved circuit, in either direction', () => {
-    expect(resolveCircuit('?track=bathurst', 'adelaide')).toBe('bathurst');
-    expect(resolveCircuit('?track=Adelaide', 'bathurst')).toBe('adelaide');
-    expect(resolveCircuit('?track=adelaide', null)).toBe('adelaide');
+  it.each([
+    { search: '?track=bathurst', saved: 'adelaide', expected: 'bathurst' },
+    { search: '?track=Adelaide', saved: 'bathurst', expected: 'adelaide' },
+    { search: '?track=gold-coast', saved: 'adelaide', expected: 'gold-coast' },
+  ])('opens $expected for "$search" with $saved saved', async ({ search, saved, expected }) => {
+    vi.stubGlobal('location', { search });
+    vi.stubGlobal('localStorage', memoryStorage({ 'bathurst.circuit.v1': saved }));
+    vi.resetModules();
+    const { ACTIVE_CIRCUIT } = await import('@/track/circuits');
+    expect(ACTIVE_CIRCUIT).toBe(expected);
   });
 });
 
@@ -83,7 +95,7 @@ describe('switching circuit', () => {
     switchCircuit('bathurst', nav, storage);
     const target = nav.replace.mock.calls[0][0];
     expect(target).toBe('https://example.com/?quality=low');
-    expect(resolveCircuit(new URL(target).search, loadSavedCircuit(storage))).toBe('bathurst');
+    expect(circuitFromSearch(new URL(target).search)).toBe('bathurst');
   });
 
   it('names Bathurst in the address when the choice can not be saved, so it still wins', () => {
@@ -91,7 +103,7 @@ describe('switching circuit', () => {
     switchCircuit('bathurst', nav, full('adelaide'));
     const target = nav.replace.mock.calls[0][0];
     expect(target).toBe('https://example.com/?track=bathurst');
-    expect(resolveCircuit(new URL(target).search, 'adelaide')).toBe('bathurst');
+    expect(circuitFromSearch(new URL(target).search)).toBe('bathurst');
   });
 
   it('still switches when storage is blocked', () => {
