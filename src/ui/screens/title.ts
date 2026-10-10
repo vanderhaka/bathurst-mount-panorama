@@ -55,7 +55,7 @@ export class TitleScreen implements Screen {
         h('span', 'mn-shootout-feature__body', undefined, [
           h('span', 'mn-shootout-feature__eyebrow', undefined, ['Global competition']),
           h('span', 'mn-btn__label', undefined, ['Shootout Top 10']),
-          h('span', 'mn-shootout-feature__detail', undefined, ['Bathurst · One flying lap · 3 total attempts']),
+          h('span', 'mn-shootout-feature__detail', undefined, ['Bathurst · One flying lap · 3 attempts a week']),
           h('span', 'mn-shootout-feature__cta', undefined, ['Enter competition', h('span', undefined, { 'aria-hidden': 'true' }, [' →'])]),
         ]),
         h('span', 'mn-shootout-feature__rank', { 'aria-hidden': 'true' }, ['10']),
