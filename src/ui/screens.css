@@ -293,27 +293,40 @@
 .mn-title-board[data-available='false'] .mn-table {
   display: none;
 }
-/* Narrow windows and landscape phones: a compact board in the space right of the menu
-   column (which ends near 50vw at these sizes). */
+/* Narrow windows and landscape phones: the board fills the space right of the menu
+   column, with larger text. `left` repeats the .mn-side margin + width; the board's
+   own font size stays the menu's, so these em values match .mn-side. */
 @media (max-width: 960px), (pointer: coarse) and (max-height: 540px) {
   .mn-title-board {
-    right: 1.2em;
-    width: min(22em, calc(50vw - 3em));
-    max-height: calc(100% - 2.4em);
-    padding: 0.7em 0.8em 0.5em;
+    left: calc(max(3.5em, 5.5vw) + min(34em, 44vw) + 2.4em);
+    right: 1.4em;
+    width: auto;
+    max-width: 36em;
+    margin-left: auto;
+    max-height: calc(100% - 2em);
+    padding: 0.9em 1.1em 0.7em;
   }
   .mn-title-board__head {
-    margin-bottom: 0.3em;
+    margin-bottom: 0.4em;
+  }
+  .mn-title-board__eyebrow {
+    font-size: 0.85em;
   }
   .mn-title-board__title {
+    font-size: 1.7em;
+  }
+  .mn-title-board__season {
+    font-size: 1em;
+  }
+  .mn-title-board .mn-table {
     font-size: 1.25em;
   }
   .mn-title-board .mn-table th,
   .mn-title-board .mn-table td {
-    padding: 0.22em 0.3em;
+    padding: 0.3em 0.4em;
   }
   .mn-title-board .mn-table td:nth-child(2) {
-    max-width: 6em;
+    max-width: 8em;
   }
 }
 /* No room beside the menu; the Shootout screen still has the full board. */
