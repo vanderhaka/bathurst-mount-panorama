@@ -99,6 +99,15 @@ async function getJson(query: string): Promise<{ ok: true; data: unknown } | { o
   }
 }
 
+/** Counts one Arcade practice event for the usage dashboard (anonymous, per day and car). Never throws or waits. */
+export function reportPractice(car: ShootoutCar, kind: 'start' | 'lap' | 'valid_lap'): void {
+  if (typeof fetch === 'undefined' || offline()) return;
+  void fetch('/api/shootout', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, keepalive: true,
+    body: JSON.stringify({ action: 'practice', format: 'arcade', car, kind }),
+  }).catch(() => {});
+}
+
 /** Contract: the season board for one car or all cars. Never throws. */
 export async function fetchBoard(car: BoardCar = 'all'): Promise<LeaderboardResult> {
   const board = isBoardCar(car) ? car : 'all';

@@ -253,3 +253,22 @@ describe('Shootout API boards', () => {
     }
   });
 });
+
+describe('Shootout Arcade practice counts', () => {
+  const practice = (kind: unknown, car: unknown = 'supra') => ({ action: 'practice', format: 'arcade', car, kind });
+
+  it('counts a practice event per car without a browser token', async () => {
+    rpcFetch.mockResolvedValue(new Response(null, { status: 204 }));
+    const response = await handleShootoutRequest(post(practice('valid_lap')), config());
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ counted: true });
+    expect(String(rpcFetch.mock.calls[0][0])).toMatch(/\/rpc\/shootout_practice$/);
+    expect(sent()).toEqual({ p_car: 'supra', p_kind: 'valid_lap' });
+  });
+
+  it.each([practice('crash'), practice('start', 'torana'), { ...practice('start'), format: 'top10' }])('rejects an invalid practice event %#', async (body) => {
+    const response = await handleShootoutRequest(post(body), config());
+    expect(response.status).toBe(422);
+    expect(rpcFetch).not.toHaveBeenCalled();
+  });
+});

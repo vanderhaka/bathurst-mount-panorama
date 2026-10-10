@@ -56,7 +56,9 @@ async function rpc(name: string, parameters: object, config: ShootoutApiConfig):
     method: 'POST', headers: { 'Content-Type': 'application/json', apikey: key, Authorization: `Bearer ${key}` },
     body: JSON.stringify(parameters), signal: AbortSignal.timeout(8000),
   });
-  const data: unknown = await response.json();
+  // A void function (shootout_practice) answers 204 with no body.
+  const text = await response.text();
+  const data: unknown = text ? JSON.parse(text) : null;
   if (!response.ok) {
     const message = typeof data === 'object' && data !== null && 'message' in data ? data.message : null;
     const error = typeof message === 'string' ? RPC_ERRORS[message] : undefined;
@@ -133,6 +135,14 @@ export async function handleShootoutRequest(request: Request, config: ShootoutAp
     try { body = JSON.parse(raw); } catch { return json({ error: 'The request is not valid JSON.' }, 400); }
     if (typeof body === 'object' && body !== null && (!('action' in body) || body.action !== 'submit') && bytes > MAX_BODY_BYTES) {
       return json({ error: 'The request is too large.' }, 413);
+    }
+    // Arcade practice is only counted (anonymous, per day and car) for the usage dashboard; it scores nothing.
+    if (typeof body === 'object' && body !== null && 'format' in body && body.format === 'arcade' && 'action' in body && body.action === 'practice') {
+      if (!('car' in body) || !isShootoutCar(body.car) || !('kind' in body) || (body.kind !== 'start' && body.kind !== 'lap' && body.kind !== 'valid_lap')) {
+        return json({ error: 'The practice details are invalid.' }, 422);
+      }
+      await rpc('shootout_practice', { p_car: body.car, p_kind: body.kind }, config);
+      return json({ counted: true });
     }
     if (typeof body !== 'object' || body === null || !('format' in body) || body.format !== 'top10' ||
       !('browserToken' in body) || !isUuid(body.browserToken) || !('action' in body)) {
