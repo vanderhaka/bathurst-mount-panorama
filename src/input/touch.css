@@ -114,7 +114,7 @@
 }
 .tc-pedal--brake.is-on {
   color: #fff;
-  background: rgb(215 38 46 / 0.62);
+  background: linear-gradient(to top, rgb(215 38 46 / 0.62) var(--tc-brake, 100%), rgb(var(--hud-panel-rgb) / 0.5) var(--tc-brake, 100%));
 }
 .tc-pedal--throttle.is-on {
   color: #fff;

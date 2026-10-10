@@ -6,6 +6,7 @@ import type { TiltStatus } from '@/input/tilt-steering';
 import type { TyreCompound } from '@/physics/tyre-state';
 import type { SessionTelemetry } from '@/types/telemetry';
 import type { BrakeReading } from '@/physics/brake-heat';
+import type { PracticeSummary } from '@/game/arcade-best';
 
 export type SectorState = 'none' | 'personalBest' | 'overallBest' | 'slower';
 
@@ -139,7 +140,8 @@ export interface Menus {
   showTitle(): void;
   showCarSelect(): void;
   showShootout(mode: ShootoutMode): void;
-  showShootoutResult(mode: ShootoutMode, attempt: ShootoutAttempt | null, outcome: ShootoutOutcome, error?: string): void;
+  /** `practice`: an Arcade lap against the player's Arcade best for the car. */
+  showShootoutResult(mode: ShootoutMode, attempt: ShootoutAttempt | null, outcome: ShootoutOutcome, error?: string, practice?: PracticeSummary): void;
   showPause(shootout?: { mode: ShootoutMode; timed: boolean }): void;
   /** Settings changed in the race (camera, racing line, ghost): menus show and start from these. */
   syncSettings(s: Settings): void;

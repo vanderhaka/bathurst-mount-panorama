@@ -1,16 +1,18 @@
 // First race setup: shown once, on every device, when the player starts their first time trial.
 // Step 1: how do you want to drive (a level card, plus the rules the card lets you choose).
-// Step 2: camera and graphics. Rows edit a draft; only the final Start saves it (Back discards).
+// Step 2: camera and graphics; on a touch screen also the pedals (on/off or analog) and auto-throttle.
+// Rows edit a draft; only the final Start saves it (Back discards).
 // On a touch device that still has to choose how to steer, the button reads Continue and the
 // steering question follows.
 import '@/ui/onboarding.css';
 import { h } from '@/hud/dom';
+import { touchControlsAvailable } from '@/input/touch-capability';
 import { type LevelChoice, levelChoice } from '@/race/driving-levels';
 import type { Settings } from '@/types/session';
 import { type LevelCard, levelCard, markSelected } from '@/ui/level-cards';
 import {
   CUSTOM_ROWS, detailRows, EXPERIENCED_ROWS, lapLevelLine, LEVEL_CARDS, LEVEL_RECORDS_NOTE, needsOnboarding, ONBOARDING_LATER, ONBOARDING_ROWS,
-  type OnboardingRow, selectLevel, stepRow, withOnboarded,
+  type OnboardingRow, selectLevel, stepRow, TOUCH_ROWS, withOnboarded,
 } from '@/ui/onboarding-model';
 import { RowView } from '@/ui/onboarding-rows';
 import { hintBar, kicker, menuButton, type Screen, screenEl } from '@/ui/screen';
@@ -31,7 +33,9 @@ export class OnboardingScreen implements Screen {
   private readonly lapLine = h('p', 'mn-help mn-onb__laps', { role: 'status' });
   private readonly details = h('div', 'mn-onb__rows');
   private readonly stepOne = h('div', 'mn-onb__step');
-  private readonly stepTwo = h('div', 'mn-onb__rows mn-onb__step', undefined, ONBOARDING_ROWS.map((r) => this.view(r).block));
+  private readonly stepTwo = h('div', 'mn-onb__rows mn-onb__step');
+  /** A touch screen sees the pedal rows; keyboard and controller players do not. */
+  private touch = false;
   private readonly startLabel = h('span', 'mn-btn__label', undefined, ['Start']);
   private readonly start = menuButton('Start', () => this.finish(), { variant: 'primary' });
   private readonly next = menuButton('Next', () => this.setStep(2), { variant: 'primary' });
@@ -51,7 +55,7 @@ export class OnboardingScreen implements Screen {
     this.next.setAttribute('data-onboarding-next', '');
     this.cards = LEVEL_CARDS.map((c) => levelCard(c, () => this.pick(c), (dir) => this.moveCard(c, dir)));
     for (const c of this.cards) c.el.addEventListener('focus', () => (this.cardFocus = c.choice));
-    for (const r of [...EXPERIENCED_ROWS, ...CUSTOM_ROWS]) this.view(r);
+    for (const r of [...EXPERIENCED_ROWS, ...CUSTOM_ROWS, ...ONBOARDING_ROWS, ...TOUCH_ROWS]) this.view(r);
     this.stepOne.append(
       h('div', 'mn-onb__cards', { role: 'group', 'aria-label': 'Driving level' }, this.cards.map((c) => c.el)),
       h('div', 'mn-onb__notes', undefined, [h('p', 'mn-help', undefined, [LEVEL_RECORDS_NOTE]), this.lapLine]),
@@ -89,6 +93,7 @@ export class OnboardingScreen implements Screen {
     this.draft = { ...this.actions.get() };
     this.choice = this.cardFocus = levelChoice(this.draft);
     this.startLabel.textContent = startLabel;
+    this.touch = touchControlsAvailable();
     this.step = 1;
     this.render();
   }
@@ -124,7 +129,8 @@ export class OnboardingScreen implements Screen {
   private render(): void {
     const rows = detailRows(this.choice);
     markSelected(this.cards, this.choice);
-    this.title.textContent = this.step === 1 ? 'How do you want to drive?' : 'Camera and graphics';
+    this.title.textContent = this.step === 1 ? 'How do you want to drive?' : this.touch ? 'Camera, graphics and pedals' : 'Camera and graphics';
+    this.stepTwo.replaceChildren(...this.stepTwoRows().map((r) => this.views.get(r)!.block));
     this.stepOne.hidden = this.step !== 1;
     this.stepTwo.hidden = this.step !== 2;
     this.next.hidden = this.step !== 1;
@@ -137,9 +143,13 @@ export class OnboardingScreen implements Screen {
   }
 
   items(): HTMLElement[] {
-    if (this.step === 2) return [...ONBOARDING_ROWS.map((r) => this.views.get(r)!.el), this.backBtn, this.start];
+    if (this.step === 2) return [...this.stepTwoRows().map((r) => this.views.get(r)!.el), this.backBtn, this.start];
     const card = this.cards[LEVEL_CARDS.indexOf(this.cardFocus)].el;
     return [card, ...detailRows(this.choice).map((r) => this.views.get(r)!.el), this.backBtn, this.next];
+  }
+
+  private stepTwoRows(): readonly OnboardingRow[] {
+    return this.touch ? [...ONBOARDING_ROWS, ...TOUCH_ROWS] : ONBOARDING_ROWS;
   }
 
   back(): void {

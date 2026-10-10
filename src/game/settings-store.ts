@@ -35,7 +35,7 @@ export function loadSettings(): Settings {
   const graphics = loadQualityChoice(defaults);
   const touch = touchOptions(settings);
   return { ...settings, headMotion: headMotionAmount(settings.headMotion), quality: graphics.quality, autoQuality: graphics.automatic,
-    touchMode: touch.mode, touchAnalogThrottle: touch.analogThrottle,
+    touchMode: touch.mode, touchAnalogThrottle: touch.analogThrottle, touchAnalogBrake: touch.analogBrake,
     touchAutoThrottle: touch.autoThrottle, touchLeftHanded: touch.leftHanded, steerOnboarded: steerOnboarded(settings),
     onboarded: settings.onboarded === true, trackLimits: settings.trackLimits !== false, wear: settings.wear !== false,
     autoRecover: settings.autoRecover === true };

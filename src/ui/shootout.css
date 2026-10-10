@@ -29,3 +29,10 @@
 .mn-shootout-actions .mn-btn { width: auto; flex: 1; min-width: 9em; }
 .mn-panel--shootout > .mn-shootout-quota { flex-shrink: 0; }
 @media (max-width: 760px) { .mn-shootout-columns { grid-template-columns: 1fr; gap: 1.5em; } .mn-shootout-time { font-size: 3em; } }
+.mn-shootout-season { font-family: var(--hud-font-text); font-size: 0.85em; color: var(--hud-text-dim); margin: 0.3em 0 0.6em; }
+.mn-shootout-tabs { display: flex; flex-wrap: wrap; gap: 0.35em; margin-bottom: 0.4em; }
+.mn-shootout-tabs .mn-btn { width: auto; flex: 1; min-width: 5em; padding-top: 0.45em; padding-bottom: 0.45em; font-size: 0.9em; }
+.mn-shootout-tabs .mn-btn.is-active { border-color: var(--hud-accent); box-shadow: inset 0 -0.18em 0 var(--hud-accent); }
+.mn-shootout-board tr.is-mine td { color: var(--hud-accent); font-weight: 700; }
+.mn-shootout-blocked { margin: 0.4em 0 0; flex-shrink: 0; }
+.mn-shootout-standing { font-size: 1.15em; font-weight: 700; margin: 0.4em 0; }

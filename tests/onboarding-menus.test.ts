@@ -38,6 +38,10 @@ function open({ touch, settings }: Options) {
 }
 
 const selected = (n: MenuNode): string | undefined => n.attributes['aria-pressed'];
+/** Rows on the step shown now (the other step stays in the DOM, hidden). */
+const shownRows = (body: MenuNode): string[] => body.querySelectorAll('[data-onboarding-row]')
+  .filter((el) => { for (let n: MenuNode | null = el; n; n = n.parent) if (n.hidden) return false; return true; })
+  .map((el) => el.attributes['data-onboarding-row']);
 
 describe('Start time trial before the first race setup has been seen', () => {
   it('shows step 1 with the Experienced card selected and focused, and does not start the race yet', () => {
@@ -81,6 +85,13 @@ describe('Start time trial before the first race setup has been seen', () => {
     nextButton().click();
     startButton().click();
     expect(started[0].settings).toMatchObject({ ...LEVEL_PRESETS.experienced, racingLine: 'off', damage: 'full', onboarded: true });
+  });
+
+  it('shows no pedal rows to keyboard and controller players', () => {
+    const { doc, startRace, nextButton } = open({ touch: false });
+    startRace();
+    nextButton().click();
+    expect(shownRows(doc.body)).toEqual(['camera', 'graphics']);
   });
 
   it('shows the three Experienced rows, and none for Casual', () => {
@@ -209,6 +220,21 @@ describe('the setup on a touch device', () => {
     choice('drag').click();
     expect(started).toHaveLength(1);
     expect(started[0].settings).toMatchObject({ onboarded: true, steerOnboarded: true });
+  });
+
+  it('asks touch players for pedals and auto-throttle on step 2, and saves analog for both pedals', () => {
+    const { doc, menus, started, startRace, nextButton, startButton, rowEl } = open({ touch: true, settings: { steerOnboarded: true } });
+    startRace();
+    nextButton().click();
+    expect(shownRows(doc.body)).toEqual(['camera', 'graphics', 'pedals', 'touchAutoThrottle']);
+    expect(rowEl('pedals').attributes['aria-label']).toBe('Pedals: On/off. Left and right to change.');
+    rowEl('pedals').focus();
+    menus.nav('right');
+    expect(rowEl('pedals').attributes['aria-label']).toBe('Pedals: Analog. Left and right to change.');
+    rowEl('touchAutoThrottle').focus();
+    menus.nav('right');
+    startButton().click();
+    expect(started[0].settings).toMatchObject({ touchAnalogThrottle: true, touchAnalogBrake: true, touchAutoThrottle: true });
   });
 
   it('reads Start and starts the race when the steering question is already answered', () => {

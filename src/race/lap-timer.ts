@@ -32,6 +32,8 @@ export class LapTimer {
   bestS: number | null = null;
   /** Number of forward crossings of the line (complete laps and restarts). */
   crossings = 0;
+  /** Forward metres driven up to the line at the last crossing (a rolling start checks it was driven, not cut). */
+  lineCovered = 0;
   /** Forward distance driven since the last crossing (big jumps such as teleports do not count). */
   private covered = 0;
   /** True during the standing-start lap. */
@@ -118,7 +120,8 @@ export class LapTimer {
       const frac = total > 0 ? before / total : 1;
       const tCross = this.lapTime - dt + dt * frac;
       // A short "lap" (reverse over the line and back) restarts the lap instead.
-      const complete = this.covered - lapDist >= this.lapLength * MIN_COVERED;
+      this.lineCovered = this.covered - lapDist;
+      const complete = this.lineCovered >= this.lapLength * MIN_COVERED;
       if (this.lapNumber > 0 && complete) result = this.finishLap(tCross);
       if (this.lapNumber === 0 || complete) this.lapNumber++;
       this.crossings++;

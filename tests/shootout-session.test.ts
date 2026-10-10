@@ -1,8 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { CarKind } from '@/car/car-specs';
 import type { CarEntity } from '@/game/car-entity';
-import { RaceSession } from '@/game/race-session';
-import { competitionSettings } from '@/game/shootout-rules';
+import { RaceSession, WARMUP_SPEED, WARMUP_START_S, WARMUP_TYRE_MARGIN_C } from '@/game/race-session';
+import { competitionSettings, frameDtCap, RealLapClock, slowMotionFault } from '@/game/shootout-rules';
+import { TYRE_COMPOUNDS } from '@/physics/tyre-state';
+import { GHOST_RATE } from '@/race/ghost';
 import type { ShootoutAttempt } from '@/shootout/model';
 import { flushRecords } from '@/race/records-queue';
 import type { RacingLine } from '@/track/racing-line';
@@ -24,9 +26,10 @@ afterEach(() => { flushRecords(); vi.unstubAllGlobals(); });
 
 function fixture(mode: RaceMode = 'shootoutTop10', car: CarKind = 'camaro', raceTrack = track) {
   const vehicle = {
-    tp: { s: 0, index: 0 }, x: 0, y: 0, z: 0, heading: 0, pitch: 0, roll: 0, steerAngle: 0, speed,
+    tp: { s: 0, index: 0 }, x: 0, y: 0, z: 0, heading: 0.3, pitch: 0, roll: 0, steerAngle: 0, speed, vx: 0, vy: 0, vz: 0,
+    pt: { gear: 1 }, spec: { gearRatios: [3, 2.4, 1.9, 1.5, 1.2, 1] },
     wheels: [0, 1, 2, 3].map(() => ({ surface: 'road' })),
-    stint: { refuels: 0, reset() {} }, trackGrip: { reset() {} }, telemetry: { speed, throttle: 1, brake: 0 },
+    stint: { refuels: 0, start: null as unknown, reset(start: unknown) { this.start = start; } }, trackGrip: { reset() {} }, telemetry: { speed, throttle: 1, brake: 0 },
   };
   const entity = { vehicle, reset: (s: number) => { vehicle.tp.s = s; }, repair() {} } as unknown as CarEntity;
   const session = new RaceSession(car, raceTrack, line, entity, 'soft', competitionSettings(DEFAULT_SETTINGS), mode);
@@ -186,7 +189,9 @@ describe('one warm-up and one Shootout lap', () => {
     session.timer.lapTime = 599.75;
     vehicle.tp.s = track.wrapS(track.startLineS + before * 9);
     const completed = session.update(1);
-    expect(completed?.timeS).toBeCloseTo(599.85, 6);
+    // The rolling warm-up is an out lap: its crossing has no lap time, but it still ended before the limit.
+    if (phase === 'warmup') expect(completed).toBeNull();
+    else expect(completed?.timeS).toBeCloseTo(599.85, 6);
     if (phase === 'warmup') expect(session.shootout).toEqual({ phase: 'ready' });
     else expect(session.shootout).toMatchObject({ phase: 'finished', attempt, outcome: { kind: 'valid', timeS: expect.closeTo(599.85, 6) } });
   });
@@ -198,7 +203,8 @@ describe('one warm-up and one Shootout lap', () => {
     const before = track.length - session.lapDist();
     session.timer.lapTime = 599.5;
     vehicle.tp.s = track.wrapS(track.startLineS + before);
-    expect(session.update(1)?.timeS).toBeCloseTo(600, 6);
+    const completed = session.update(1);
+    if (phase === 'timed') expect(completed?.timeS).toBeCloseTo(600, 6);
     expect(session.shootout).toMatchObject({ phase: 'finished', attempt: phase === 'timed' ? attempt : null, outcome: { kind: 'invalid', timeS: null, reason: expect.stringContaining('10-minute lap limit reached') } });
     expect(session.timer.lapTime).toBe(600);
   });
@@ -244,7 +250,7 @@ describe('one warm-up and one Shootout lap', () => {
 
   it('uses full damage, track limits and the pro preset with stability aids on, without mutating saved preferences', () => {
     const preferences = { ...DEFAULT_SETTINGS, damage: 'off' as const, trackLimits: false, touchAutoThrottle: true };
-    expect(competitionSettings(preferences)).toMatchObject({ damage: 'full', trackLimits: true, wear: true, autoGears: true, abs: true, tractionControl: true, racingLine: 'off', steeringAssist: true, autoRecover: false, touchAutoThrottle: false });
+    expect(competitionSettings(preferences)).toMatchObject({ damage: 'full', trackLimits: true, wear: true, autoGears: true, abs: true, tractionControl: true, racingLine: 'off', steeringAssist: true, autoRecover: false });
     expect(preferences).toMatchObject({ damage: 'off', trackLimits: false, autoGears: true, touchAutoThrottle: true });
   });
 });
@@ -253,5 +259,123 @@ describe('Shootout controls stay the player\'s own', () => {
   it('keeps steering sensitivity and touch mode from the player\'s settings', () => {
     const own = { ...DEFAULT_SETTINGS, steerTouch: 0.7, steerKeyboard: 1.4, steerPad: 0.8, touchMode: 'tilt' as const };
     expect(competitionSettings(own)).toMatchObject({ steerTouch: 0.7, steerKeyboard: 1.4, steerPad: 0.8, touchMode: 'tilt' });
+  });
+
+  it('keeps the pedal style: auto-throttle and analog pedals are control choices, not rules', () => {
+    for (const on of [true, false]) {
+      const own = { ...DEFAULT_SETTINGS, touchAutoThrottle: on, touchAnalogThrottle: on, touchAnalogBrake: on };
+      expect(competitionSettings(own)).toMatchObject({ touchAutoThrottle: on, touchAnalogThrottle: on, touchAnalogBrake: on });
+    }
+  });
+});
+
+describe('rolling warm-up from Forrest\'s Elbow', () => {
+  it('starts rolling on the racing line before the Elbow, on warm tyres, with no start lights', () => {
+    const { session, vehicle } = fixture();
+    expect(vehicle.tp.s).toBe(WARMUP_START_S);
+    const corner = track.corners.find((c) => c.name === "Forrest's Elbow")!;
+    expect(corner.s - WARMUP_START_S).toBeGreaterThan(0);
+    expect(corner.s - WARMUP_START_S).toBeLessThan(60);
+    expect(session.racing).toBe(true);
+    expect(Math.hypot(vehicle.vx, vehicle.vz)).toBeCloseTo(WARMUP_SPEED, 6);
+    expect(Math.atan2(vehicle.vx, vehicle.vz)).toBeCloseTo(vehicle.heading, 6);
+    expect(vehicle.pt.gear).toBe(2);
+    expect(vehicle.stint.start).toEqual({ compound: 'soft', tempC: TYRE_COMPOUNDS.soft.minC + WARMUP_TYRE_MARGIN_C });
+    expect(TYRE_COMPOUNDS.soft.minC + WARMUP_TYRE_MARGIN_C).toBeLessThan(TYRE_COMPOUNDS.soft.maxC);
+    expect(session.currentMessage()?.text).toContain('ROLLING WARM-UP');
+  });
+
+  it('returns to the Elbow on a restart or a warm-up reset, and keeps time trial on the grid', () => {
+    const { session, vehicle, step } = fixture();
+    for (let i = 0; i < 300; i++) step();
+    expect(vehicle.tp.s).not.toBe(WARMUP_START_S);
+    session.placeOnGrid();
+    expect(vehicle.tp.s).toBe(WARMUP_START_S);
+    for (let i = 0; i < 300; i++) step();
+    session.resetToTrack();
+    expect(vehicle.tp.s).toBe(WARMUP_START_S);
+    expect(session.shootout).toEqual({ phase: 'warmup' });
+    const trial = fixture('timeTrial');
+    expect(trial.vehicle.tp.s).not.toBe(WARMUP_START_S);
+  });
+
+  it('is about 2.4 km of driving, and the timed lap that follows is still a full lap from the line', () => {
+    const { session, until } = fixture();
+    const start = session.timer.lapTime;
+    until('ready');
+    const warmupM = (session.timer.lapTime - start) * speed;
+    expect(session.timer.lineCovered).toBeGreaterThan(2300);
+    expect(session.timer.lineCovered).toBeLessThan(2450);
+    expect(warmupM).toBeLessThan(track.length);
+    session.beginShootoutTimedLap(attempt);
+    until('finished');
+    expect(session.shootout).toMatchObject({ outcome: { kind: 'valid', timeS: expect.closeTo(track.length / speed, 6) } });
+  });
+});
+
+describe('Shootout slow motion, replay and Arcade reference', () => {
+  function timedLap(mode: RaceMode, realFactor: number) {
+    const f = fixture(mode);
+    f.until('ready');
+    f.session.beginShootoutTimedLap(mode === 'shootoutTop10' ? attempt : null);
+    // Read at the line, where the lap's game time is its length over the fixture's speed.
+    f.session.realLapTime = () => track.length / speed * realFactor;
+    f.until('finished');
+    return f.session;
+  }
+
+  it('invalidates a Top 10 lap whose real time ran more than 5 % plus 1 s over game time', () => {
+    const slow = timedLap('shootoutTop10', 1.08);
+    expect(slow.shootout).toMatchObject({ phase: 'finished', attempt, outcome: { kind: 'invalid', reason: expect.stringContaining('slow motion') } });
+    expect(timedLap('shootoutTop10', 1.04).shootout).toMatchObject({ outcome: { kind: 'valid' } });
+    // Arcade has no official score to protect.
+    expect(timedLap('shootoutArcade', 1.5).shootout).toMatchObject({ outcome: { kind: 'valid' } });
+  });
+
+  it('allows the 5 % plus 1 s margin and keeps paused time out of the real clock', () => {
+    expect(slowMotionFault(100, 106)).toBeNull();
+    expect(slowMotionFault(100, 106.1)).toContain('slow motion');
+    const clock = new RealLapClock();
+    expect(clock.elapsedS(0)).toBeNull();
+    clock.start(1000);
+    clock.pause(11_000);
+    expect(clock.elapsedS(500_000)).toBe(10);
+    clock.resume(500_000);
+    expect(clock.elapsedS(505_000)).toBe(15);
+    clock.start(0, true);
+    clock.resume(4000);
+    expect(clock.elapsedS(6000)).toBe(2);
+    clock.stop();
+    expect(clock.running).toBe(false);
+  });
+
+  it('raises the frame cap only for a timed lap, so slow devices keep real time there', () => {
+    expect(frameDtCap(true)).toBe(0.1);
+    expect(frameDtCap(false)).toBe(1 / 20);
+  });
+
+  it('keeps the timed lap\'s ghost frames for the replay, from the line to the line', () => {
+    const session = timedLap('shootoutTop10', 1);
+    const frames = session.shootoutReplay!;
+    expect(frames.length % 8).toBe(0);
+    expect(frames.length / 8 / GHOST_RATE).toBeCloseTo(track.length / speed, 0);
+  });
+
+  it('races the Arcade reference ghost and delta, and ignores it in Top 10', () => {
+    const ghost = new Float32Array(8 * 40);
+    const best = { bestS: 130, bestSectors: [50, 45, 35], trace: [0, 1, 2] };
+    const arcade = fixture('shootoutArcade');
+    arcade.session.setPracticeReference(ghost, best, 'GHOST: YOUR BEST');
+    expect(arcade.session.timer.bestS).toBe(130);
+    arcade.until('ready');
+    arcade.session.beginShootoutTimedLap(null);
+    expect(arcade.session.ghostVisible).toBe(true);
+    expect(arcade.session.currentMessage()?.text).toContain('GHOST: YOUR BEST');
+    const top10 = fixture();
+    top10.session.setPracticeReference(ghost, best);
+    top10.until('ready');
+    top10.session.beginShootoutTimedLap(attempt);
+    expect(top10.session.ghost).toBeNull();
+    expect(top10.session.timer.bestS).toBeNull();
   });
 });

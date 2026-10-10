@@ -8,16 +8,27 @@ import { loadRecords, type CarRecords } from '@/race/records';
 import { flushRecords, queueRecordsSave } from '@/race/records-queue';
 import { LEVEL_NAMES, lapLevel, levelRank, type Rules } from '@/race/driving-levels';
 import { TelemetryRecorder } from '@/race/telemetry-recorder';
+import { slowMotionFault } from '@/game/shootout-rules';
 import type { RacingLine } from '@/track/racing-line';
 import type { Track } from '@/track/track-model';
 import type { HudState } from '@/types/hud';
 import { DEFAULT_SETTINGS, type DrivingLevel, type LapRecord, type RaceMode } from '@/types/session';
 import { isPlausibleShootoutLap, isShootoutCar, MAX_SHOOTOUT_LAP_S, type ShootoutAttempt, type ShootoutOutcome } from '@/shootout/model';
-import type { TyreCompound } from '@/physics/tyre-state';
+import { TYRE_COMPOUNDS, type TyreCompound } from '@/physics/tyre-state';
 import { restoreTelemetry, type LapTelemetry, type SessionTelemetry, type TelemetrySample } from '@/types/telemetry';
 
 
 type Message = NonNullable<HudState['message']>;
+
+/** Shootout warm-up: a rolling start on the racing line just before Forrest's Elbow (T18, apex region from 3951 m),
+ * at about its apex speed (the AI profile is ~80 km/h there for all three cars), instead of a 2-minute standing-start
+ * lap. About 2.4 km to the line: the Elbow, Conrod Straight, The Chase and Murray's Corner. */
+export const WARMUP_START_S = 3930;
+export const WARMUP_SPEED = 80 / 3.6;
+/** Warm-up tyres start this far into their working window (soft 85 to 105 C), so the timed lap is never on cold tyres. */
+export const WARMUP_TYRE_MARGIN_C = 5;
+/** Share of the rolling warm-up's distance that must be driven forwards for its crossing to count. */
+const WARMUP_MIN_COVERED = 0.9;
 
 export type ShootoutRun =
   | { phase: 'warmup' }
@@ -58,6 +69,16 @@ export class RaceSession {
   private shootoutRun: ShootoutRun | null;
   private shootoutFault: string | null = null;
   shootoutRemaining: number | null = null;
+  /** Lap distance of the rolling warm-up start, until its first crossing. */
+  private warmupFrom: number | null = null;
+  /** The finished timed lap's ghost frames (the Top 10 replay, the Arcade best's ghost). */
+  private timedFrames: Float32Array | null = null;
+  /** Arcade practice: the timed lap's ghost (the current #1 replay, or the player's own Arcade best). */
+  private practiceGhost: GhostPlayer | null = null;
+  /** Whose lap the practice ghost is, for the start message (e.g. 'GHOST: CURRENT #1'). */
+  private practiceGhostLabel = '';
+  /** Real seconds of the timed lap so far (pauses excluded); the Top 10 lap fails when the game ran slow. */
+  realLapTime: (() => number | null) | null = null;
 
   constructor(readonly car: CarKind, readonly track: Track, readonly line: RacingLine, readonly entity: CarEntity, readonly tyres: TyreCompound = 'soft',
     rules: Rules = DEFAULT_SETTINGS, readonly mode: RaceMode = 'timeTrial') {
@@ -93,7 +114,10 @@ export class RaceSession {
     this.shootoutRun = { phase: 'timed', attempt };
     if (attempt) this.shootoutRemaining = 3 - attempt.number;
     if (this.shootoutFault) this.timer.invalidate();
-    this.say(this.mode === 'shootoutTop10' ? `SHOOTOUT LAP — ATTEMPT ${attempt?.number} OF 3` : 'SHOOTOUT LAP — ARCADE PRACTICE', 'good', 4);
+    this.ghost = this.practiceGhost;
+    this.ghostVisible = !!this.ghost;
+    this.say(this.mode === 'shootoutTop10' ? `SHOOTOUT LAP — ATTEMPT ${attempt?.number} OF 3`
+      : `SHOOTOUT LAP — ARCADE PRACTICE${this.practiceGhostLabel ? ` · ${this.practiceGhostLabel}` : ''}`, 'good', 4);
   }
 
   invalidateShootout(reason: string): void {
@@ -102,16 +126,30 @@ export class RaceSession {
     this.timer.invalidate();
   }
 
+  /** The timed lap's ghost frames once it finished (null before, or when it was abandoned). */
+  get shootoutReplay(): Float32Array | null { return this.shootoutRun?.phase === 'finished' ? this.timedFrames : null; }
+
+  /** Arcade practice: the ghost to race and the best lap that sets the live delta and sector colours. */
+  setPracticeReference(ghost: Float32Array | null, best: { bestS: number; bestSectors: number[]; trace?: number[] } | null, label = ''): void {
+    if (this.mode !== 'shootoutArcade') return;
+    this.practiceGhost = ghost && ghost.length ? new GhostPlayer(ghost) : null;
+    this.practiceGhostLabel = this.practiceGhost ? label : '';
+    this.timer.useRecord(best);
+    // A replay that arrives during the timed lap joins it at the current lap time.
+    if (this.shootoutRun?.phase === 'timed') { this.ghost = this.practiceGhost; this.ghostVisible = !!this.ghost; }
+  }
+
   abortShootout(reason: string): void {
     const run = this.shootoutRun;
     if (run?.phase !== 'timed') return;
     this.shootoutRun = { phase: 'finished', attempt: run.attempt, outcome: { kind: 'invalid', timeS: null, reason } };
   }
 
-  /** Puts the car on pole position behind the standing-start line and arms the lights. */
+  /** Puts the car on pole position behind the standing-start line and arms the lights; a Shootout warm-up starts
+   * rolling before Forrest's Elbow instead. */
   placeOnGrid(): void {
     if (this.shootoutRun?.phase === 'timed' || this.shootoutRun?.phase === 'finished') throw new Error('A started Shootout lap cannot be restarted. Start a new warm-up.');
-    if (this.shootoutRun) { this.shootoutRun = { phase: 'warmup' }; this.shootoutFault = null; }
+    if (this.shootoutRun) { this.shootoutRun = { phase: 'warmup' }; this.shootoutFault = null; this.timedFrames = null; return this.placeRolling(); }
     this.entity.vehicle.stint.reset({ compound: this.tyres });
     this.entity.vehicle.trackGrip.reset();
     const pole = gridSlot(this.track, 0);
@@ -125,6 +163,29 @@ export class RaceSession {
     this.telemetryRecorder.reset();
     // The ghost replays a flying lap: like the delta, it returns at the first crossing.
     this.ghostVisible = false;
+  }
+
+  /** Shootout warm-up: rolling at WARMUP_SPEED on the racing line before Forrest's Elbow, warm tyres, no start lights. */
+  private placeRolling(): void {
+    const v = this.entity.vehicle, track = this.track;
+    v.stint.reset({ compound: this.tyres, tempC: TYRE_COMPOUNDS[this.tyres].minC + WARMUP_TYRE_MARGIN_C });
+    v.trackGrip.reset();
+    const i = Math.round(track.wrapS(WARMUP_START_S) / track.spacing) % track.n;
+    this.entity.reset(WARMUP_START_S, this.line.offset[i]);
+    this.entity.repair();
+    v.vx = Math.sin(v.heading) * WARMUP_SPEED;
+    v.vz = Math.cos(v.heading) * WARMUP_SPEED;
+    v.vy = WARMUP_SPEED * track.grade[i];
+    // As the debug teleport: about the gear for this speed (automatic gears take over from there).
+    v.pt.gear = Math.max(1, Math.min(v.spec.gearRatios.length, Math.round(WARMUP_SPEED / 14)));
+    this.lights = -1;
+    this.timer.startOutLap(this.lapDist());
+    this.warmupFrom = this.lapDist();
+    this.recorder.reset();
+    this.telemetryRecorder.reset();
+    this.ghost = null;
+    this.ghostVisible = false;
+    this.say('ROLLING WARM-UP — YOUR ATTEMPT STARTS AT THE LINE', 'good', 5);
   }
 
   lapDist(): number {
@@ -219,7 +280,10 @@ export class RaceSession {
     const res = this.timer.update(dt, this.lapDist());
     this.recorder.record(dt, { x: v.x, y: v.y, z: v.z, heading: v.heading, pitch: v.pitch, roll: v.roll, steer: v.steerAngle, speed: v.speed });
     const run = this.shootoutRun;
-    if (run && (run.phase === 'warmup' || run.phase === 'timed') && (res?.timeS ?? elapsed) >= MAX_SHOOTOUT_LAP_S) {
+    // A rolling warm-up's crossing has no lap result: it ends at the crossing, not at the end of this frame.
+    const rolledIn = run?.phase === 'warmup' && this.timer.crossings !== crossingsBefore && this.rolledToLine();
+    const lapEnd = res?.timeS ?? (rolledIn ? elapsed - this.timer.lapTime : elapsed);
+    if (run && (run.phase === 'warmup' || run.phase === 'timed') && lapEnd >= MAX_SHOOTOUT_LAP_S) {
       let reason = '10-minute lap limit reached. No score recorded.';
       if (run.phase === 'warmup') reason += ' No competition attempt used.';
       else if (this.mode === 'shootoutTop10') reason += ' This attempt is used.';
@@ -247,7 +311,11 @@ export class RaceSession {
   private onShootoutCrossing(result: LapResult | null): void {
     const run = this.shootoutRun;
     if (run?.phase === 'warmup') {
-      if (result) this.shootoutRun = { phase: 'ready' };
+      // The rolling warm-up reaches the line on its out lap: it counts when the car drove there, not when it
+      // reversed over the line and back (then a full lap is needed, as before).
+      const rolled = this.rolledToLine();
+      this.warmupFrom = null;
+      if (result || rolled) this.shootoutRun = { phase: 'ready' };
       this.recorder.reset();
       this.telemetryRecorder.reset();
       return;
@@ -256,10 +324,20 @@ export class RaceSession {
     if (this.mode === 'shootoutTop10' && result && !isPlausibleShootoutLap(result.timeS, result.sectorsS)) {
       this.shootoutFault ??= 'The lap time or sectors are outside the competition limits. This attempt is used.';
     }
+    // Checked at the line: real time against the lap's game time (a throttled device must not drive in slow motion).
+    const realS = this.realLapTime?.() ?? null;
+    const slow = result && realS !== null ? slowMotionFault(result.timeS, realS) : null;
+    if (slow) this.invalidateShootout(slow);
+    this.timedFrames = this.recorder.take();
     const outcome: ShootoutOutcome = result && result.valid && !result.standing && !this.shootoutFault
       ? { kind: 'valid', timeS: result.timeS, sectorsS: result.sectorsS }
       : { kind: 'invalid', timeS: result?.timeS ?? null, reason: this.shootoutFault ?? (result ? 'Track limits or a reset invalidated this lap.' : 'The full Shootout lap was not completed.') };
     this.shootoutRun = { phase: 'finished', attempt: run.attempt, outcome };
+  }
+
+  /** The crossing just made ends the rolling warm-up: the car drove (most of) the way from its start to the line. */
+  private rolledToLine(): boolean {
+    return this.warmupFrom !== null && this.timer.lineCovered >= (this.track.length - this.warmupFrom) * WARMUP_MIN_COVERED;
   }
 
   /** Called at every forward crossing; `res` is null when the crossing only restarted the lap. */

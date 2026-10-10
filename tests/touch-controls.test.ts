@@ -65,6 +65,18 @@ describe('touch overlay event wiring', () => {
     expect(touch.update(1, true)).toEqual({ steer: 0, throttle: 0, brake: 1 });
   });
 
+  it('samples an analog brake by thumb height on its own pedal', () => {
+    configure({ analogBrake: true });
+    const brake = root.find('tc-pedal--brake');
+    pointer('pointerdown', 1, brake, 640, 300);
+    expect(touch.update(1, true).brake).toBe(0.5);
+    pointer('pointermove', 1, root, 640, 360);
+    expect(touch.update(1, true).brake).toBe(0.2);
+    configure({});
+    pointer('pointerdown', 2, brake, 640, 360);
+    expect(touch.update(1, true).brake).toBe(1);
+  });
+
   it('shows a brake-only auto-throttle layout and clears it behind menus/on blur', () => {
     configure({ autoThrottle: true });
     expect(touch.update(1, true).throttle).toBe(1);

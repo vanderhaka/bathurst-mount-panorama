@@ -112,7 +112,8 @@ try {
     await page.keyboard.press('ArrowLeft');
     await press(page, 'Start warm-up');
     const rules = await page.evaluate(() => ({ mode: window.__game.race.session.mode, damage: window.__game.settings.damage, limits: window.__game.settings.trackLimits, gears: window.__game.settings.autoGears, assists: window.__game.settings.abs && window.__game.settings.tractionControl && window.__game.settings.steeringAssist, autoThrottle: window.__game.settings.touchAutoThrottle }));
-    check('Arcade uses full damage, track limits, automatic gears and the stability aids', rules.mode === 'shootoutArcade' && rules.damage === 'full' && rules.limits && rules.gears && rules.assists && !rules.autoThrottle);
+    // Auto-throttle is a control choice, not a rule: the saved preference (on) stays.
+    check('Arcade uses full damage, track limits, automatic gears and the stability aids', rules.mode === 'shootoutArcade' && rules.damage === 'full' && rules.limits && rules.gears && rules.assists && rules.autoThrottle);
     await page.evaluate(() => { window.__game.settings.hudSize = 'minimal'; });
     await page.locator('.bx-hud[data-size="minimal"] .hud-minimal').waitFor({ state: 'visible' });
     const clearMinimal = await page.evaluate(() => {

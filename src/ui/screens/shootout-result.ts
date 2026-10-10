@@ -1,5 +1,6 @@
 import { h } from '@/hud/dom';
-import { formatLapTime } from '@/hud/format';
+import { formatDelta, formatLapTime } from '@/hud/format';
+import type { PracticeSummary } from '@/game/arcade-best';
 import type { ShootoutAttempt, ShootoutOutcome } from '@/shootout/model';
 import type { ShootoutStore } from '@/shootout/store';
 import type { ShootoutMode } from '@/types/session';
@@ -17,6 +18,8 @@ export class ShootoutResultScreen implements Screen {
   private readonly time = h('p', 'mn-shootout-time');
   private readonly detail = h('p', 'mn-shootout-lead');
   private readonly quota = h('p', 'mn-shootout-quota');
+  /** Arcade: this lap against the Arcade best. Top 10: the place on this week's board once published. */
+  private readonly standing = h('p', 'mn-shootout-standing', { hidden: true });
   private readonly status = h('p', 'mn-shootout-status', { role: 'status', 'aria-live': 'polite' });
   private readonly nickname = h('input', 'mn-item mn-shootout-nickname', {
     type: 'text', id: 'shootout-nickname', name: 'nickname', autocomplete: 'nickname', maxlength: 24,
@@ -52,12 +55,12 @@ export class ShootoutResultScreen implements Screen {
       h('div', 'mn-actions', undefined, [this.keep, this.confirmSkip]));
     this.el.append(h('div', 'mn-panel mn-panel--shootout-result', undefined, [
       h('header', 'mn-panel__head', undefined, [kicker('Bathurst Shootout'), this.title]),
-      this.time, this.detail, this.quota, this.form, this.warning, this.status,
+      this.time, this.detail, this.standing, this.quota, this.form, this.warning, this.status,
       h('div', 'mn-actions', undefined, [this.again, this.leaderboard, this.menu]),
     ]), hintBar(STD_HINTS));
   }
 
-  set(mode: ShootoutMode, attempt: ShootoutAttempt | null, outcome: ShootoutOutcome): void {
+  set(mode: ShootoutMode, attempt: ShootoutAttempt | null, outcome: ShootoutOutcome, practice?: PracticeSummary): void {
     this.mode = mode;
     this.attempt = attempt;
     this.outcome = outcome;
@@ -65,6 +68,8 @@ export class ShootoutResultScreen implements Screen {
     this.busy = false;
     this.warning.hidden = true;
     this.status.textContent = '';
+    this.standing.textContent = practice ? practiceLine(practice) : '';
+    this.standing.hidden = !practice;
     this.title.textContent = outcome.kind === 'invalid'
       ? 'Shootout session ended'
       : mode === 'shootoutArcade' ? 'Arcade practice result' : 'Claim your Shootout lap';
@@ -76,8 +81,11 @@ export class ShootoutResultScreen implements Screen {
     const saved = attempt ? snapshot.attempts.find(a => a.attempt.id === attempt.id) : null;
     this.queued = saved?.publication === 'pending' && saved.nickname !== null;
     if (this.queued) this.status.textContent = 'Your nickname is saved. Retry submission to get this lap onto the leaderboard.';
+    const refused = attempt && saved?.publication === 'pending' && !this.queued ? this.publishError(attempt.id) : null;
+    if (refused) this.status.textContent = refused;
     this.nickname.value = saved?.nickname ?? snapshot.nickname;
     if (saved?.publication === 'published' || saved?.publication === 'skipped') this.decided = true;
+    if (saved?.publication === 'published' && attempt) this.showRank(attempt.id);
     this.quota.textContent = mode === 'shootoutArcade' ? 'Unlimited practice'
       : attempt ? `Attempt ${attempt.number} of 3 used · ${snapshot.remaining} remaining`
       : `No competition attempt used · ${snapshot.remaining} remaining`;
@@ -116,14 +124,29 @@ export class ShootoutResultScreen implements Screen {
       if (result === 'published') {
         this.decided = true;
         this.status.textContent = 'Score submitted. Your best published lap counts; the board shows the fastest 10 drivers.';
+        this.showRank(this.attempt.id);
       } else this.status.textContent = 'Saved on this browser. It has not reached the leaderboard yet. Retry now or return to the menu and finish this result later.';
+      this.queued = this.store.snapshot().attempts.some(a => a.attempt.id === this.attempt?.id && a.nickname !== null && a.publication === 'pending');
     } catch (error) {
-      this.status.textContent = error instanceof Error ? error.message : 'Your score could not be submitted. Please retry.';
+      // Not retryable (e.g. a nickname the server refused): the store cleared the saved nickname, so the player
+      // edits it and submits again, or skips.
+      this.status.textContent = this.publishError(this.attempt.id) ?? (error instanceof Error ? error.message : 'Your score could not be submitted. Please retry.');
+      this.queued = false;
     }
-    this.queued = this.store.snapshot().attempts.some(a => a.attempt.id === this.attempt?.id && a.nickname !== null && a.publication === 'pending');
     this.busy = false;
     this.render();
     if (this.decided) (this.again.disabled ? this.leaderboard : this.again).focus();
+  }
+
+  private publishError(id: string): string | null {
+    try { return this.store.publishError(id); } catch { return null; }
+  }
+
+  private showRank(id: string): void {
+    let rank: ReturnType<ShootoutStore['rankOf']> = null;
+    try { rank = this.store.rankOf(id); } catch { /* no rank yet */ }
+    this.standing.hidden = !rank;
+    this.standing.textContent = rank ? `You're #${rank.rank} of ${rank.of} this week` : '';
   }
 
   private warnSkip(): void {
@@ -157,4 +180,11 @@ export class ShootoutResultScreen implements Screen {
     else if (!this.warning.hidden) { this.warning.hidden = true; this.render(); this.nickname.focus(); }
     else this.warnSkip();
   }
+}
+
+/** Arcade result line: the Arcade best for this car and this lap against the best before it. */
+export function practiceLine(p: PracticeSummary): string {
+  if (p.bestS === null) return 'No Arcade best yet for this car. Finish a valid lap to set one.';
+  if (p.improved) return p.deltaS === null ? `First Arcade best for this car: ${formatLapTime(p.bestS)}` : `New Arcade best · ${formatDelta(p.deltaS)} on your previous best`;
+  return p.deltaS === null ? `Your Arcade best: ${formatLapTime(p.bestS)}` : `${formatDelta(p.deltaS)} to your Arcade best ${formatLapTime(p.bestS)}`;
 }
