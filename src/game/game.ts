@@ -22,7 +22,8 @@ import { RaceSession } from '@/game/race-session';
 import { competitionSettings, frameDtCap, RealLapClock } from '@/game/shootout-rules';
 import { loadArcadeBest, recordArcadeLap, type PracticeSummary } from '@/game/arcade-best';
 import { encodeReplay, isShootoutCar, type ShootoutCar } from '@/shootout/model';
-import { fetchReplay } from '@/shootout/leaderboard';
+import { fetchReplay, reportPractice } from '@/shootout/leaderboard';
+import { USAGE_ANALYTICS } from '@/config/build-flags';
 import { ShootoutStore } from '@/shootout/store';
 import { formatLapTime } from '@/hud/format';
 import { loadSettings, saveSettings } from '@/game/settings-store';
@@ -185,7 +186,7 @@ export class Game {
     const session = new RaceSession(cfg.car, this.world.track, this.world.line, player, mode !== 'timeTrial' ? 'soft' : cfg.tyres ?? 'soft', this.settings, mode);
     if (mode === 'shootoutTop10') session.shootoutRemaining = this.shootoutStore.snapshot().remaining;
     session.realLapTime = () => this.lapClock.elapsedS(performance.now());
-    if (mode === 'shootoutArcade' && isShootoutCar(cfg.car)) this.loadPractice(session, cfg.car);
+    if (mode === 'shootoutArcade' && isShootoutCar(cfg.car)) { this.loadPractice(session, cfg.car); this.countPractice(cfg.car, 'start'); }
     session.placeOnGrid();
     this.ghostModel = createCarModel(cfg.car, { livery: LIVERY_PRESETS[cfg.car][0].livery, detail: 'low', quality: this.settings.quality });
     this.ghostModel.setGhost(true);
@@ -277,6 +278,7 @@ export class Game {
       return;
     }
     this.race.session.placeOnGrid();
+    if (this.race.session.mode === 'shootoutArcade' && isShootoutCar(this.race.session.car)) this.countPractice(this.race.session.car, 'start');
     this.race.restart();
     this.rig.snap();
     this.state = 'race';
@@ -329,6 +331,11 @@ export class Game {
     catch (error) { console.warn('Shootout replay not saved', error); }
   }
 
+  /** Arcade runs and laps for the usage dashboard: production only, anonymous, never waited on. */
+  private countPractice(car: ShootoutCar, kind: 'start' | 'lap' | 'valid_lap'): void {
+    if (USAGE_ANALYTICS) reportPractice(car, kind);
+  }
+
   /** Arcade: the lap against the player's Arcade best for this car (a faster valid lap becomes the new best). */
   private recordPractice(session: RaceSession): PracticeSummary | undefined {
     const run = session.shootout;
@@ -348,6 +355,9 @@ export class Game {
     this.guardUnload(false);
     this.audio?.suspend();
     const error = this.saveShootoutResult(session);
+    if (session.mode === 'shootoutArcade' && isShootoutCar(session.car) && run.outcome.timeS !== null) {
+      this.countPractice(session.car, run.outcome.kind === 'valid' ? 'valid_lap' : 'lap');
+    }
     this.menus.showShootoutResult(session.mode, run.attempt, run.outcome, error, this.recordPractice(session));
   }
 

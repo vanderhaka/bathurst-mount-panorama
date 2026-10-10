@@ -184,10 +184,10 @@ describe('Shootout result', () => {
 });
 
 describe('Shootout pause menu', () => {
-  it('relabels the reset as Back to the grid in the warm-up', async () => {
+  it('relabels the reset as Back to the start in the warm-up', async () => {
     const { menus, screen, label } = await open();
     menus.showPause({ mode: 'shootoutTop10', timed: false });
-    const reset = label(screen('pause'), 'Back to the grid');
+    const reset = label(screen('pause'), 'Back to the start');
     expect(reset.hidden).toBe(false);
     expect(reset.attributes['aria-label']).toContain('restarts the warm-up');
     expect(findText(screen('pause'), 'Restart warm-up')).not.toBeNull();
@@ -197,7 +197,7 @@ describe('Shootout pause menu', () => {
     const { menus, screen, label } = await open();
     menus.showPause({ mode: 'shootoutTop10', timed: true });
     const pause = screen('pause');
-    expect(label(pause, 'Back to the grid').hidden).toBe(true);
+    expect(label(pause, 'Back to the start').hidden).toBe(true);
     const end = label(pause, 'End this attempt');
     expect(end.attributes['aria-label']).toContain('press twice');
     end.click();
