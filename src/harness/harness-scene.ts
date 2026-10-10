@@ -61,7 +61,10 @@ export function createHarnessScene(opts: { ground?: 'asphalt' | 'grass'; groundS
   const sky = createSky(scene);
   const lighting = createLighting(scene, 'high', camera);
   const carEnv = createCarEnv(renderer, scene, sky.dome, 'high');
-  void carEnv.ensureHdri();
+  let hdriReady = false;
+  void carEnv.ensureHdri().then(() => { hdriReady = true; });
+  // Low-tier path / failed decode: do not block harness screenshots forever.
+  window.setTimeout(() => { hdriReady = true; }, 8000);
   scene.environmentIntensity = getGraphics().envIntensity;
   lighting.apply(getGraphics());
   const post = createPostChain(renderer, 4);
@@ -136,7 +139,7 @@ export function createHarnessScene(opts: { ground?: 'asphalt' | 'grass'; groundS
     lighting.follow(controls.target);
     sky.follow(camera);
     post.render(scene, camera);
-    if (readyCountdown > 0 && --readyCountdown === 0) {
+    if (readyCountdown > 0 && hdriReady && --readyCountdown === 0) {
       window.__shotInfo = { ...(readyInfo as object), drawCalls: renderer.info.render.calls, triangles: renderer.info.render.triangles };
       window.__shotReady = true;
     }

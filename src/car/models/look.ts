@@ -78,9 +78,9 @@ export interface CarLook {
 
 export const CAR_LOOK: CarLook = {
   // Dielectric binder + clearcoat (not a metal): flakes live in the roughness/normal maps.
-  paint: { roughness: 0.38, metalness: 0.06, clearcoat: 1, clearcoatRoughness: 0.03, envMapIntensity: 1.45, orangePeel: 0.12, flake: 0.28 },
-  glass: { colour: 0x0a141c, roughness: 0.02, metalness: 0, envMapIntensity: 1.85, opacity: 0.78, ior: 1.52, reflectivity: 0.5 },
-  glassTint: { colour: 0x050910, roughness: 0.025, metalness: 0, envMapIntensity: 1.65, opacity: 0.91, ior: 1.5, reflectivity: 0.45 },
+  paint: { roughness: 0.36, metalness: 0.05, clearcoat: 1, clearcoatRoughness: 0.028, envMapIntensity: 1.55, orangePeel: 0.22, flake: 0.4 },
+  glass: { colour: 0x0a141c, roughness: 0.02, metalness: 0, envMapIntensity: 2.0, opacity: 0.72, ior: 1.52, reflectivity: 0.55 },
+  glassTint: { colour: 0x050910, roughness: 0.025, metalness: 0, envMapIntensity: 1.75, opacity: 0.88, ior: 1.5, reflectivity: 0.5 },
   // Gunmetal alloy; the polished lip is baked as vertex colours (RIM_LIP in wheels.ts).
   rim: { colour: 0x5b5f66, roughness: 0.36, metalness: 0.72, envMapIntensity: 1.2 },
   nut: { colour: 0xc8261e, roughness: 0.35, metalness: 0.6, envMapIntensity: 1 },

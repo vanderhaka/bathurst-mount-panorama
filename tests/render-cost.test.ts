@@ -53,6 +53,7 @@ describe('sky overdraw', () => {
     THREE.PMREMGenerator.prototype.dispose = () => {};
     try { createSkyEnvironment(renderer, sky.dome, 'high', null); }
     finally { Object.assign(THREE.PMREMGenerator.prototype, { fromScene, dispose }); }
+    // Without an HDRI the procedural sky remains the env backdrop.
     expect(seen).toEqual([{ order: -10, depthTest: false }]);
     expect(material.depthTest).toBe(true);
   });

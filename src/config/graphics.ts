@@ -104,7 +104,7 @@ export const DEFAULT_GRAPHICS: GraphicsConfig = {
   hemiIntensity: 0.9,
   hemiSky: '#bcd3ec',
   hemiGround: '#4f4d3c',
-  envIntensity: 0.6,
+  envIntensity: 0.85,
   fogColour: '#9db6d0',
   fogDensity: 0.00008,
   skyZenith: '#2f6cc6',

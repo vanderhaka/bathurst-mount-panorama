@@ -75,8 +75,15 @@ export function createSkyEnvironment(
 ): THREE.WebGLRenderTarget {
   const pmrem = new THREE.PMREMGenerator(renderer);
   const envScene = new THREE.Scene();
+  const material = skyDome.material;
+  const sunDisc = material instanceof THREE.ShaderMaterial ? material.uniforms.showSunDisc : undefined;
+  const visibleSun = sunDisc?.value, backdrop = skyDome.material as THREE.Material, depthTest = backdrop.depthTest;
+  if (sunDisc) sunDisc.value = 0; // Avoid a second sharp sun in filtered reflections.
+  backdrop.depthTest = false;
+
+  // Procedural sky always fills the upper hemisphere (time-of-day). Optional HDRI fills the
+  // lower hemisphere so paint reflects trees/road without washing out the sky.
   const dome = skyDome.clone();
-  // The live dome draws last with a depth test (see sky.ts); here it stays the backdrop drawn first.
   dome.renderOrder = -10;
   dome.position.set(0, 0, 0);
   dome.scale.multiplyScalar(0.01);
@@ -84,21 +91,16 @@ export function createSkyEnvironment(
 
   let hdriMesh: THREE.Mesh | null = null;
   if (hdri) {
-    // Equirect backdrop under the sky dome: outdoor trees/road fill the lower hemisphere.
+    // phiStart=π/2, phiLength=π/2 → lower hemisphere only (equirect v of the outdoor plate).
     hdriMesh = new THREE.Mesh(
-      new THREE.SphereGeometry(180, 32, 16),
-      new THREE.MeshBasicMaterial({ map: hdri, side: THREE.BackSide, fog: false, depthWrite: false, opacity: 0.72, transparent: true }),
+      new THREE.SphereGeometry(185, 48, 16, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2),
+      new THREE.MeshBasicMaterial({ map: hdri, side: THREE.BackSide, fog: false }),
     );
-    hdriMesh.renderOrder = -20;
+    hdriMesh.renderOrder = -5;
     envScene.add(hdriMesh);
   }
 
   const surroundings = addEnvSurroundings(envScene);
-  const material = skyDome.material;
-  const sunDisc = material instanceof THREE.ShaderMaterial ? material.uniforms.showSunDisc : undefined;
-  const visibleSun = sunDisc?.value, backdrop = skyDome.material as THREE.Material, depthTest = backdrop.depthTest;
-  if (sunDisc) sunDisc.value = 0; // Avoid a second sharp sun in filtered reflections.
-  backdrop.depthTest = false;
   try {
     return pmrem.fromScene(envScene, 0, 0.1, 220, { size: QUALITY[quality].environmentSize });
   } finally {
