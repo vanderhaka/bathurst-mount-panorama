@@ -10,6 +10,8 @@ export interface RendererOptions {
   quality?: QualityPreset;
   pixelRatio?: number;
   preserveDrawingBuffer?: boolean;
+  /** MSAA on the canvas itself. Tiers with a post chain antialias in their own target and only draw one quad here. */
+  antialias?: boolean;
 }
 
 /** Creates the WebGL renderer with the colour pipeline every scene in the project uses. */
@@ -17,7 +19,7 @@ export function createRenderer(opts: RendererOptions = {}): THREE.WebGLRenderer 
   const quality = opts.quality ?? 'high';
   const renderer = new THREE.WebGLRenderer({
     canvas: opts.canvas,
-    antialias: true,
+    antialias: opts.antialias ?? true,
     powerPreference: 'high-performance',
     preserveDrawingBuffer: opts.preserveDrawingBuffer ?? false,
   });

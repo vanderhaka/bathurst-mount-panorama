@@ -11,15 +11,26 @@ export interface QualityChoice {
 /** One entry per browser profile, which is already local to this device. It deliberately
  * ignores the user agent and pixel ratio, so browser updates and desktop zoom keep it.
  * Version 1 automatic results came from a monitor that ratcheted healthy hardware down.
- * Version 2 results came from automatic quality being on by default; version 3 starts every device on High. */
-const KEY = 'bathurst.quality.v3';
+ * Version 2 results came from automatic quality being on by default; version 3 forced High with
+ * automatic quality off, which left slower devices stuck on High. Version 4 starts on High with
+ * automatic quality on; a tier the player chose by hand is never changed. */
+const KEY = 'bathurst.quality.v4';
+/** Version 3 saved High (manual) for everyone, so only Low, Medium or automatic were real choices. */
+const V3_KEY = 'bathurst.quality.v3';
 
 /** Stored density: null is the tier default for the current display and zoom; a number is a learned reduction. */
 type StoredChoice = Omit<QualityChoice, 'pixelRatio'> & { pixelRatio: number | null };
 
-function readChoice(): QualityChoice | null {
+function readStored(): Partial<StoredChoice> | null {
   const raw = localStorage.getItem(KEY);
-  const value = raw ? JSON.parse(raw) as Partial<StoredChoice> | null : null;
+  if (raw) return JSON.parse(raw) as Partial<StoredChoice> | null;
+  const old = localStorage.getItem(V3_KEY);
+  const value = old ? JSON.parse(old) as Partial<StoredChoice> | null : null;
+  return value && (value.automatic === true || value.quality === 'low' || value.quality === 'medium') ? value : null;
+}
+
+function readChoice(): QualityChoice | null {
+  const value = readStored();
   const density = value?.pixelRatio ?? null;
   if (!value || !['low', 'medium', 'high'].includes(value.quality ?? '') || typeof value.automatic !== 'boolean'
     || (density !== null && (typeof density !== 'number' || !Number.isFinite(density) || density < 0.5))) return null;

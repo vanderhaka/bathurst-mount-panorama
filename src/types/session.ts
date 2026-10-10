@@ -79,7 +79,7 @@ export const DEFAULT_SETTINGS: Settings = {
   ghost: true,
   units: 'kmh',
   quality: 'high',
-  autoQuality: false,
+  autoQuality: true,
   frameRate: 0,
   camera: 'chase',
   masterVolume: 0.8,

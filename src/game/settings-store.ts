@@ -6,7 +6,7 @@ import { steerOnboarded, touchOptions } from '@/input/touch-model';
 const KEY = 'bathurst.settings.v1';
 
 export function loadSettings(): Settings {
-  // Every device starts on High; automatic quality is opt-in.
+  // Every device starts on High; automatic quality steps it down only when the device cannot keep up.
   const defaults: Settings = { ...DEFAULT_SETTINGS };
   let saved: Partial<Settings> = {};
   try {

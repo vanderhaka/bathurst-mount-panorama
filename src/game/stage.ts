@@ -16,10 +16,13 @@ export class Stage {
   private quality: QualityPreset;
   private environment: THREE.WebGLRenderTarget;
   private environmentTimer: number | null = null;
+  /** Fixed when the WebGL context is created: only a page that starts on a tier without a post chain needs it. */
+  private readonly nativeAntialias: boolean;
 
   constructor(private readonly container: HTMLElement, quality: QualityPreset, pixelRatio?: number) {
     this.quality = quality;
-    this.renderer = createRenderer({ quality, pixelRatio });
+    this.nativeAntialias = !QUALITY[quality].post;
+    this.renderer = createRenderer({ quality, pixelRatio, antialias: this.nativeAntialias });
     // The canvas always fills the game area (CSS); resize() only sets its pixel size.
     Object.assign(this.renderer.domElement.style, { display: 'block', width: '100%', height: '100%' });
     container.appendChild(this.renderer.domElement);
@@ -30,7 +33,7 @@ export class Stage {
     this.environment = createSkyEnvironment(this.renderer, this.sky.dome, quality);
     this.scene.environment = this.environment.texture;
     this.post = createPostChain(this.renderer, QUALITY[quality].msaa);
-    this.post.setEnabled(QUALITY[quality].post, QUALITY[quality].msaa, QUALITY[quality].bloom, QUALITY[quality].screenAo, QUALITY[quality].cameraEffects);
+    this.applyPost(quality);
     this.applyGraphics();
     onGraphicsChange((_cfg, changed) => {
       this.applyGraphics();
@@ -77,9 +80,16 @@ export class Stage {
     setRendererQuality(this.renderer, q, pixelRatio);
     this.sky.setQuality(q);
     this.lighting.setQuality(q);
-    this.post.setEnabled(QUALITY[q].post, QUALITY[q].msaa, QUALITY[q].bloom, QUALITY[q].screenAo, QUALITY[q].cameraEffects);
+    this.applyPost(q);
     this.refreshEnvironment();
     this.resize();
+  }
+
+  /** A canvas without MSAA (the page started on Medium or High) keeps Low's edges smooth through the post chain's MSAA target. */
+  private applyPost(q: QualityPreset): void {
+    const tier = QUALITY[q];
+    const viaPost = tier.post || !this.nativeAntialias;
+    this.post.setEnabled(viaPost, tier.post ? tier.msaa : QUALITY.medium.msaa, tier.bloom, tier.screenAo, tier.cameraEffects);
   }
 
   get qualityPreset(): QualityPreset {

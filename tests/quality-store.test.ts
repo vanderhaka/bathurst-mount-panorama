@@ -17,7 +17,7 @@ beforeEach(() => {
 });
 afterEach(() => vi.unstubAllGlobals());
 
-const KEY = 'bathurst.quality.v3';
+const KEY = 'bathurst.quality.v4';
 const auto = { quality: 'high', autoQuality: true } as const;
 const savedSettings = (values: object) => data.set('bathurst.settings.v1', JSON.stringify({ ...DEFAULT_SETTINGS, ...values }));
 
@@ -48,24 +48,38 @@ describe('saved graphics result', () => {
     expect(loadQualityChoice(auto)).toEqual({ quality: 'low', pixelRatio: 0.75, automatic: true });
   });
 
-  it('starts on High when a quality was saved only with Settings', () => {
+  it('starts on High with automatic quality when a quality was saved only with Settings', () => {
     savedSettings({ quality: 'medium', autoQuality: false });
-    expect(loadSettings()).toMatchObject({ quality: 'high', autoQuality: false });
-    expect(loadQualityChoice(loadSettings())).toEqual({ quality: 'high', pixelRatio: 2, automatic: false });
+    expect(loadSettings()).toMatchObject({ quality: 'high', autoQuality: true });
+    expect(loadQualityChoice(loadSettings())).toEqual({ quality: 'high', pixelRatio: 2, automatic: true });
   });
 
-  it('starts on High instead of restoring results saved by older versions', () => {
+  it('starts on High with automatic quality instead of restoring results saved by older versions', () => {
     savedSettings({ quality: 'low', autoQuality: true });
     data.set(`bathurst.quality.v1.${JSON.stringify(['test-device', [390, 844], 3, false])}`, JSON.stringify({ quality: 'low', pixelRatio: 0.75, automatic: true }));
     data.set('bathurst.quality.v2', JSON.stringify({ quality: 'medium', pixelRatio: null, automatic: false }));
-    expect(loadSettings()).toMatchObject({ quality: 'high', autoQuality: false });
-    expect(loadQualityChoice(loadSettings())).toEqual({ quality: 'high', pixelRatio: 2, automatic: false });
+    expect(loadSettings()).toMatchObject({ quality: 'high', autoQuality: true });
+    expect(loadQualityChoice(loadSettings())).toEqual({ quality: 'high', pixelRatio: 2, automatic: true });
   });
 
-  it('starts a phone on High with automatic quality off, like a desktop', () => {
-    vi.stubGlobal('matchMedia', () => ({ matches: true }));
+  it('turns automatic quality on for the High that version 3 saved for everyone', () => {
+    data.set('bathurst.quality.v3', JSON.stringify({ quality: 'high', pixelRatio: null, automatic: false }));
+    expect(loadSettings()).toMatchObject({ quality: 'high', autoQuality: true });
+  });
+
+  it('keeps a Low, Medium or automatic result that version 3 saved, since only those were real choices', () => {
+    data.set('bathurst.quality.v3', JSON.stringify({ quality: 'medium', pixelRatio: null, automatic: false }));
+    expect(loadSettings()).toMatchObject({ quality: 'medium', autoQuality: false });
+    data.set('bathurst.quality.v3', JSON.stringify({ quality: 'low', pixelRatio: 0.75, automatic: true }));
+    expect(loadQualityChoice(auto)).toEqual({ quality: 'low', pixelRatio: 0.75, automatic: true });
+    saveQualityChoice({ quality: 'high', pixelRatio: 2, automatic: false });
     expect(loadSettings()).toMatchObject({ quality: 'high', autoQuality: false });
-    expect(loadQualityChoice(loadSettings())).toEqual({ quality: 'high', pixelRatio: 2, automatic: false });
+  });
+
+  it('starts a phone on High with automatic quality on, like a desktop', () => {
+    vi.stubGlobal('matchMedia', () => ({ matches: true }));
+    expect(loadSettings()).toMatchObject({ quality: 'high', autoQuality: true });
+    expect(loadQualityChoice(loadSettings())).toEqual({ quality: 'high', pixelRatio: 2, automatic: true });
   });
 
   it('recovers from malformed saved data and unavailable storage', () => {
@@ -74,7 +88,7 @@ describe('saved graphics result', () => {
     vi.stubGlobal('localStorage', { getItem: () => { throw new Error('blocked'); }, setItem: () => { throw new Error('blocked'); } });
     expect(() => saveQualityChoice({ quality: 'low', pixelRatio: 0.5, automatic: true })).not.toThrow();
     expect(loadQualityChoice(auto).quality).toBe('high');
-    expect(loadSettings()).toMatchObject({ quality: 'high', autoQuality: false });
+    expect(loadSettings()).toMatchObject({ quality: 'high', autoQuality: true });
   });
 
   it('choosing Graphics quality explicitly disables automatic changes and restores tier density', () => {

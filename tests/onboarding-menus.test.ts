@@ -126,26 +126,25 @@ describe('Start time trial before the first race setup has been seen', () => {
     expect(selected(card('custom'))).toBe('true');
   });
 
-  it('starts on High on step 2, and saves a different graphics tier', () => {
+  it('starts on Auto on step 2, and saves a tier the player picks', () => {
     const { menus, doc, started, startRace, nextButton, rowEl, startButton } = open({ touch: false });
     startRace();
     nextButton().click();
     expect(doc.activeElement).toBe(rowEl('camera'));
-    expect(rowEl('graphics').dataset.value).toBe('high');
+    expect(rowEl('graphics').dataset.value).toBe('auto');
     menus.nav('down');
     menus.nav('left');
     menus.nav('down');
     expect(doc.activeElement).not.toBe(startButton());
     startButton().click();
-    expect(started[0].settings).toMatchObject({ quality: 'medium', autoQuality: false, onboarded: true });
+    expect(started[0].settings).toMatchObject({ quality: 'high', autoQuality: false, onboarded: true });
   });
 
-  it('turns automatic quality on when the player picks Auto on step 2', () => {
+  it('keeps automatic quality from High when the player leaves Auto on step 2', () => {
     const { menus, started, startRace, nextButton, startButton } = open({ touch: false });
     startRace();
     nextButton().click();
     menus.nav('down');
-    menus.nav('right');
     startButton().click();
     expect(started[0].settings).toMatchObject({ quality: 'high', autoQuality: true, onboarded: true });
   });

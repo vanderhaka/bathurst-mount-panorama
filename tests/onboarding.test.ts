@@ -95,10 +95,10 @@ describe('camera rows', () => {
 describe('graphics row', () => {
   const auto = { ...DEFAULT_SETTINGS, quality: 'high' as const, autoQuality: true };
 
-  it('shows the tier (High by default), or Auto for automatic quality, with the Settings tier labels', () => {
-    expect(rowValue(row('graphics'), DEFAULT_SETTINGS)).toBe('high');
-    expect(rowValueLabel(row('graphics'), DEFAULT_SETTINGS)).toBe('High');
-    expect(rowValueLabel(row('graphics'), auto)).toBe('Auto');
+  it('shows Auto by default, or the tier the player chose, with the Settings tier labels', () => {
+    expect(rowValue(row('graphics'), DEFAULT_SETTINGS)).toBe('auto');
+    expect(rowValueLabel(row('graphics'), DEFAULT_SETTINGS)).toBe('Auto');
+    expect(rowValueLabel(row('graphics'), { ...DEFAULT_SETTINGS, autoQuality: false })).toBe('High');
     expect(rowValueLabel(row('graphics'), { ...DEFAULT_SETTINGS, quality: 'medium', autoQuality: false })).toBe('Medium');
     const field = SETTING_GROUPS.flatMap((g) => g.fields).find((f) => f.key === 'quality');
     expect(field?.kind === 'choice' && field.options.map((o) => o.label)).toEqual(row('graphics').options.slice(1).map((o) => o.label));
@@ -117,8 +117,8 @@ describe('graphics row', () => {
     expect(back).toMatchObject({ quality: 'high', autoQuality: true });
     const high = stepRow(auto, row('graphics'), -1);
     expect(high).toMatchObject({ quality: 'high', autoQuality: false });
-    expect(stepRow(DEFAULT_SETTINGS, row('graphics'), -1)).toMatchObject({ quality: 'medium', autoQuality: false });
-    expect(rowValue(row('graphics'), stepRow(DEFAULT_SETTINGS, row('graphics'), 1))).toBe('auto');
+    expect(stepRow(DEFAULT_SETTINGS, row('graphics'), -1)).toMatchObject({ quality: 'high', autoQuality: false });
+    expect(rowValue(row('graphics'), stepRow({ ...DEFAULT_SETTINGS, autoQuality: false }, row('graphics'), 1))).toBe('auto');
   });
 });
 
