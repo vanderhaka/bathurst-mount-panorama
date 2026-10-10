@@ -21,6 +21,7 @@ import type { MenuCallbacks, MenuNav, Menus } from '@/types/hud';
 import type { DrivingLevel, LapRecord, RaceMode, SessionConfig, Settings, ShootoutMode } from '@/types/session';
 import type { ShootoutAttempt, ShootoutOutcome } from '@/shootout/model';
 import { ShootoutStore } from '@/shootout/store';
+import type { PracticeSummary } from '@/game/arcade-best';
 import type { TyreCompound } from '@/physics/tyre-state';
 import { LIVERY_COUNT } from '@/ui/car-data';
 import { applyPadStyle } from '@/ui/pad-glyphs';
@@ -286,10 +287,10 @@ class MenuController implements Menus {
     this.show(this.screens.shootout);
   }
 
-  showShootoutResult(mode: ShootoutMode, attempt: ShootoutAttempt | null, outcome: ShootoutOutcome, error?: string): void {
+  showShootoutResult(mode: ShootoutMode, attempt: ShootoutAttempt | null, outcome: ShootoutOutcome, error?: string, practice?: PracticeSummary): void {
     if (!this.screens) return;
     this.mode = mode;
-    this.screens.shootoutResult.set(mode, attempt, outcome);
+    this.screens.shootoutResult.set(mode, attempt, outcome, practice);
     if (error) this.screens.shootoutResult.showError(error);
     this.show(this.screens.shootoutResult);
   }

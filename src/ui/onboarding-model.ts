@@ -1,11 +1,12 @@
 // First race setup model. Step 1: a driving level card (Casual, Experienced, Superstar or Custom) and
-// the rule rows that card shows. Step 2: camera and graphics. Pure (no DOM) so it can be unit-tested.
+// the rule rows that card shows. Step 2: camera and graphics, plus pedals and auto-throttle on a touch screen.
+// Pure (no DOM) so it can be unit-tested.
 // Every answer is an ordinary Settings value; the Settings screen stays the one place to change it later.
 import { applyLevel, EXPERIENCED_CHOICES, LEVEL_NAMES, lapLevel, type LevelChoice, type RULE_KEYS } from '@/race/driving-levels';
 import type { Settings } from '@/types/session';
 import { SETTING_GROUPS, type SettingField } from '@/ui/settings-model';
 
-export type OnboardingKey = 'camera' | 'graphics' | (typeof RULE_KEYS)[number];
+export type OnboardingKey = 'camera' | 'graphics' | 'pedals' | 'touchAutoThrottle' | (typeof RULE_KEYS)[number];
 
 export interface OnboardingOption {
   value: unknown;
@@ -44,6 +45,28 @@ export const ONBOARDING_ROWS: readonly OnboardingRow[] = [
       { value: 'low', label: 'Low', help: 'Fastest, with less detail and a lower resolution. Saves battery on a phone.' },
       { value: 'medium', label: 'Medium', help: 'Good detail at a steady frame rate on most devices.' },
       { value: 'high', label: 'High', help: 'Most detail and the highest resolution. Needs a fast device.' },
+    ],
+  },
+];
+
+/** Step 2 on a touch screen only: how the on-screen pedals work. Pedals sets the analog throttle and brake together. */
+export const TOUCH_ROWS: readonly OnboardingRow[] = [
+  {
+    key: 'pedals',
+    label: 'Pedals',
+    settingsTab: 'Steering',
+    options: [
+      { value: 'onoff', label: 'On/off', help: 'Any touch is full throttle or full braking. The simplest to start with.' },
+      { value: 'analog', label: 'Analog', help: 'Thumb height sets the amount, for throttle and brake: bottom = gentle, top = full.' },
+    ],
+  },
+  {
+    key: 'touchAutoThrottle',
+    label: 'Auto throttle',
+    settingsTab: 'Steering',
+    options: [
+      { value: false, label: 'Off', help: 'You press the throttle pedal yourself.' },
+      { value: true, label: 'On', help: 'The car accelerates for you. Touch Brake to cut power and slow down.' },
     ],
   },
 ];
@@ -106,6 +129,11 @@ export function detailRows(choice: LevelChoice): readonly OnboardingRow[] {
 
 /** The saved value the row shows ('auto' for automatic quality). */
 export function rowValue(row: OnboardingRow, settings: Settings): unknown {
+  if (row.key === 'pedals') {
+    // Settings can set the two pedals apart: that shows as Mixed until the row sets both.
+    const a = settings.touchAnalogThrottle, b = settings.touchAnalogBrake;
+    return a && b ? 'analog' : !a && !b ? 'onoff' : 'mixed';
+  }
   return row.key === 'graphics' ? (settings.autoQuality ? 'auto' : settings.quality) : settings[row.key];
 }
 
@@ -118,12 +146,14 @@ export function rowIndex(row: OnboardingRow, settings: Settings): number {
 export function rowValueLabel(row: OnboardingRow, settings: Settings): string {
   const i = rowIndex(row, settings);
   if (i >= 0) return row.options[i].label;
+  if (row.key === 'pedals') return 'Mixed';
   return row.key === 'camera' ? CAMERA_LABELS[settings.camera] : String(rowValue(row, settings));
 }
 
 export function rowHelp(row: OnboardingRow, settings: Settings): string {
   const i = rowIndex(row, settings);
-  return i >= 0 ? row.options[i].help : `Your current camera.${CAMERA_TIP}`;
+  if (i >= 0) return row.options[i].help;
+  return row.key === 'pedals' ? 'Analog on one pedal only (set in Settings). Change it here to set both.' : `Your current camera.${CAMERA_TIP}`;
 }
 
 export function rowWhere(row: OnboardingRow): string {
@@ -142,6 +172,7 @@ export function stepRow(settings: Settings, row: OnboardingRow, dir: -1 | 1): Se
     return next.value === 'auto' ? { ...settings, quality: 'high', autoQuality: true }
       : { ...settings, quality: next.value as Settings['quality'], autoQuality: false };
   }
+  if (row.key === 'pedals') return { ...settings, touchAnalogThrottle: next.value === 'analog', touchAnalogBrake: next.value === 'analog' };
   return { ...settings, [row.key]: next.value };
 }
 

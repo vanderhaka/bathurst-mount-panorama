@@ -182,7 +182,9 @@ export class RaceController {
     const inCar = this.d.rig.mode === 'cockpit' || this.d.rig.mode === 'bonnet';
     const v = this.player.vehicle;
     const close = Math.hypot(p.x - v.x, p.z - v.z) < GHOST_HIDE_IN_CAR;
-    const show = this.d.settings().ghost && this.session.ghostVisible && !(inCar && close);
+    // Arcade practice always shows its reference lap (the competition rules turn the Ghost car setting off).
+    const wanted = this.session.mode === 'shootoutArcade' || this.d.settings().ghost;
+    const show = wanted && this.session.ghostVisible && !(inCar && close);
     g.root.visible = show;
     if (!show) return;
     const spec = this.player.vehicle.spec;

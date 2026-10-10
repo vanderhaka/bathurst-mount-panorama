@@ -26,6 +26,7 @@ export interface Settings {
   phoneVibration: boolean;
   touchMode: TouchSteeringMode;
   touchAnalogThrottle: boolean;
+  touchAnalogBrake: boolean;
   touchAutoThrottle: boolean;
   touchLeftHanded: boolean;
   /** The touch player has been asked how to steer (or already changed the mode): ask only once. Not an option row. */
@@ -68,6 +69,7 @@ export const DEFAULT_SETTINGS: Settings = {
   phoneVibration: true,
   touchMode: 'drag',
   touchAnalogThrottle: false,
+  touchAnalogBrake: false,
   touchAutoThrottle: false,
   touchLeftHanded: false,
   steerOnboarded: false,

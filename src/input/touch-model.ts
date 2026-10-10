@@ -3,20 +3,26 @@ export type TouchSteeringMode = 'drag' | 'tilt' | 'buttons';
 export interface TouchOptions {
   mode: TouchSteeringMode;
   analogThrottle: boolean;
+  /** Brake depth = how high the thumb sits on the brake pedal (never below MIN_ANALOG_BRAKE). */
+  analogBrake: boolean;
   autoThrottle: boolean;
   leftHanded: boolean;
 }
 export const DEFAULT_TOUCH_OPTIONS: Readonly<TouchOptions> = {
-  mode: 'drag', analogThrottle: false, autoThrottle: false, leftHanded: false,
+  mode: 'drag', analogThrottle: false, analogBrake: false, autoThrottle: false, leftHanded: false,
 };
+
+/** An analog brake touch always brakes at least this much: a touch at the very bottom still slows the car. */
+export const MIN_ANALOG_BRAKE = 0.2;
 
 /** Old saves omit these fields; malformed values retain the original touch defaults. */
 export function touchOptions(s: {
-  touchMode?: unknown; touchAnalogThrottle?: unknown; touchAutoThrottle?: unknown; touchLeftHanded?: unknown;
+  touchMode?: unknown; touchAnalogThrottle?: unknown; touchAnalogBrake?: unknown; touchAutoThrottle?: unknown; touchLeftHanded?: unknown;
 }): TouchOptions {
   return {
     mode: s.touchMode === 'tilt' || s.touchMode === 'buttons' ? s.touchMode : 'drag',
     analogThrottle: s.touchAnalogThrottle === true,
+    analogBrake: s.touchAnalogBrake === true,
     autoThrottle: s.touchAutoThrottle === true,
     leftHanded: s.touchLeftHanded === true,
   };
@@ -66,7 +72,7 @@ export class TouchInputModel {
 
   configure(options: TouchOptions): void {
     const old = this.options;
-    if (old.mode === options.mode && old.analogThrottle === options.analogThrottle
+    if (old.mode === options.mode && old.analogThrottle === options.analogThrottle && old.analogBrake === options.analogBrake
       && old.autoThrottle === options.autoThrottle && old.leftHanded === options.leftHanded) return;
     this.options = { ...options };
     this.reset();
@@ -95,18 +101,18 @@ export class TouchInputModel {
   update(dt: number, show: boolean, tilt = { ready: false, steer: 0 }): { steer: number; throttle: number; brake: number } {
     if (!show) { this.reset(); return { steer: 0, throttle: 0, brake: 0 }; }
     dt = Math.max(0, dt);
-    let gas = 0, brk = false, left = false, right = false;
+    let gas = 0, brk = false, brakeDepth = 0, left = false, right = false;
     for (const p of this.pointers.values()) {
       if (p.kind === 'button') { if (p.side === 'left') left = true; else right = true; }
       if (p.kind === 'pedal') {
-        if (p.pedal === 'brake') brk = true;
+        if (p.pedal === 'brake') { brk = true; brakeDepth = Math.max(brakeDepth, this.options.analogBrake ? Math.max(MIN_ANALOG_BRAKE, p.value) : 1); }
         else gas = Math.max(gas, this.options.analogThrottle ? p.value : 1);
       }
     }
     const target = Number(left) - Number(right);
     const rate = target === 0 ? 5.5 : this.buttonSteer && Math.sign(target) !== Math.sign(this.buttonSteer) ? 7 : 3.2;
     this.buttonSteer = approach(this.buttonSteer, target, rate, rate, dt);
-    this.brake = approach(this.brake, brk ? 1 : 0, 9, 10, dt);
+    this.brake = approach(this.brake, brakeDepth, 9, 10, dt);
     if (this.options.autoThrottle) gas = brk || this.brake > 0 ? 0 : 1;
     this.throttle = this.options.autoThrottle && brk ? 0 : approach(this.throttle, gas, 6, 8, dt);
     const steer = this.options.mode === 'buttons' ? this.buttonSteer

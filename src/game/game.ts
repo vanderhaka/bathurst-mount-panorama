@@ -19,9 +19,12 @@ import { hudTrackInfo } from '@/game/hud-bridge';
 import { RaceController } from '@/game/race-controller';
 import { RaceEffects } from '@/game/race-effects';
 import { RaceSession } from '@/game/race-session';
-import { competitionSettings } from '@/game/shootout-rules';
-import { isShootoutCar } from '@/shootout/model';
+import { competitionSettings, frameDtCap, RealLapClock } from '@/game/shootout-rules';
+import { loadArcadeBest, recordArcadeLap, type PracticeSummary } from '@/game/arcade-best';
+import { encodeReplay, isShootoutCar, type ShootoutCar } from '@/shootout/model';
+import { fetchReplay } from '@/shootout/leaderboard';
 import { ShootoutStore } from '@/shootout/store';
+import { formatLapTime } from '@/hud/format';
 import { loadSettings, saveSettings } from '@/game/settings-store';
 import { Stage } from '@/game/stage';
 import { installDeviceHooks } from '@/game/device-hooks';
@@ -41,6 +44,12 @@ import { RacingLineMesh } from '@/world/racing-line-mesh';
 import { buildWorld, type World } from '@/world/world';
 
 type GameState = 'title' | 'carSelect' | 'race' | 'paused';
+
+/** While a Top 10 timed lap runs, leaving the page would use the attempt without a result: the browser asks first. */
+export function warnBeforeUnload(e: BeforeUnloadEvent): void {
+  e.preventDefault();
+  e.returnValue = '';
+}
 
 export class Game {
   private state: GameState = 'title';
@@ -64,6 +73,8 @@ export class Game {
   private readonly shootoutStore = new ShootoutStore();
   private shootoutPreferences: Settings | null = null;
   private claimingShootout = false;
+  /** Real time of the running Shootout timed lap, paused with the game (the slow-motion check at the line). */
+  private readonly lapClock = new RealLapClock();
 
   private constructor(private readonly stage: Stage, private world: World, private readonly hud: Hud, private readonly menus: Menus) {
     this.rig = new CameraRig(stage.camera, world.track);
@@ -168,6 +179,8 @@ export class Game {
     if (mode !== 'timeTrial') { player.vehicle.handling = DEFAULT_HANDLING; player.vehicle.setup = defaultSetup(cfg.car); }
     const session = new RaceSession(cfg.car, this.world.track, this.world.line, player, mode !== 'timeTrial' ? 'soft' : cfg.tyres ?? 'soft', this.settings, mode);
     if (mode === 'shootoutTop10') session.shootoutRemaining = this.shootoutStore.snapshot().remaining;
+    session.realLapTime = () => this.lapClock.elapsedS(performance.now());
+    if (mode === 'shootoutArcade' && isShootoutCar(cfg.car)) this.loadPractice(session, cfg.car);
     session.placeOnGrid();
     this.ghostModel = createCarModel(cfg.car, { livery: LIVERY_PRESETS[cfg.car][0].livery, detail: 'low', quality: this.settings.quality });
     this.ghostModel.setGhost(true);
@@ -186,7 +199,26 @@ export class Game {
     this.graphics.startRace();
   }
 
+  /** Arcade: the player's own best sets the delta; the ghost is the current #1 lap for this car once it loads, else
+   * the player's own best lap. */
+  private loadPractice(session: RaceSession, car: ShootoutCar): void {
+    const own = loadArcadeBest(car);
+    const best = own ? { bestS: own.timeS, bestSectors: own.sectorsS, trace: own.trace } : null;
+    session.setPracticeReference(own?.ghost ?? null, best, 'GHOST: YOUR BEST');
+    void fetchReplay(car, 1).then((replay) => {
+      if (replay?.frames.length && this.race?.session === session) session.setPracticeReference(replay.frames, best, `GHOST: CURRENT #1 ${formatLapTime(replay.timeS)}`);
+    }).catch(() => { /* offline or no laps yet: the player's own best stays */ });
+  }
+
+  private guardUnload(on: boolean): void {
+    if (typeof addEventListener !== 'function') return; // no window (unit tests)
+    if (on) addEventListener('beforeunload', warnBeforeUnload);
+    else removeEventListener('beforeunload', warnBeforeUnload);
+  }
+
   private endRace(): void {
+    this.lapClock.stop();
+    this.guardUnload(false);
     const session = this.race?.session;
     if (session?.shootout?.phase === 'timed') {
       session.abortShootout('The timed lap was abandoned. This attempt is used.');
@@ -215,17 +247,19 @@ export class Game {
 
   private pause(): void {
     this.state = 'paused';
+    this.lapClock.pause(performance.now());
     this.audio?.suspend();
     const session = this.race?.session;
     this.menus.showPause(session?.mode !== 'timeTrial' && session?.shootout ? { mode: session.mode, timed: session.shootout.phase === 'timed' } : undefined);
   }
 
   /** The WebGL context is lost and main.ts offers a reload: pause for good, releasing wake lock and audio. */
-  halt(): void { this.halted = true; this.wakeLock.setRunning(false); if (this.state === 'race') this.pause(); }
+  halt(): void { this.halted = true; this.wakeLock.setRunning(false); this.guardUnload(false); if (this.state === 'race') this.pause(); }
 
   private resume(): void {
     if (this.state !== 'paused' || this.halted || this.claimingShootout || this.race?.session.waitingForShootout) return;
     this.state = 'race';
+    this.lapClock.resume(performance.now());
     this.audio?.resume();
     this.graphics.settle();
   }
@@ -271,7 +305,7 @@ export class Game {
 
   private rememberSettings(): void {
     const original = this.shootoutPreferences;
-    const saved = original ? { ...this.settings, racingLine: original.racingLine, autoGears: original.autoGears, touchAutoThrottle: original.touchAutoThrottle,
+    const saved = original ? { ...this.settings, racingLine: original.racingLine, autoGears: original.autoGears,
       tractionControl: original.tractionControl, abs: original.abs, steeringAssist: original.steeringAssist,
       damage: original.damage, trackLimits: original.trackLimits, wear: original.wear, autoRecover: original.autoRecover, ghost: original.ghost } : this.settings;
     if (original) this.shootoutPreferences = saved;
@@ -283,15 +317,33 @@ export class Game {
     if (run?.phase !== 'finished' || !run.attempt) return;
     try { this.shootoutStore.complete(run.attempt.id, run.outcome); }
     catch (error) { return error instanceof Error ? error.message : 'Your result could not be saved. Keep this screen open and retry.'; }
+    const frames = session.shootoutReplay;
+    if (session.mode !== 'shootoutTop10' || run.outcome.kind !== 'valid' || !frames) return;
+    // The replay travels with the score; a replay that cannot be saved never costs the result.
+    try { this.shootoutStore.saveReplay(run.attempt.id, encodeReplay(frames)); }
+    catch (error) { console.warn('Shootout replay not saved', error); }
+  }
+
+  /** Arcade: the lap against the player's Arcade best for this car (a faster valid lap becomes the new best). */
+  private recordPractice(session: RaceSession): PracticeSummary | undefined {
+    const run = session.shootout;
+    if (run?.phase !== 'finished' || session.mode !== 'shootoutArcade' || !isShootoutCar(session.car)) return;
+    const save = session.timer.saveData();
+    const lap = run.outcome.kind === 'valid'
+      ? { timeS: run.outcome.timeS, sectorsS: run.outcome.sectorsS, trace: save?.bestS === run.outcome.timeS ? save.trace : undefined, ghost: session.shootoutReplay ?? undefined }
+      : null;
+    return recordArcadeLap(session.car, lap);
   }
 
   private finishShootout(session: RaceSession): void {
     const run = session.shootout;
     if (run?.phase !== 'finished' || session.mode === 'timeTrial') return;
     this.state = 'paused';
+    this.lapClock.stop();
+    this.guardUnload(false);
     this.audio?.suspend();
     const error = this.saveShootoutResult(session);
-    this.menus.showShootoutResult(session.mode, run.attempt, run.outcome, error);
+    this.menus.showShootoutResult(session.mode, run.attempt, run.outcome, error, this.recordPractice(session));
   }
 
   private async startShootoutLap(race: RaceController): Promise<void> {
@@ -299,24 +351,22 @@ export class Game {
     if (session.mode === 'shootoutArcade') { session.beginShootoutTimedLap(null); return; }
     if (this.claimingShootout || !isShootoutCar(session.car)) return;
     this.claimingShootout = true;
-    this.state = 'paused';
-    this.audio?.suspend();
-    this.menus.showLoading(1, 'Saving timed Shootout attempt');
     try {
-      const attempt = await this.shootoutStore.beginTimedLap(session.car, true);
+      // Saved in this browser only, so the car does not stop at the line; the server allocation follows in the
+      // background (a failure there is kept for retry with the score).
+      const attempt = await this.shootoutStore.reserveTimedLap(session.car);
       if (this.race !== race || this.halted) return;
       session.beginShootoutTimedLap(attempt);
-      if (!attempt.online) session.say('CONNECTION LOST — SCORE SAVED FOR RETRY AFTER THIS LAP', 'warn', 5);
-      this.menus.hide();
-      this.state = 'race';
-      this.audio?.resume();
+      this.lapClock.start(performance.now(), this.state !== 'race');
+      this.guardUnload(true);
+      if (typeof navigator !== 'undefined' && navigator.onLine === false) session.sayNext('OFFLINE — YOUR SCORE IS SAVED FOR RETRY AFTER THIS LAP', 'warn', 5);
+      void this.shootoutStore.allocateInBackground(attempt.id).catch(() => {});
     } catch (error) {
       if (this.race !== race) return;
       session.placeOnGrid();
+      race.restart();
+      this.rig.snap();
       session.say(error instanceof Error ? error.message : 'Could not save your attempt. No timed lap started.', 'warn', 8);
-      this.menus.hide();
-      this.state = 'race';
-      this.audio?.resume();
     } finally { this.claimingShootout = false; }
   }
 
@@ -324,7 +374,7 @@ export class Game {
     this.wakeLock.setRunning(this.state === 'race' && !this.menus.isOpen() && Boolean(this.race?.session.racing));
     this.timer.update(time);
     const rawDt = this.timer.getDelta();
-    const dt = Math.min(rawDt, 1 / 20);
+    const dt = Math.min(rawDt, frameDtCap(this.state === 'race' && this.race?.session.shootout?.phase === 'timed'));
     if (this.state === 'race') this.graphics.sample(rawDt, this.settings.frameRate);
     this.fps += (1 / Math.max(rawDt, 1e-3) - this.fps) * 0.05;
     this.input.menusOpen = this.menus.isOpen();
@@ -350,7 +400,11 @@ export class Game {
     if (input.consume('pause')) return this.pause();
     const before = JSON.stringify(this.settings);
     if (input.consume('camera')) this.settings.camera = this.rig.cycle();
-    if (input.consume('reset')) race.resetToTrack();
+    if (input.consume('reset')) {
+      // A reset would end the timed lap and use the attempt: only the pause menu ends it, on purpose.
+      if (race.session.shootout?.phase === 'timed') race.session.say(race.session.mode === 'shootoutTop10' ? 'PAUSE TO END THE ATTEMPT' : 'PAUSE TO END THE LAP', 'info', 2.5);
+      else race.resetToTrack();
+    }
     if (input.consume('ghost') && !race.session.shootout) this.settings.ghost = !this.settings.ghost;
     if (input.consume('hud')) this.hudHidden = !this.hudHidden;
     const lines: Settings['racingLine'][] = ['off', 'braking', 'full'];

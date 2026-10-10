@@ -80,8 +80,10 @@ export class TouchControls {
   }
   private samplePedal(id: number, x: number, y: number): void {
     const t = this.throttleEl.getBoundingClientRect();
-    const pedal = this.model.options.autoThrottle ? 'brake' : pedalAt(x, this.brakeEl.getBoundingClientRect(), t);
-    this.model.pedal(id, pedal, pedal === 'throttle' ? analogPedal(y, t.top, t.height) : 1);
+    const b = this.brakeEl.getBoundingClientRect();
+    const pedal = this.model.options.autoThrottle ? 'brake' : pedalAt(x, b, t);
+    // Both pedals report the thumb height; the model uses it only when that pedal is analog.
+    this.model.pedal(id, pedal, pedal === 'throttle' ? analogPedal(y, t.top, t.height) : analogPedal(y, b.top, b.height));
   }
   private readonly onTouch = (e: PointerEvent): void => {
     if (e.pointerType === 'touch') { this.touched = true; this.suspended = false; }
@@ -127,6 +129,7 @@ export class TouchControls {
     this.wheel.style.setProperty('--tc-steer', String(-controls.steer));
     this.throttleEl.style.setProperty('--tc-throttle', `${controls.throttle * 100}%`);
     this.throttleEl.classList.toggle('is-on', controls.throttle > 0);
+    this.brakeEl.style.setProperty('--tc-brake', `${controls.brake * 100}%`);
     this.brakeEl.classList.toggle('is-on', controls.brake > 0);
     this.el.dataset.tiltReady = String(this.tilt.ready);
     this.tiltButton.disabled = this.tilt.status === 'requesting';

@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { Game } from '@/game/game';
+import { RealLapClock } from '@/game/shootout-rules';
 import { DEFAULT_SETTINGS } from '@/types/session';
 
 vi.mock('@/input/touch-guards', () => ({ installTouchGuards: vi.fn() }));
@@ -15,7 +16,7 @@ function fixture(state: 'race' | 'title') {
   const parts = {
     audio: { suspend: vi.fn(), resume: vi.fn() }, wakeLock: { setRunning: vi.fn() }, menus: { showPause: vi.fn() },
     graphics: { settle: vi.fn(), startRace: vi.fn() }, rig: { snap: vi.fn() }, applySettings: vi.fn(),
-    race: { session: { placeOnGrid: vi.fn() }, profiles: { reset: vi.fn() } },
+    race: { session: { placeOnGrid: vi.fn() }, profiles: { reset: vi.fn() } }, lapClock: new RealLapClock(),
   };
   const game = Object.assign(Object.create(Game.prototype) as object, { state, halted: false, ...parts }) as unknown as Lifecycle;
   return { game, ...parts };

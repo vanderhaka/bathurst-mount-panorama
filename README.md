@@ -51,12 +51,15 @@ documented estimates.
 ## Shootout
 
 Both Shootout modes run at Bathurst with the Camaro, Mustang, or Supra. Every run
-has one warm-up lap and one timed flying lap. Both use full damage, track limits,
+has a rolling warm-up from Forrest's Elbow on warm tyres, then one full timed lap
+from the line. Both use full damage, track limits,
 tyre wear, automatic gears, soft tyres, and the standard setup. ABS, traction
 control and steering assist are on for everyone (phone and keyboard pedals are
-on/off, so without them every brake press locks the wheels). Racing lines,
-ghosts, and automatic recovery are disabled. Steering sensitivity and other
-controls stay adjustable in Settings during a run. On a touch screen, every run
+on/off, so without them every brake press locks the wheels). Racing lines and
+automatic recovery are disabled; Top 10 shows no ghost, while Arcade races the
+current #1 lap for the car (or your own Arcade best). Steering sensitivity, touch
+auto-throttle, analog pedals and other controls stay the player's choice in
+Settings during a run. On a touch screen, every run
 first asks whether to steer with Finger or Tilt. Touch controls include
 gear buttons when manual gears are active.
 

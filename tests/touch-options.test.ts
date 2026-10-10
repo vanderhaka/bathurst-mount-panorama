@@ -1,12 +1,12 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { TouchInputModel, analogPedal, pedalAt, touchOptions, type TouchOptions } from '@/input/touch-model';
+import { MIN_ANALOG_BRAKE, TouchInputModel, analogPedal, pedalAt, touchOptions, type TouchOptions } from '@/input/touch-model';
 import { loadSettings, saveSettings } from '@/game/settings-store';
 import { DEFAULT_SETTINGS } from '@/types/session';
 import { SETTING_GROUPS, adjustSetting, valueLabel } from '@/ui/settings-model';
 import { InputManager } from '@/input/input-manager';
 import type { TouchControls } from '@/input/touch-controls';
 
-const defaults: TouchOptions = { mode: 'drag', analogThrottle: false, autoThrottle: false, leftHanded: false };
+const defaults: TouchOptions = { mode: 'drag', analogThrottle: false, analogBrake: false, autoThrottle: false, leftHanded: false };
 const step = (m: TouchInputModel) => m.update(1, true);
 afterEach(() => vi.unstubAllGlobals());
 
@@ -62,6 +62,29 @@ describe('touch driving modes', () => {
     expect(step(m).throttle).toBe(0);
   });
 
+  it('maps an analog brake by thumb height, never below a light minimum', () => {
+    const m = new TouchInputModel();
+    m.configure({ ...defaults, analogBrake: true });
+    m.pedal(1, 'brake', analogPedal(150, 100, 100));
+    expect(step(m).brake).toBe(0.5);
+    m.pedal(1, 'brake', analogPedal(250, 100, 100));
+    expect(step(m).brake).toBe(MIN_ANALOG_BRAKE);
+    expect(MIN_ANALOG_BRAKE).toBeGreaterThan(0);
+    m.pedal(1, 'brake', 1);
+    expect(step(m).brake).toBe(1);
+    m.release(1);
+    expect(step(m).brake).toBe(0);
+  });
+
+  it('keeps the default brake full at any height, and analog brake with auto-throttle still cuts power', () => {
+    const m = new TouchInputModel();
+    m.pedal(1, 'brake', 0);
+    expect(step(m).brake).toBe(1);
+    m.configure({ ...defaults, analogBrake: true, autoThrottle: true });
+    m.pedal(1, 'brake', 0.4);
+    expect(step(m)).toEqual({ steer: 0, throttle: 0, brake: 0.4 });
+  });
+
   it('keeps the default throttle digital even at the bottom of its pedal', () => {
     const m = new TouchInputModel();
     m.pedal(1, 'throttle', 0);
@@ -112,7 +135,7 @@ describe('touch driving modes', () => {
 describe('touch settings', () => {
   it('offers the four options in Steering and leaves existing steering/handling defaults', () => {
     const fields = SETTING_GROUPS.find((g) => g.title === 'Steering')!.fields;
-    for (const key of ['touchMode', 'touchAnalogThrottle', 'touchAutoThrottle', 'touchLeftHanded']) {
+    for (const key of ['touchMode', 'touchAnalogThrottle', 'touchAnalogBrake', 'touchAutoThrottle', 'touchLeftHanded']) {
       expect(fields.some((f) => f.key === key)).toBe(true);
     }
     const mode = fields.find((f) => f.key === 'touchMode')!;
@@ -135,9 +158,10 @@ describe('touch settings', () => {
     expect(touchOptions(old)).toEqual(defaults);
     expect(old.units).toBe('mph');
     expect(old.steerTouch).toBe(1.3);
-    saveSettings({ ...old, touchMode: 'tilt', touchAnalogThrottle: true, touchAutoThrottle: true, touchLeftHanded: true });
-    expect(touchOptions(loadSettings())).toEqual({ mode: 'tilt', analogThrottle: true, autoThrottle: true, leftHanded: true });
-    raw = JSON.stringify({ touchMode: 'broken', touchAnalogThrottle: 'yes', touchAutoThrottle: null, touchLeftHanded: 1 });
+    expect(old.touchAnalogBrake).toBe(false);
+    saveSettings({ ...old, touchMode: 'tilt', touchAnalogThrottle: true, touchAnalogBrake: true, touchAutoThrottle: true, touchLeftHanded: true });
+    expect(touchOptions(loadSettings())).toEqual({ mode: 'tilt', analogThrottle: true, analogBrake: true, autoThrottle: true, leftHanded: true });
+    raw = JSON.stringify({ touchMode: 'broken', touchAnalogThrottle: 'yes', touchAnalogBrake: 'yes', touchAutoThrottle: null, touchLeftHanded: 1 });
     expect(touchOptions(loadSettings())).toEqual(defaults);
   });
 });

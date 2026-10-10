@@ -4,7 +4,7 @@ import { DEFAULT_SETTINGS, type Settings } from '@/types/session';
 import { LEVEL_PRESETS, levelChoice } from '@/race/driving-levels';
 import {
   CUSTOM_ROWS, detailRows, EXPERIENCED_ROWS, lapLevelLine, LEVEL_CARDS, LEVEL_FACTS, LEVEL_RECORDS_NOTE, needsOnboarding, ONBOARDING_LATER, ONBOARDING_ROWS,
-  rowHelp, rowIndex, rowValue, rowValueLabel, rowWhere, selectLevel, stepRow, withOnboarded, type OnboardingRow,
+  rowHelp, rowIndex, rowValue, rowValueLabel, rowWhere, selectLevel, stepRow, TOUCH_ROWS, withOnboarded, type OnboardingRow,
 } from '@/ui/onboarding-model';
 import { SETTING_GROUPS } from '@/ui/settings-model';
 
@@ -71,7 +71,7 @@ describe('level cards', () => {
 
 describe('camera rows', () => {
   it('names a Settings tab that exists', () => {
-    for (const r of [...ONBOARDING_ROWS, ...CUSTOM_ROWS, ...EXPERIENCED_ROWS]) {
+    for (const r of [...ONBOARDING_ROWS, ...CUSTOM_ROWS, ...EXPERIENCED_ROWS, ...TOUCH_ROWS]) {
       expect(SETTING_GROUPS.some((g) => g.title === r.settingsTab)).toBe(true);
       expect(rowWhere(r)).toBe(`Settings > ${r.settingsTab}`);
     }
@@ -89,6 +89,30 @@ describe('camera rows', () => {
   it('tells the player how to change the camera while driving', () => {
     for (const o of row('camera').options) expect(o.help).toContain('{RB}');
     expect(rowHelp(row('camera'), { ...DEFAULT_SETTINGS, camera: 'tv' })).toContain('{RB}');
+  });
+});
+
+describe('touch pedal rows', () => {
+  const pedals = TOUCH_ROWS.find((r) => r.key === 'pedals')!;
+  const auto = TOUCH_ROWS.find((r) => r.key === 'touchAutoThrottle')!;
+
+  it('sets analog throttle and brake together, and shows a Settings mix as Mixed', () => {
+    expect(rowValueLabel(pedals, DEFAULT_SETTINGS)).toBe('On/off');
+    const analog = stepRow(DEFAULT_SETTINGS, pedals, 1);
+    expect(analog).toMatchObject({ touchAnalogThrottle: true, touchAnalogBrake: true });
+    expect(rowValueLabel(pedals, analog)).toBe('Analog');
+    expect(stepRow(analog, pedals, 1)).toMatchObject({ touchAnalogThrottle: false, touchAnalogBrake: false });
+    const mixed = { ...DEFAULT_SETTINGS, touchAnalogThrottle: true };
+    expect(rowIndex(pedals, mixed)).toBe(-1);
+    expect(rowValueLabel(pedals, mixed)).toBe('Mixed');
+    expect(rowHelp(pedals, mixed)).toContain('Settings');
+    expect(stepRow(mixed, pedals, 1)).toMatchObject({ touchAnalogThrottle: false, touchAnalogBrake: false });
+  });
+
+  it('turns auto-throttle off and on', () => {
+    expect(rowValueLabel(auto, DEFAULT_SETTINGS)).toBe('Off');
+    expect(stepRow(DEFAULT_SETTINGS, auto, 1).touchAutoThrottle).toBe(true);
+    expect(rowWhere(auto)).toBe('Settings > Steering');
   });
 });
 

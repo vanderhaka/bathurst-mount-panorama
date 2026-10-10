@@ -3,6 +3,7 @@ import { installAndroidPresentation } from '@/phone/android-presentation';
 import { installTouchGuards } from '@/input/touch-guards';
 import { initUsageAnalytics } from '@/game/usage-analytics';
 import { ACTIVE_CIRCUIT, CIRCUITS } from '@/track/circuits';
+import { DEV_TOOLS } from '@/config/build-flags';
 
 if (ACTIVE_CIRCUIT !== 'bathurst') document.title = `${CIRCUITS[ACTIVE_CIRCUIT].name} — Gen3 time trial`;
 
@@ -39,7 +40,9 @@ if (!root) {
   Game.create(root)
     .then((game) => {
       running = game;
-      window.__game = game;
+      // Verification hooks (time scale, teleport, autopilot) for local and preview builds only: production players
+      // must not reach them from the console.
+      if (DEV_TOOLS) window.__game = game;
       window.__shotReady = true;
     })
     .catch((err: unknown) => {
