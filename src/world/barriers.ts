@@ -13,6 +13,7 @@ import { heightAt } from '@/track/track-query';
 import { fbm } from '@/world/dem';
 import { VERGE_COLOURS } from '@/world/road';
 import { buildStrip } from '@/world/strip';
+import { applyTerrainAttributes } from '@/world/terrain-detail';
 import { chainLinkTexture, concreteTexture } from '@/world/textures';
 
 const WALL_HEIGHT = 1.05;
@@ -23,35 +24,58 @@ function concreteOffset(side: SideArrays, i: number): number {
   return side.wall[i] + (side.barrier[i] === 'tyres' ? TYRE_WALL_DEPTH : 0);
 }
 
-export function buildVerges(track: Track, kerbs: KerbLayout): THREE.Group {
+/**
+ * Verge strips beside the kerbs. Grass and gravel use the terrain's shared material (albedo detail, green/straw tint)
+ * when it is supplied; asphalt and concrete keep a plain vertex-colour material.
+ */
+export function buildVerges(track: Track, kerbs: KerbLayout, terrainMaterial?: THREE.Material): THREE.Group {
   const g = new THREE.Group();
   g.name = 'verges';
-  const mat = vertexColourMaterial({ roughness: 0.95, flat: false });
+  const plain = vertexColourMaterial({ roughness: 0.95, flat: false });
   const c2 = new THREE.Color();
+  type Kind = { test: (surface: string) => boolean; material: THREE.Material; vegetation: number | null };
+  const kinds: Kind[] = terrainMaterial
+    ? [
+      { test: (t) => t === 'grass', material: terrainMaterial, vegetation: 1 },
+      { test: (t) => t === 'gravel', material: terrainMaterial, vegetation: 0 },
+      { test: (t) => t !== 'grass' && t !== 'gravel', material: plain, vegetation: null },
+    ]
+    : [{ test: () => true, material: plain, vegetation: null }];
   for (const sign of [1, -1] as const) {
     const side = sign > 0 ? track.left : track.right;
     const kw = sign > 0 ? kerbs.left : kerbs.right;
-    const geo = buildStrip(track, {
-      from: (i) => (sign > 0 ? side.edge[i] + kw[i] : -concreteOffset(side, i) - 0.4),
-      to: (i) => (sign > 0 ? concreteOffset(side, i) + 0.4 : -(side.edge[i] + kw[i])),
-      segments: 4,
-      lift: () => -0.004,
-      colour: (i, _u, d, c) => {
-        const surf = side.surface[i];
-        const x = track.px[i] + track.lx[i] * d, z = track.pz[i] + track.lz[i] * d;
-        const n = fbm(x / 9, z / 9, 3, 17);
-        if (surf === 'grass') c.copy(VERGE_COLOURS.grass).lerp(VERGE_COLOURS.grassDry, 0.18 + Math.max(0, n) * 0.75);
-        else if (surf === 'gravel') c.copy(VERGE_COLOURS.gravel).multiplyScalar(1 + n * 0.12);
-        else if (surf === 'asphalt') c.copy(VERGE_COLOURS.asphalt).multiplyScalar(1 + n * 0.08);
-        else c.copy(VERGE_COLOURS.concrete).multiplyScalar(0.95 + n * 0.05);
-        // Tyre marks and dust in the first metre off the road.
-        const off = Math.abs(d) - side.edge[i];
-        if (off < 1.2) c.lerp(c2.copy(linearColour(GROUND.clay)), 0.12 * (1 - off / 1.2));
-      },
-    });
-    const mesh = new THREE.Mesh(geo, mat);
-    mesh.receiveShadow = true;
-    g.add(mesh);
+    for (const kind of kinds) {
+      // A segment belongs to the kind of its first sample, so neighbouring kinds meet without a gap.
+      const is = (i: number) => kind.test(side.surface[(i + track.n) % track.n]);
+      const geo = buildStrip(track, {
+        from: (i) => (sign > 0 ? side.edge[i] + kw[i] : -concreteOffset(side, i) - 0.4),
+        to: (i) => (sign > 0 ? concreteOffset(side, i) + 0.4 : -(side.edge[i] + kw[i])),
+        segments: 4,
+        lift: () => -0.004,
+        include: kinds.length === 1 ? undefined : (i) => is(i) || is(i - 1),
+        colour: (i, _u, d, c) => {
+          const surf = side.surface[i];
+          const x = track.px[i] + track.lx[i] * d, z = track.pz[i] + track.lz[i] * d;
+          const n = fbm(x / 9, z / 9, 3, 17);
+          if (surf === 'grass') {
+            // Two scales (9 m clumps, 45 m zones), per vertex and smooth, so the verge shows green and straw patches.
+            const zone = fbm(x / 45, z / 45, 2, 23);
+            c.copy(VERGE_COLOURS.grass).lerp(VERGE_COLOURS.grassDry, Math.max(0.04, Math.min(0.95, 0.25 + n * 0.8 + zone * 1.3)));
+            c.multiplyScalar(1 + n * 0.14);
+          } else if (surf === 'gravel') c.copy(VERGE_COLOURS.gravel).multiplyScalar(1 + n * 0.12);
+          else if (surf === 'asphalt') c.copy(VERGE_COLOURS.asphalt).multiplyScalar(1 + n * 0.08);
+          else c.copy(VERGE_COLOURS.concrete).multiplyScalar(0.95 + n * 0.05);
+          // Tyre marks and dust in the first metre off the road.
+          const off = Math.abs(d) - side.edge[i];
+          if (off < 1.2) c.lerp(c2.copy(linearColour(GROUND.clay)), 0.12 * (1 - off / 1.2));
+        },
+      });
+      if (!geo.getIndex()?.count) { geo.dispose(); continue; }
+      if (kind.vegetation !== null) applyTerrainAttributes(geo, kind.vegetation);
+      const mesh = new THREE.Mesh(geo, kind.material);
+      mesh.receiveShadow = true;
+      g.add(mesh);
+    }
   }
   return g;
 }

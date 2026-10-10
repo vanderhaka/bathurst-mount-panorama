@@ -1,19 +1,30 @@
 // Cross-section of the body at a given z: control points from the profile
 // curves, then sampled into a fixed number of ring points (same topology for
 // every row, so rows can be lofted into one grid).
-import { catmullRom, makeCurve, reflect, smoothstep, type Curve, type P2 } from '@/car/models/curves';
+import { catmullRom, clamp, makeCurve, reflect, smoothstep, type Curve, type P2 } from '@/car/models/curves';
 import type { BodyCurves, BodyProfile } from '@/car/models/profile-types';
 
 /** Control point indices (half section, bottom centre -> top centre). */
 export const CP = { BC: 0, BW: 1, BA: 2, SA: 3, S0: 4, S1: 5, S2: 6, S3: 7, T0: 8, G0: 9, G1: 10, R0: 11, R1: 12, RC: 13 } as const;
 
-/** Samples per span (span i runs from control point i to i+1). */
+/** Samples per span (span i runs from control point i to i+1), before the fillet samples below. */
 const SPAN_SAMPLES = {
-  high: [2, 1, 1, 1, 2, 3, 3, 2, 2, 2, 2, 3, 4],
+  high: [2, 1, 1, 1, 1, 2, 2, 1, 2, 1, 2, 3, 4],
   low: [1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 2],
 } as const;
 
 export type RingDetail = keyof typeof SPAN_SAMPLES;
+
+/**
+ * Fillet radius (m) at each creased control point. A filleted crease is no knife edge: one extra ring point sits
+ * `r` along each neighbouring span and the crease point itself is pulled in onto the arc between them, so with
+ * smooth normals the edge reads as rolled pressed steel. About 10 mm at the sill, waist and shoulder, a little more
+ * at the glass base and the roof rail. Low detail keeps knife edges (its triangle budget is tight).
+ */
+const FILLETS: Record<RingDetail, Partial<Record<number, number>>> = {
+  high: { [CP.S0]: 0.01, [CP.S2]: 0.01, [CP.S3]: 0.012, [CP.G0]: 0.012, [CP.G1]: 0.02 },
+  low: {},
+};
 
 export interface SectionLayout {
   /** Half-ring point count minus one (index of RC). */
@@ -21,13 +32,17 @@ export interface SectionLayout {
   /** Half-ring index of each control point. */
   cpIndex: number[];
   spans: readonly number[];
+  /** Fillet radius (m) per control point, 0 = knife edge. */
+  fillet: number[];
 }
 
 export function sectionLayout(detail: RingDetail): SectionLayout {
   const spans = SPAN_SAMPLES[detail];
+  const f = FILLETS[detail];
+  const fillet = Array.from({ length: spans.length + 1 }, (_, i) => f[i] ?? 0);
   const cpIndex = [0];
-  for (const k of spans) cpIndex.push(cpIndex[cpIndex.length - 1] + k);
-  return { n: cpIndex[cpIndex.length - 1], cpIndex, spans };
+  spans.forEach((k, i) => cpIndex.push(cpIndex[i] + k + (fillet[i] ? 1 : 0) + (fillet[i + 1] ? 1 : 0)));
+  return { n: cpIndex[cpIndex.length - 1], cpIndex, spans, fillet };
 }
 
 export type CurveSet = { [K in keyof BodyCurves]-?: Curve };
@@ -168,8 +183,41 @@ export function sampleHalf(section: Section, layout: SectionLayout, out: P2[] = 
   out.length = 0;
   const { cp, top } = section;
   layout.spans.forEach((k, span) => {
-    for (let j = 0; j < k; j++) out.push(spanPoint(cp, span, topT(section, span, j, k), top, section));
+    const a = cp[span], b = cp[span + 1];
+    const chord = Math.max(1e-3, Math.hypot(b.x - a.x, b.y - a.y));
+    const f = (r: number) => clamp(r / chord, 0.03, 0.35);
+    const ts: number[] = [];
+    for (let j = 0; j < k; j++) ts.push(topT(section, span, j, k));
+    if (layout.fillet[span]) ts.splice(1, 0, f(layout.fillet[span]));
+    if (layout.fillet[span + 1]) ts.push(1 - f(layout.fillet[span + 1]));
+    for (const t of ts) out.push(spanPoint(cp, span, t, top, section));
   });
   out.push({ ...cp[CP.RC] });
+  rollCorners(out, layout);
   return out;
+}
+
+/**
+ * Pulls each filleted crease point onto the arc tangent to its two fillet neighbours (a rolled edge of radius
+ * about the fillet). With half-angle a between the crease and the bisector the arc's apex sits 1 / (1 + sin a)
+ * of the way from the corner to the chord midpoint; a point on an already smooth curve barely moves.
+ */
+function rollCorners(pts: P2[], layout: SectionLayout): void {
+  const rest = pts.map((p) => ({ ...p }));
+  const near = (i: number, dir: 1 | -1): P2 | null => {
+    for (let j = i + dir; j >= 0 && j < rest.length; j += dir) {
+      if (Math.hypot(rest[j].x - rest[i].x, rest[j].y - rest[i].y) > 1e-4) return rest[j];
+    }
+    return null;
+  };
+  layout.fillet.forEach((r, c) => {
+    if (!r) return;
+    const i = layout.cpIndex[c];
+    const p = rest[i], a = near(i, -1), b = near(i, 1);
+    if (!a || !b) return;
+    const ux = a.x - p.x, uy = a.y - p.y, vx = b.x - p.x, vy = b.y - p.y;
+    const cos2a = (ux * vx + uy * vy) / (Math.hypot(ux, uy) * Math.hypot(vx, vy));
+    const k = 1 / (1 + Math.sqrt(Math.max(0, (1 - cos2a) / 2)));
+    pts[i] = { x: p.x + ((a.x + b.x) / 2 - p.x) * k, y: p.y + ((a.y + b.y) / 2 - p.y) * k };
+  });
 }

@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { installGumDither } from '@/props/trees/gum-lod';
 import { treeMaterial } from '@/props/core/materials';
 import { createGumAtlas, GUM_ATLAS_GRID } from '@/props/trees/gum-atlas';
+import { GUM_SHADING } from '@/props/look';
 import { installGumWind, type GumWindUniforms } from '@/props/trees/gum-wind';
 
 export interface GumMaterialOptions { atlasSize: number; barkDetail: boolean; anisotropy?: number }
@@ -61,7 +62,7 @@ function installCrownLighting(material: THREE.Material): void {
   const before = material.onBeforeCompile, key = material.customProgramCacheKey;
   material.onBeforeCompile = function (shader, renderer) {
     before.call(this, shader, renderer);
-    shader.vertexShader = 'varying vec3 vGumCrown;\n' + shader.vertexShader;
+    shader.vertexShader = 'varying vec3 vGumCrown; varying float vGumUp;\n' + shader.vertexShader;
     shader.vertexShader = shader.vertexShader.replace('#include <normal_vertex>', `#include <normal_vertex>
       vGumCrown = normal;
       #ifdef USE_BATCHING
@@ -70,18 +71,30 @@ function installCrownLighting(material: THREE.Material): void {
       #ifdef USE_INSTANCING
         vGumCrown = mat3(instanceMatrix) * vGumCrown / length(instanceMatrix[0].xyz);
       #endif
+      vGumUp = vGumCrown.y;
       vGumCrown = mat3(modelViewMatrix) * vGumCrown / length(modelViewMatrix[0].xyz);`);
-    shader.fragmentShader = 'varying vec3 vGumCrown;\n' + shader.fragmentShader;
+    shader.fragmentShader = 'varying vec3 vGumCrown; varying float vGumUp;\n' + shader.fragmentShader;
     // Intersecting opaque leaf cores must not cast stripes on neighbouring cards.
     // The same cutout geometry still casts woodland shadows; wood receives them.
     shader.fragmentShader = shader.fragmentShader.replace('#include <lights_fragment_begin>',
       THREE.ShaderChunk.lights_fragment_begin.replaceAll('receiveShadow', '(receiveShadow && vTreeSurface < 1.5)'));
+    // Crown-space shading: dark underside, lit top and centre occlusion (vGumCrown is the card's offset from the crown centre).
+    const s = GUM_SHADING, f = (n: number) => n.toFixed(3);
+    shader.fragmentShader = shader.fragmentShader.replace('#include <color_fragment>', `#include <color_fragment>
+      if (vTreeSurface >= 1.5) {
+        float gumTop = smoothstep(-0.55, 0.85, vGumUp);
+        #if NUM_DIR_LIGHTS > 0
+          gumTop = 0.55 * gumTop + 0.45 * smoothstep(-0.5, 0.8, dot(normalize(vGumCrown), directionalLights[0].direction));
+        #endif
+        float gumAo = mix(${f(1 - s.ao)}, 1.0, smoothstep(${f(s.aoStart)}, ${f(s.aoEnd)}, length(vGumCrown)));
+        diffuseColor.rgb *= ${f(s.gain)} * mix(${f(1 - s.under)}, ${f(1 + s.topLift)}, gumTop) * gumAo;
+      }`);
     shader.fragmentShader = shader.fragmentShader.replace('#include <normal_fragment_maps>', `#include <normal_fragment_maps>
       if (vTreeSurface >= 1.5) {
         vec2 gumRadial = vGumCrown.xy;
         normal = normalize(vec3(gumRadial, sqrt(max(0.06, 1.0 - dot(gumRadial, gumRadial)))));
       }`);
   };
-  material.customProgramCacheKey = function () { return `${key.call(this)}:gum-rounded-light-v2`; };
+  material.customProgramCacheKey = function () { return `${key.call(this)}:gum-rounded-light-v3`; };
   material.needsUpdate = true;
 }

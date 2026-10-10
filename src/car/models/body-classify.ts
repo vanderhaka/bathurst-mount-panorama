@@ -44,7 +44,8 @@ export function classifyQuads(grid: BodyGrid): QuadInfo {
     glass: new Uint8Array(total),
     kind: new Uint8Array(total),
     half: new Uint16Array(total),
-    creases: new Set([cp[CP.BW], cp[CP.BA], cp[CP.SA], cp[CP.S0], ...(grid.sideCrease ? [cp[CP.S2]] : []), cp[CP.S3]]),
+    // Filleted creases (see FILLETS in body-section.ts) are rolled edges: their normals stay smooth.
+    creases: new Set([CP.BW, CP.BA, CP.SA, CP.S0, ...(grid.sideCrease ? [CP.S2] : []), CP.S3].filter((i) => !grid.layout.fillet[i]).map((i) => cp[i])),
   };
   const at = grid.rowAt;
   for (let r = 0; r < grid.rows - 1; r++) {

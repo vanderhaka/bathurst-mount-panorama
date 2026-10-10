@@ -228,7 +228,6 @@ class MenuController implements Menus {
     const target = e.target;
     if (target instanceof HTMLElement && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) {
       if (!this.root?.contains(target)) return;
-      // Native typing, deletion and form submission must work for every nickname.
       if (e.code !== 'Escape') { e.stopPropagation(); return; }
     }
     const action = KEYS[e.code];

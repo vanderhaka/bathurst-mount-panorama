@@ -3,6 +3,7 @@ import type { Track } from '@/track/track-model';
 import { pointAt } from '@/track/track-query';
 import type { Terrain } from '@/world/terrain';
 import { rng } from '@/world/scenery/geo';
+import { addEmbeddedRock } from '@/world/scenery/rock-place';
 import type { PropInstancer } from '@/world/scenery/instancer';
 
 /** The Cutting (track distance, m): rock outcrops along the foot of the cut face. */
@@ -20,7 +21,7 @@ export function placeCutRocks(track: Track, terrain: Terrain, inst: PropInstance
       pointAt(track, s, sign * (side.wall[i] + 1.0 + r() * 5.5), p);
       const ground = terrain.heightAt(p[0], p[2]);
       if (ground - p[1] < 1.2) continue; // no cut on this side here
-      inst.add('rock', Math.floor(r() * PROP_VARIANTS.rock), p[0], ground - 0.7, p[2], r() * Math.PI * 2, 0.9 + r() * 1.8);
+      addEmbeddedRock(inst, terrain, Math.floor(r() * PROP_VARIANTS.rock), p[0], p[2], r() * Math.PI * 2, 0.9 + r() * 1.8);
       count++;
     }
   }

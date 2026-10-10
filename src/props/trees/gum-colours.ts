@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import type { FaceInfo } from '@/props/core/mesher';
 import type { Rng } from '@/props/core/rng';
-import type { TreeLook } from '@/props/look';
+import { GUM_SHADING, type TreeLook } from '@/props/look';
 
 // Colour functions for gum trees: pale smooth bark (mottled, with hanging ribbons at
 // the base) or rough grey-brown box bark, silver dead wood, and grey-green crowns
@@ -13,11 +13,11 @@ export function foliageBase(look: TreeLook, hue: number, rng: Rng, shade = 1): T
   const h = ((hue % n) + n) % n;
   const i = Math.floor(h);
   const c = new THREE.Color().setHex(look.foliage[i]).lerp(new THREE.Color().setHex(look.foliage[Math.min(n - 1, i + 1)]), h - i);
-  const j = look.foliageJitter;
   const hsl = { h: 0, s: 0, l: 0 };
   c.getHSL(hsl);
-  // Gum leaves are dull: slightly desaturated, so a warm instance tint gives olive rather than yellow.
-  c.setHSL(hsl.h + rng.jitter(0.02 * j), hsl.s * 0.85 * (1 + rng.jitter(0.3 * j)), Math.min(0.5, hsl.l * 1.1 * shade * (1 + rng.jitter(0.22 * j))));
+  // Per-tree variation of about +-8 % in saturation and value so neighbours differ.
+  const { hueJitter, satJitter, lightJitter } = GUM_SHADING;
+  c.setHSL(hsl.h + rng.jitter(hueJitter), hsl.s * (1 + rng.jitter(satJitter)), Math.min(0.5, hsl.l * shade * (1 + rng.jitter(lightJitter))));
   return c;
 }
 

@@ -171,7 +171,7 @@ export function buildBodyMeshes(grid: BodyGrid, withShell: boolean, cutFace = fa
       if (info.glass[q] === GLASS_FRONT && r < grid.rowAt.banner) emitQuad(banner, grid, info, r, c, bannerUV, false, cache);
     }
   }
-  if (withShell) emitCoarse(shell, grid, info, cabin[0], cabin[1], cp[CP.S1], 2 * grid.n - cp[CP.S1], 3);
+  if (withShell) emitCoarse(shell, grid, info, cabin[0], cabin[1], cp[CP.S1], 2 * grid.n - cp[CP.S1], 4);
   const out: BodyMeshes = {
     paint: paint.build(0, false),
     glass: glass.build(0, false),

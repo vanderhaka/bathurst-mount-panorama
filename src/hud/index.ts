@@ -43,7 +43,7 @@ function build(track: HudTrackInfo): Parts {
   const timing = new TimingPanel(track.city);
   const minimal = new MinimalReadout();
   const map = new TrackMap(track);
-  const dash = new Dash();
+  const dash = new Dash(track);
   const telemetry = new Telemetry();
   const tyreFuel = new TyreFuelPanel();
   const delta = new DeltaStrip();

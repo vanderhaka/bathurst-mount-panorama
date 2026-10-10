@@ -1,7 +1,7 @@
 // Top-down car damage schematic: body zones (front / rear / left / right),
 // wheels = suspension, the aero parts (Gen3: splitter + rear wing; Torana: air
 // dam + tailgate spoiler), plus engine / suspension / aero system icons. The
-// outline follows the player's car. Colours mix green -> amber -> red in CSS.
+// outline follows the player's car. Colours mix grey -> amber -> red in CSS.
 import type { CarKind } from '@/car/car-specs';
 import type { HudState } from '@/types/hud';
 import { AttrSlot, h, s, TextSlot, VarSlot } from '@/hud/dom';
@@ -44,12 +44,6 @@ export function damageShapeFor(car: CarKind | undefined): keyof typeof DAMAGE_SH
   return car && CLASSIC.has(car) ? 'classic' : 'gen3';
 }
 
-const ICONS: Record<'engine' | 'suspension' | 'aero', string> = {
-  engine: 'M3,10 H5 V8 H8 V6 H6 V4.5 H13 V6 H11 V8 H15 L17,10 H19 V8.5 H21 V16 H19 V14.5 H17 V17 L15,19 H8 L6,17 H5 V15 H3 Z',
-  suspension: 'M6,3 h12 M12,3 v2 M7,6 l10,2.5 l-10,2.5 l10,2.5 l-10,2.5 l10,2.5 M12,19 v2 M6,21 h12',
-  aero: 'M2,6.5 h2.4 v10 H2 Z M19.6,6.5 H22 v10 h-2.4 Z M4.4,8.5 H19.6 V11 C15,12.6 9,12.6 4.4,11 Z M8.2,12 h1.7 v6 H8.2 Z M14.1,12 h1.7 v6 h-1.7 Z',
-};
-
 interface Part {
   d1: VarSlot;
   d2: VarSlot;
@@ -71,6 +65,7 @@ export class DamageView {
 
   constructor() {
     const zones = s('g', { 'clip-path': 'url(#hud-car-clip)' }, [
+      s('rect', { class: 'hud-car__base', x: 0, y: 0, width: 64, height: 132 }),
       zone('front', { x: 0, y: 0, width: 64, height: 44 }),
       zone('rear', { x: 0, y: 85, width: 64, height: 47 }),
       zone('left', { x: 0, y: 44, width: 21, height: 41 }),
@@ -97,18 +92,16 @@ export class DamageView {
     ]);
     const systems = h('div', 'hud-systems');
     for (const key of ['engine', 'suspension', 'aero'] as const) {
-      const icon = s('svg', { class: 'hud-sys__icon', viewBox: '0 0 24 24', 'aria-hidden': 'true' }, [
-        s('path', { class: `hud-dmg hud-sys__${key}`, 'data-k': key, d: ICONS[key] }),
-      ]);
-      const pct = h('span', 'hud-sys__pct');
+      // The value text is itself a damage part, so it takes the same amber / red mix as the car panels.
+      const pct = h('span', 'hud-dmg hud-sys__pct', { 'data-k': key });
       const label = key === 'engine' ? 'ENG' : key === 'suspension' ? 'SUSP' : 'AERO';
-      const row = h('div', 'hud-sys', { 'data-ok': 'true' }, [icon, h('span', 'hud-micro', undefined, [label]), pct]);
+      const row = h('div', 'hud-sys', { 'data-ok': 'true' }, [h('span', 'hud-telemetry__label', undefined, [label]), pct]);
       this.pct.set(key, { text: new TextSlot(pct), ok: new AttrSlot(row, 'data-ok') });
       systems.append(row);
     }
     this.el = h('div', 'hud-damage', { 'data-pristine': 'true' }, [svg, systems]);
     this.pristine = new AttrSlot(this.el, 'data-pristine');
-    this.el.querySelectorAll<SVGElement>('.hud-dmg').forEach((el) => {
+    this.el.querySelectorAll<HTMLElement | SVGElement>('.hud-dmg').forEach((el) => {
       const key = el.getAttribute('data-k') as DamageKey;
       const list = this.parts.get(key) ?? [];
       list.push({ d1: new VarSlot(el, '--d1', 20), d2: new VarSlot(el, '--d2', 20) });

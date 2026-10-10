@@ -24,6 +24,10 @@ export interface AddOptions {
   seed?: number;
   /** Keep this part flat-shaded even when the look asks for smooth shading. */
   forceFlat?: boolean;
+  /** Smooth the normals of this part even when the look is flat-shaded (the material must not be flat-shaded). */
+  smooth?: boolean;
+  /** Per-vertex albedo from position and smoothed normal; replaces the per-face colour. */
+  vertexColour?: (position: THREE.Vector3, normal: THREE.Vector3) => THREE.Color;
 }
 
 const tmpA = new THREE.Vector3();
@@ -74,8 +78,9 @@ export class Mesher {
     const g = new THREE.BufferGeometry();
     g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
     g.computeVertexNormals();
-    if (!PROPS_LOOK.shading.flat && !opts.forceFlat) smoothNormals(g);
+    if ((opts.smooth || !PROPS_LOOK.shading.flat) && !opts.forceFlat) smoothNormals(g);
     const whiteFaces = this.paint(g, colour, opts);
+    if (opts.vertexColour) paintVertices(g, opts.vertexColour);
     if (this.tintable) {
       const mask = new Float32Array(keep.length * 3);
       if (opts.tint === true) mask.fill(1);
@@ -157,6 +162,18 @@ export class Mesher {
     }
     g.setAttribute('color', new THREE.BufferAttribute(col, 3));
     return white;
+  }
+}
+
+function paintVertices(g: THREE.BufferGeometry, fn: NonNullable<AddOptions['vertexColour']>): void {
+  const pos = g.getAttribute('position');
+  const nor = g.getAttribute('normal');
+  const col = g.getAttribute('color');
+  const p = new THREE.Vector3();
+  const n = new THREE.Vector3();
+  for (let i = 0; i < pos.count; i++) {
+    const c = fn(p.fromBufferAttribute(pos, i), n.fromBufferAttribute(nor, i));
+    col.setXYZ(i, c.r, c.g, c.b);
   }
 }
 

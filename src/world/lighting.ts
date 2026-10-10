@@ -59,6 +59,23 @@ export function createLighting(scene: THREE.Scene, quality: QualityPreset = 'hig
   };
 }
 
+const GROUND_NADIR = new THREE.Color(0x1d1b15);
+const GROUND_HORIZON = new THREE.Color(0x3d3a2c);
+
+/** Disc of warm dark ground: darkest straight below, lifting to the horizon so the horizon line reads in paint. */
+function groundGeometry(radius: number): THREE.BufferGeometry {
+  const g = new THREE.CircleGeometry(radius, 48).rotateX(-Math.PI / 2);
+  const pos = g.getAttribute('position');
+  const col = new Float32Array(pos.count * 3);
+  const c = new THREE.Color();
+  for (let i = 0; i < pos.count; i++) {
+    const t = Math.min(1, Math.hypot(pos.getX(i), pos.getZ(i)) / radius);
+    c.copy(GROUND_NADIR).lerp(GROUND_HORIZON, Math.pow(t, 0.6)).toArray(col, i * 3);
+  }
+  g.setAttribute('color', new THREE.BufferAttribute(col, 3));
+  return g;
+}
+
 /** Builds an environment map from the sky so that car paint and glass get sky reflections. */
 export function createSkyEnvironment(renderer: THREE.WebGLRenderer, skyDome: THREE.Mesh, quality: QualityPreset = 'high'): THREE.WebGLRenderTarget {
   const pmrem = new THREE.PMREMGenerator(renderer);
@@ -68,11 +85,8 @@ export function createSkyEnvironment(renderer: THREE.WebGLRenderer, skyDome: THR
   dome.scale.multiplyScalar(0.01);
   envScene.add(dome);
   // A darker lower hemisphere so reflections show "ground" below the horizon.
-  const ground = new THREE.Mesh(
-    new THREE.CircleGeometry(60, 32).rotateX(-Math.PI / 2),
-    new THREE.MeshBasicMaterial({ color: 0x5d6a3f }),
-  );
-  ground.position.y = -2;
+  const ground = new THREE.Mesh(groundGeometry(85), new THREE.MeshBasicMaterial({ vertexColors: true, fog: false }));
+  ground.position.y = -1;
   envScene.add(ground);
   const material = skyDome.material;
   const sunDisc = material instanceof THREE.ShaderMaterial ? material.uniforms.showSunDisc : undefined;

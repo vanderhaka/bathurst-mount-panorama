@@ -53,7 +53,7 @@ const GHOST_HIDDEN = new Set(['underside', 'disc', 'caliper', 'grille-recess']);
 
 function ghostSwap(root: THREE.Object3D, ghost: THREE.Material, on: boolean): void {
   root.traverse((o) => {
-    if (!(o instanceof THREE.Mesh)) return;
+    if (!(o instanceof THREE.Mesh) || o.userData.contactShadow) return;
     if (on) {
       if (!o.userData.look) o.userData.look = { material: o.material, cast: o.castShadow, receive: o.receiveShadow, visible: o.visible, order: o.renderOrder };
       o.material = Array.isArray(o.material) ? o.material.map(() => ghost) : ghost;
@@ -130,6 +130,8 @@ export function buildCarModel(kind: CarKind, options: CarModelOptions): CarModel
       if (on === ghost) return;
       ghost = on;
       ghostSwap(root, mats.ghost, on);
+      const shadow = root.getObjectByName('contact-shadow');
+      if (shadow) shadow.visible = !on;
       showCabin();
     },
     setDash(state) {

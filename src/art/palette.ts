@@ -12,11 +12,11 @@ export const SKY = {
 } as const;
 
 export const GROUND = {
-  grassLight: 0x9ca263,
-  grass: 0x7a874c,
-  grassDark: 0x5a663b,
-  grassDry: 0xb3a06c,
-  clay: 0xa06c45,
+  grassLight: 0x939c58,
+  grass: 0x6f7f3d,
+  grassDark: 0x4e5c31,
+  grassDry: 0xb9a46a,
+  clay: 0x9a6a3f,
   clayDark: 0x7a4f33,
   gravel: 0xbfab8c,
   sand: 0xcdb98f,
@@ -37,27 +37,32 @@ export const FOLIAGE = {
   eucalyptSage: 0x5f7062,
   eucalyptOlive: 0x5a6954,
   eucalyptDarkOlive: 0x495846,
+  /** Saturated olive / grey-green crown colours (AAA pass): darker, so lit tops can pop. */
+  gumLeafOlive: 0x55663c,
+  gumLeafDark: 0x4a5a36,
+  gumLeafSage: 0x5c6b4a,
+  gumLeafGrey: 0x5f6e5a,
   /** Blue-silver sheen on the sunlit tops of gum clumps. */
   eucalyptSheen: 0x7d8e8a,
-  eucalyptTrunk: 0xd2c9b6,
+  eucalyptTrunk: 0xbfb39c,
   /** Smooth white-grey gum bark (upper trunk and limbs). */
   eucalyptTrunkPale: 0xd8dad6,
   eucalyptBark: 0x8a7764,
   /** Shedding bark ribbons hanging at the base of smooth gums. */
   eucalyptBarkStrip: 0x9a7a5e,
   /** Rough, fibrous grey-brown bark of box gums (Yellow Box, Grey Box). */
-  eucalyptBoxBark: 0x948a7c,
+  eucalyptBoxBark: 0x857463,
   /** Weathered silver-grey dead wood (stags, dead limbs). */
   eucalyptDeadWood: 0xaeaaa2,
-  pine: 0x3e5934,
-  pineDark: 0x2f4529,
+  pine: 0x2f4a2a,
+  pineDark: 0x233a20,
   pineTrunk: 0x6a4a33,
   shrub: 0x67764a,
 } as const;
 
 export const ROAD = {
-  asphalt: 0x4a4c4f,
-  asphaltWorn: 0x55575a,
+  asphalt: 0x3b3c3e,
+  asphaltWorn: 0x4b4c4e,
   groove: 0x333436,
   lineWhite: 0xf0f0ec,
   kerbRed: 0xb3352f,

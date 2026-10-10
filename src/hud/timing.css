@@ -1,96 +1,74 @@
-/* Broadcast tower (top left): angled LAP block, position rows, lap time, sectors. Tokens: theme.css */
+/* Broadcast tower (top left): LAP block, position rows, hero lap time, sector strip. Tokens: theme.css */
 .hud-timing {
-  width: 23em;
+  width: 18em;
   overflow: hidden;
 }
 .hud-timing__head {
   display: flex;
   align-items: stretch;
-  height: 2.6em;
-  background: var(--hud-panel-head-bg);
+  height: 1.8em;
+  border-bottom: 1px solid var(--hud-hairline);
 }
 .hud-laptab {
   display: flex;
-  align-items: center;
-  gap: 0.34em;
-  padding: 0 1.5em 0 0.85em;
+  align-items: baseline;
+  gap: 0.3em;
+  padding: 0 0.7em 0 0.6em;
   background: var(--hud-accent);
   color: var(--hud-accent-text);
-  clip-path: polygon(0 0, 100% 0, calc(100% - 0.9em) 100%, 0 100%);
 }
 .hud-laptab__word {
   font-size: var(--hud-fs-label);
   font-weight: 700;
-  letter-spacing: 0.12em;
+  letter-spacing: var(--hud-label-tracking);
 }
 .hud-laptab__no {
-  font-size: 1.62em;
+  font-size: 1.15em;
   font-weight: var(--hud-num-weight);
-  line-height: 1;
 }
 .hud-timing__title {
   display: flex;
   align-items: baseline;
-  gap: 0.5em;
+  gap: 0.4em;
   align-self: center;
-  margin-left: 0.2em;
+  margin-left: 0.6em;
   font-size: var(--hud-fs-label);
-  letter-spacing: 0.12em;
+  letter-spacing: var(--hud-label-tracking);
 }
 .hud-timing__title b {
   font-weight: 800;
 }
 .hud-timing__title span {
-  font-weight: 600;
-  color: var(--hud-text-dim);
+  font-weight: 700;
+  color: var(--hud-label);
 }
-.hud-chip {
+.hud-timing .hud-chip--bad {
   display: none;
   align-self: center;
-  margin: 0 0.9em 0 auto;
-  padding: 0.3em 0.5em 0.24em;
-  font-size: var(--hud-fs-label);
-  font-weight: 800;
-  letter-spacing: 0.12em;
-  clip-path: polygon(0.35em 0, 100% 0, calc(100% - 0.35em) 100%, 0 100%);
-}
-.hud-chip--bad {
-  background: var(--hud-bad);
-  color: #fff;
+  margin: 0 0.5em 0 auto;
 }
 .hud-timing[data-valid='false'] .hud-chip--bad {
   display: inline-block;
-}
-/* HUD harness estimates; the game hides this when simulation values are present. */
-.hud-chip--est {
-  display: inline-block;
-  margin-right: 0;
-  color: var(--hud-text);
-  background: var(--hud-est-bg);
-}
-.hud-chip--est[hidden] {
-  display: none;
 }
 
 /* ---- position rows (you vs best lap) */
 .hud-tower__rows {
   display: flex;
   flex-direction: column;
-  gap: 1px;
   margin: 0;
   padding: 0;
   list-style: none;
-  background: rgb(0 0 0 / 0.35);
 }
 .hud-tower__rows[data-best='false'] .is-best {
   display: none;
 }
 .hud-pos {
   display: grid;
-  grid-template-columns: 2.2em 0.3em 2.5em auto 1fr auto;
+  grid-template-columns: 1.6em 2px 2em auto 1fr auto;
   align-items: center;
-  height: 2.2em;
+  height: 1.7em;
   background: var(--hud-row-bg);
+  border-bottom: 1px solid var(--hud-hairline);
 }
 .hud-pos[data-order='2'] {
   order: 2;
@@ -103,10 +81,9 @@
   align-items: center;
   justify-content: center;
   height: 100%;
-  font-size: 1.15em;
+  font-size: 0.95em;
   font-weight: var(--hud-num-weight);
   color: var(--hud-text);
-  background: rgb(255 255 255 / 0.08);
 }
 .hud-pos.is-you .hud-pos__n {
   color: var(--hud-tyre-text);
@@ -115,70 +92,78 @@
 .hud-pos__stripe {
   height: 100%;
   background: var(--team, var(--hud-accent));
-  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.2);
 }
 .is-best .hud-pos__stripe {
-  background: var(--hud-map-ghost);
+  background: var(--hud-data);
 }
 .hud-pos__num {
   text-align: center;
-  font-size: 1.05em;
+  font-size: 0.9em;
   font-weight: 700;
+  color: var(--hud-label);
 }
 .hud-pos__ghost {
   justify-self: center;
-  width: 0.85em;
-  height: 0.85em;
+  width: 0.6em;
+  height: 0.6em;
   border-radius: 50%;
-  border: 0.18em solid var(--hud-map-ghost);
+  border: 2px solid var(--hud-data);
 }
 .hud-pos__code {
-  font-size: 1.12em;
+  font-size: 0.95em;
   font-weight: 800;
   letter-spacing: 0.06em;
 }
 .hud-pos__sub {
-  margin-left: 0.6em;
+  margin-left: 0.5em;
   font-size: var(--hud-fs-label);
-  font-weight: 600;
-  letter-spacing: 0.1em;
-  color: var(--hud-text-dim);
+  font-weight: 700;
+  letter-spacing: var(--hud-label-tracking);
+  color: var(--hud-label);
+}
+.is-you .hud-pos__sub {
+  color: var(--hud-accent);
 }
 .hud-pos__gap {
-  padding-right: 0.9em;
-  font-size: 1.1em;
-  font-weight: 700;
+  padding-right: 0.6em;
+  font-family: var(--hud-font-mono);
+  font-size: 0.8em;
+  font-weight: 500;
 }
 .hud-pos[data-gap='lead'] .hud-pos__gap {
+  font-family: var(--hud-font-display);
   font-size: var(--hud-fs-label);
-  letter-spacing: 0.12em;
-  color: var(--hud-text-dim);
+  font-weight: 700;
+  letter-spacing: var(--hud-label-tracking);
+  color: var(--hud-label);
 }
 
-/* ---- running lap time, last / best */
+/* ---- hero lap time, last / best */
 .hud-timing__now {
   display: flex;
-  align-items: flex-end;
+  align-items: baseline;
   justify-content: space-between;
-  padding: 0.65em 0.85em 0.55em;
+  padding: 0.45em 0.6em 0.3em;
 }
 .hud-timing__current {
   font-size: var(--hud-fs-lap-time);
   font-weight: var(--hud-num-weight);
-  line-height: 0.84;
-  letter-spacing: -0.005em;
+  line-height: 0.85;
+  letter-spacing: -0.01em;
+  color: var(--hud-num);
+  transition: color var(--hud-ease);
 }
 .hud-timing__sector {
   font-size: var(--hud-fs-label);
   font-weight: 700;
   letter-spacing: var(--hud-label-tracking);
-  color: var(--hud-text-dim);
+  color: var(--hud-label);
 }
 .hud-timing[data-valid='false'] .hud-timing__current {
-  color: var(--hud-text-dim);
+  color: var(--hud-label);
   text-decoration: line-through;
-  text-decoration-color: var(--hud-bad);
-  text-decoration-thickness: 0.06em;
+  text-decoration-color: var(--hud-accent);
+  text-decoration-thickness: 2px;
 }
 .hud-timing__rows {
   display: grid;
@@ -189,28 +174,29 @@
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  padding: 0.55em 0.85em 0.5em;
+  padding: 0.4em 0.6em 0.35em;
 }
 .hud-kv + .hud-kv {
   border-left: 1px solid var(--hud-hairline);
 }
 .hud-kv__v {
-  font-size: var(--hud-fs-value);
-  font-weight: 700;
+  font-family: var(--hud-font-mono);
+  font-size: 0.85em;
+  font-weight: 500;
+  color: var(--hud-num);
 }
 .hud-kv--best .hud-kv__v {
   color: var(--hud-sector-overall);
 }
 .hud-kv--best[data-none='true'] .hud-kv__v {
-  color: var(--hud-text-dim);
+  color: var(--hud-text-faint);
 }
 
-/* ---- sectors */
+/* ---- sectors: a thin three-cell strip, state shown by a small fill at the top */
 .hud-sectors {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 2px;
-  padding: 0 2px 2px;
+  border-top: 1px solid var(--hud-hairline);
 }
 .hud-sector {
   --sc: var(--hud-sector-none);
@@ -218,32 +204,37 @@
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  padding: 0.66em 0.55em 0.45em;
-  background: rgb(255 255 255 / 0.035);
+  padding: 0.5em 0.5em 0.35em;
+}
+.hud-sector + .hud-sector {
+  border-left: 1px solid var(--hud-hairline);
 }
 .hud-sector[data-state='ob'] { --sc: var(--hud-sector-overall); }
 .hud-sector[data-state='pb'] { --sc: var(--hud-sector-personal); }
 .hud-sector[data-state='slow'] { --sc: var(--hud-sector-slower); }
-.hud-sector:not([data-state='none']) {
-  background: color-mix(in srgb, var(--sc) 18%, transparent);
-}
 .hud-sector__bar {
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
-  height: 0.26em;
+  height: 2px;
   background: var(--sc);
+  transition: background-color var(--hud-ease);
 }
 .hud-sector__n {
   font-size: var(--hud-fs-label);
-  font-weight: 800;
-  letter-spacing: 0.05em;
-  color: var(--hud-text-dim);
+  font-weight: 700;
+  letter-spacing: var(--hud-label-tracking);
+  color: var(--hud-label);
 }
 .hud-sector__t {
-  font-size: 1.1em;
-  font-weight: 700;
+  font-family: var(--hud-font-mono);
+  font-size: 0.8em;
+  font-weight: 500;
+  color: var(--hud-num);
+}
+.hud-sector:not([data-state='none']) .hud-sector__t {
+  color: var(--sc);
 }
 .hud-sector[data-state='none'] .hud-sector__t {
   color: var(--hud-text-faint);

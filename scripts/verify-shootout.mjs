@@ -113,6 +113,17 @@ try {
     await press(page, 'Start warm-up');
     const rules = await page.evaluate(() => ({ mode: window.__game.race.session.mode, damage: window.__game.settings.damage, limits: window.__game.settings.trackLimits, gears: window.__game.settings.autoGears, assists: window.__game.settings.abs || window.__game.settings.tractionControl || window.__game.settings.touchAutoThrottle }));
     check('Arcade uses full damage, track limits, manual gears and no assists', rules.mode === 'shootoutArcade' && rules.damage === 'full' && rules.limits && !rules.gears && !rules.assists);
+    await page.evaluate(() => { window.__game.settings.hudSize = 'minimal'; });
+    await page.locator('.bx-hud[data-size="minimal"] .hud-minimal').waitFor({ state: 'visible' });
+    const clearMinimal = await page.evaluate(() => {
+      const minimal = document.querySelector('.hud-minimal').getBoundingClientRect();
+      const status = document.querySelector('.hud-shootout').getBoundingClientRect();
+      return status.bottom <= minimal.top && status.left >= 0 && status.right <= innerWidth && status.top >= 0;
+    });
+    check('Shootout status leaves minimal speed, gear and lap fully visible', clearMinimal);
+    await shot(page, 'arcade-minimal-desktop');
+    await page.evaluate(() => { window.__game.settings.hudSize = 'full'; });
+    await page.locator('.bx-hud[data-size="full"]').waitFor({ state: 'visible' });
     await page.keyboard.press('Escape');
     await screen(page, 'pause').waitFor({ state: 'visible' });
     await press(page, 'Restart warm-up');

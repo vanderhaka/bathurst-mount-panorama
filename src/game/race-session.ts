@@ -247,7 +247,6 @@ export class RaceSession {
   private onShootoutCrossing(result: LapResult | null): void {
     const run = this.shootoutRun;
     if (run?.phase === 'warmup') {
-      // A short reverse-and-recross restarts LapTimer but has not completed a warm-up.
       if (result) this.shootoutRun = { phase: 'ready' };
       this.recorder.reset();
       this.telemetryRecorder.reset();

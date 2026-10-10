@@ -38,7 +38,7 @@ export function buildRoad(track: Track, line: RacingLine, kerbs: KerbLayout, ren
       c.copy(asphalt).lerp(worn, Math.max(0, patch) * 0.8);
       const g = rubberAmount(line.offset[i], d) * settings.rubberGroove;
       rubber.push(g);
-      c.multiplyScalar((1 - 0.42 * g) / materials.meanLinear);
+      c.multiplyScalar((1 - 0.2 * g) / materials.meanLinear);
     },
   });
   surface.setAttribute('roadRubber', new THREE.Float32BufferAttribute(rubber, 1));

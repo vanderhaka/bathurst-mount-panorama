@@ -9,6 +9,8 @@ interface Placement {
   asset: PropAsset;
   x: number; y: number; z: number; yaw: number; scale: number;
   colour?: THREE.Color;
+  /** Optional surface normal the prop's up axis is tilted to. */
+  up?: THREE.Vector3;
 }
 
 interface Batch {
@@ -67,11 +69,11 @@ export class PropInstancer {
     this.group.name = 'props';
   }
 
-  add(kind: InstancedPropKind, variant: number, x: number, y: number, z: number, yaw = 0, scale = 1, colour?: number | THREE.Color): PropAsset {
+  add(kind: InstancedPropKind, variant: number, x: number, y: number, z: number, yaw = 0, scale = 1, colour?: number | THREE.Color, up?: THREE.Vector3): PropAsset {
     const asset = this.assets(kind, variant);
     // Existing gums already contribute the canopy footprint; bark/low bush need no 4 m AO discs.
     if (kind !== 'gumShrub' && kind !== 'fallenBark') this.contactAo.add(x, z, asset.radius * scale);
-    this.placements.push({ asset, x, y, z, yaw, scale, colour: colour === undefined ? undefined : colour instanceof THREE.Color ? colour : new THREE.Color(colour) });
+    this.placements.push({ asset, x, y, z, yaw, scale, colour: colour === undefined ? undefined : colour instanceof THREE.Color ? colour : new THREE.Color(colour), up: up?.clone() });
     return asset;
   }
 
@@ -83,7 +85,7 @@ export class PropInstancer {
       else byMaterial.set(p.asset.material, [p]);
     }
     const m = new THREE.Matrix4(), q = new THREE.Quaternion(), s = new THREE.Vector3(), t = new THREE.Vector3();
-    const up = new THREE.Vector3(0, 1, 0);
+    const up = new THREE.Vector3(0, 1, 0), tilt = new THREE.Quaternion();
     for (const [material, list] of byMaterial) {
       const geoIds = new Map<THREE.BufferGeometry, number>();
       const normalised = new Map<THREE.BufferGeometry, THREE.BufferGeometry>();
@@ -121,7 +123,9 @@ export class PropInstancer {
         b.near[k] = geoIds.get(p.asset.geometry)!;
         b.far[k] = p.asset.lodGeometry ? geoIds.get(p.asset.lodGeometry)! : -1;
         b.pos.set([p.x, p.y, p.z], k * 3);
-        m.compose(t.set(p.x, p.y, p.z), q.setFromAxisAngle(up, p.yaw), s.setScalar(p.scale));
+        q.setFromAxisAngle(up, p.yaw);
+        if (p.up) q.premultiply(tilt.setFromUnitVectors(up, p.up));
+        m.compose(t.set(p.x, p.y, p.z), q, s.setScalar(p.scale));
         mesh.setMatrixAt(id, m);
         const colour = p.colour ?? WHITE;
         mesh.setColorAt(id, colour); b.colours.set([colour.r, colour.g, colour.b], k * 3);

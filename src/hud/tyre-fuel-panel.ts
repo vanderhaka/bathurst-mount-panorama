@@ -1,5 +1,5 @@
-// Compact tyres + fuel panel: four tyre squares coloured by temperature with a
-// tread-life strip, fuel litres with a gauge and laps remaining.
+// Compact tyres + fuel panel: four tyre tiles in the car's footprint, coloured by
+// temperature with a tread-life strip; brakes as one line; fuel litres, bar, laps left.
 // Values come from HudState.tyres / .fuel when the game supplies them,
 // otherwise from the DISPLAY-ONLY TyreFuelEstimator.
 import { FUEL_CAPACITY_L } from '@/physics/fuel';
@@ -48,7 +48,7 @@ export class TyreFuelPanel {
       this.tyres.push({ band: new AttrSlot(box, 'data-band'), temp: new TextSlot(temp), life: new VarSlot(life, '--f', 100) });
     }
     const fuel = h('div', 'hud-fuel', { 'data-low': 'false' }, [
-      h('span', 'hud-micro', undefined, ['FUEL']),
+      h('span', 'hud-fuel__head', undefined, [h('span', 'hud-micro', undefined, ['FUEL']), this.estimate.el]),
       h('span', 'hud-fuel__main', undefined, [this.litres.el, h('span', 'hud-fuel__u', undefined, ['L'])]),
       h('i', 'hud-fuel__gauge', undefined, [this.gaugeFill]),
       h('span', 'hud-fuel__laps', undefined, [this.laps.el, h('span', 'hud-micro', undefined, ['LAPS'])]),
@@ -56,17 +56,13 @@ export class TyreFuelPanel {
     this.low = new AttrSlot(fuel, 'data-low');
     this.brakePanel = h('div', 'hud-brakes', { 'data-fade': 'false' }, [
       h('span', 'hud-micro', undefined, ['BRAKES °C']),
-      h('span', 'hud-brakes__axle', undefined, ['F ', this.brakeFront.el]),
-      h('span', 'hud-brakes__axle', undefined, ['R ', this.brakeRear.el]),
+      h('span', 'hud-brakes__axle', undefined, [h('span', 'hud-micro', undefined, ['F']), this.brakeFront.el]),
+      h('span', 'hud-brakes__axle', undefined, [h('span', 'hud-micro', undefined, ['R']), this.brakeRear.el]),
       this.brakeFade.el,
     ]);
     this.fading = new AttrSlot(this.brakePanel, 'data-fade');
     this.brakesHidden = new HiddenSlot(this.brakePanel);
     this.el = h('section', 'hud-panel hud-tyrefuel', { 'aria-label': 'Tyre and fuel estimates' }, [
-      h('header', 'hud-panel__head', undefined, [
-        h('span', 'hud-micro hud-micro--strong', undefined, ['TYRES · FUEL']),
-        this.estimate.el,
-      ]),
       h('div', 'hud-tyrefuel__body', undefined, [
         h('div', 'hud-tyres', undefined, [this.heading.el, grid]),
         h('i', 'hud-tyrefuel__rule'),

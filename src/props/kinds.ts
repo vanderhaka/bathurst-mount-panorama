@@ -1,11 +1,12 @@
 import type * as THREE from 'three';
 import type { InstancedPropKind } from '@/types/props';
 import type { BuiltProp, KindBuilder } from '@/props/kinds-types';
-import { treeMaterial } from '@/props/core/materials';
+import { rockMaterial, treeMaterial } from '@/props/core/materials';
 import { buildPalm, PALM_VARIANTS } from '@/props/trees/palm';
 import { buildEucalyptus, buildPineTree, buildYoungEucalyptus, TREE_VARIANTS } from '@/props/trees';
 import { buildFallenBark, buildGumShrub } from '@/props/trees/gum-undergrowth';
-import { buildGrassTuft, buildRock, buildShrub, VEGETATION_VARIANTS } from '@/props/builders/vegetation';
+import { buildRock } from '@/props/builders/rock';
+import { buildGrassTuft, buildShrub, VEGETATION_VARIANTS } from '@/props/builders/vegetation';
 import { buildBillboard, buildDistanceBoard, buildTrackPole, buildTyreStack, TRACKSIDE_VARIANTS } from '@/props/builders/trackside';
 import { buildFlagPole, buildLightPole, buildTvCameraTower, POLE_VARIANTS } from '@/props/builders/poles';
 import { buildMarshalPost, buildPortaloo, HUT_VARIANTS } from '@/props/builders/huts';
@@ -33,7 +34,7 @@ export const KIND_BUILDERS: Record<InstancedPropKind, KindBuilder> = {
   shrub: { variants: VEGETATION_VARIANTS.shrub, tintable: false, castShadow: true, foliage: true, build: buildShrub },
   gumShrub: { variants: 6, tintable: false, castShadow: true, foliage: true, gumSurface: true, build: tree(buildGumShrub) },
   fallenBark: { variants: 6, tintable: false, castShadow: false, gumSurface: true, build: v => ({ geometry: buildFallenBark(v) }) },
-  rock: { variants: VEGETATION_VARIANTS.rock, tintable: false, castShadow: true, build: buildRock },
+  rock: { variants: VEGETATION_VARIANTS.rock, tintable: false, castShadow: true, material: rockMaterial, build: buildRock },
   grassTuft: { variants: VEGETATION_VARIANTS.grassTuft, tintable: false, castShadow: false, foliage: true, build: buildGrassTuft },
   tyreStack: { variants: TRACKSIDE_VARIANTS.tyreStack, tintable: false, castShadow: true, build: buildTyreStack },
   marshalPost: { variants: HUT_VARIANTS.marshalPost, tintable: false, castShadow: true, build: buildMarshalPost },

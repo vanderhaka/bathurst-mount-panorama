@@ -8,7 +8,7 @@ export interface AsphaltMaps {
   meanLinear: number;
 }
 
-/** Four metre aggregate tile. Height is millimetre-scale; dry roughness is 0.81–0.93. */
+/** Four metre aggregate tile. Height is millimetre-scale; dry roughness is 0.72–0.86. */
 export function generateAsphaltMaps(size: number): AsphaltMaps {
   const albedo = new Uint8Array(size * size * 4);
   const normal = new Uint8Array(albedo.length), roughness = new Uint8Array(albedo.length);
@@ -20,11 +20,11 @@ export function generateAsphaltMaps(size: number): AsphaltMaps {
     const fine = surfaceNoise(u, v, cells, 3), mid = surfaceNoise(u, v, 32, 7);
     const broad = surfaceNoise(u, v, 8, 13);
     height[i] = (fine - 0.5) * 1.4 + (mid - 0.5) * 0.1;
-    const srgb = clamp01(0.63 + (fine - 0.5) * 0.19 + (mid - 0.5) * 0.08 + (broad - 0.5) * 0.025);
+    const srgb = clamp01(0.60 + (fine - 0.5) * 0.19 + (mid - 0.5) * 0.08 + (broad - 0.5) * 0.025);
     const shade = Math.round(srgb * 255);
     albedo.set([shade, shade, Math.min(255, Math.round(shade * 1.01)), 255], p);
     linearSum += ((shade / 255 + 0.055) / 1.055) ** 2.4;
-    const r = Math.round((0.87 + (fine * 0.7 + mid * 0.3 - 0.5) * 0.12) * 255);
+    const r = Math.round((0.79 + (fine * 0.7 + mid * 0.3 - 0.5) * 0.13 + (broad - 0.5) * 0.05) * 255);
     roughness.set([r, r, r, 255], p);
   }
   const h = (x: number, y: number) => height[((y + size - 1) % (size - 1)) * size + (x + size - 1) % (size - 1)];
@@ -59,7 +59,7 @@ function periodicDistanceSquared(u: number, v: number, s: Segment): number {
   return (x - ax - t * dx) ** 2 + (y - ay - t * dy) ** 2;
 }
 
-/** 64 metre macro tile: R = repairs, G = crack sealing. Both alter colour and roughness. */
+/** 64 metre macro tile: R = repairs, G = crack sealing, B = broad (~30 m) wear, A = longitudinal wheel-track streaks. */
 export function generateWeatherMap(size: number): Uint8Array {
   const data = new Uint8Array(size * size * 4);
   const halfTexel = 0.5 / (size - 1), sealWidth = 0.0013; // about 8 cm at the core
@@ -69,7 +69,10 @@ export function generateWeatherMap(size: number): Uint8Array {
     let distance = Infinity;
     for (const segment of cracks) distance = Math.min(distance, periodicDistanceSquared(u, v, segment));
     const seal = 1 - smoothStep(sealWidth * 0.5, sealWidth + halfTexel, Math.sqrt(distance));
-    data.set([Math.round(patch * 255), Math.round(seal * 255), 0, 255], (y * size + x) * 4);
+    // u runs across the road (16 m per 0.25 repeat), v along it: streaks are many across, few along.
+    const broad = surfaceNoise(u, v, 2, 83) * 0.65 + surfaceNoise(u, v, 5, 87) * 0.35;
+    const streak = surfaceNoise(u, v, 48, 91) * (0.4 + 0.6 * surfaceNoise(u, v, 3, 97));
+    data.set([Math.round(patch * 255), Math.round(seal * 255), Math.round(broad * 255), Math.round(clamp01(streak) * 255)], (y * size + x) * 4);
   }
   sealTextureEdges(data, size);
   return data;

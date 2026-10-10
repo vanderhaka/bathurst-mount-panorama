@@ -16,7 +16,7 @@ export class StartLights {
   private outAt = -1;
 
   constructor() {
-    this.el = h('section', 'hud-panel hud-lights', { 'aria-label': 'Start lights', 'data-on': 'false', 'data-phase': 'count', role: 'status' });
+    this.el = h('section', 'hud-panel hud-panel--tr hud-lights', { 'aria-label': 'Start lights', 'data-on': 'false', 'data-phase': 'count', role: 'status' });
     for (let i = 0; i < PODS; i++) {
       const pod = h('div', 'hud-light', { 'data-lit': 'false' }, [h('i'), h('i')]);
       this.el.append(pod);

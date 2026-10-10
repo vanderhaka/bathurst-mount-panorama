@@ -17,7 +17,8 @@ vi.mock('@/car/models/camaro-profile', async (orig) => {
 
 // Visible triangles of the unmodified Gen3 Camaro, measured with the real profile
 // (the mock above replaces it for this whole file, so it cannot be built here).
-const GEN3_TRIANGLES = { high: 33922, low: 4782 };
+// Re-measured after the rolled-crease fillet columns and the bonnet bulge (car-body AAA pass).
+const GEN3_TRIANGLES = { high: 35210, low: 4936 };
 
 const build = (detail: 'high' | 'low'): CarModel => createCarModel('camaro', { livery: LIVERY_PRESETS.camaro[0].livery, detail });
 

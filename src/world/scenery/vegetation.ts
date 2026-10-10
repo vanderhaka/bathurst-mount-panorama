@@ -8,6 +8,7 @@ import { DEM_EXTENT, demHeight, fbm } from '@/world/dem';
 import type { Terrain } from '@/world/terrain';
 import { pointInPolygon, rng, type SpatialMask, type XZ } from '@/world/scenery/geo';
 import type { PropInstancer } from '@/world/scenery/instancer';
+import { addEmbeddedRock } from '@/world/scenery/rock-place';
 import { placeUnderTreeDetails } from '@/world/scenery/undergrowth';
 
 const F = featuresJson as unknown as { woods: Array<{ kind: string; poly: XZ[] }>; trees: XZ[]; treeRows: XZ[][]; grassland: XZ[][]; buildings: Array<{ kind: string; poly: XZ[] }> };
@@ -108,7 +109,7 @@ export function placeVegetation(terrain: Terrain, inst: PropInstancer, mask: Spa
       const y = terrain.heightAt(px, pz) - 0.15;
       // Cut faces (The Cutting) are bare rock and clay: a few boulders, no trees.
       if (slope > 0.8) {
-        if (r() < 0.6) inst.add('rock', Math.floor(r() * rockV), px, y, pz, r() * Math.PI * 2, 1.2 + r() * 2);
+        if (r() < 0.6) addEmbeddedRock(inst, terrain, Math.floor(r() * rockV), px, pz, r() * Math.PI * 2, 1.2 + r() * 2);
         continue;
       }
       const roll = r();
@@ -122,7 +123,7 @@ export function placeVegetation(terrain: Terrain, inst: PropInstancer, mask: Spa
       } else if (roll < dens * 0.62 + dens * 0.25) {
         inst.add('shrub', Math.floor(r() * shrubV), px, y + 0.1, pz, r() * Math.PI * 2, 0.7 + r() * 0.8);
       } else if (roll > 0.985 && slope > 0.12) {
-        inst.add('rock', Math.floor(r() * rockV), px, y, pz, r() * Math.PI * 2, 0.6 + r() * 1.4);
+        addEmbeddedRock(inst, terrain, Math.floor(r() * rockV), px, pz, r() * Math.PI * 2, 0.6 + r() * 1.4);
       }
       // Grass tufts close to the track (seen from the cockpit), sparse elsewhere.
       const tuftP = (clear < 40 ? 0.55 : 0.06) * g.grassTuftDensity * densityScale;

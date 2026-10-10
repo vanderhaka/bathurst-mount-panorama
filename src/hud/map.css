@@ -1,11 +1,44 @@
-/* Track map, driver inputs, damage schematic. Tokens: theme.css */
+/* Track map (top right); the inputs strip (telemetry.css, imported by telemetry.ts) shares these tokens.
+   Surface recipe: .hud-panel in theme.css. Fallbacks here match its tokens. */
+
+.hud-map,
+.hud-telemetry {
+  --hud-bl-edge: var(--hud-edge, rgb(255 255 255 / 0.08));
+  --hud-bl-label: var(--hud-label, rgb(255 255 255 / 0.6));
+  --hud-bl-num: var(--hud-num, #f3f4f0);
+  --hud-bl-fs-label: var(--hud-fs-label, 0.7em);
+  --hud-bl-ease: 120ms ease-out;
+}
+.hud-map__label,
+.hud-telemetry__label {
+  font-size: var(--hud-bl-fs-label);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--hud-bl-label);
+  white-space: nowrap;
+}
+
 .hud-map {
-  width: 19.5em;
+  --hud-map-line-width: 2;
+  width: 15.5em;
   overflow: hidden;
+}
+.hud-map__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 1.6em;
+  padding: 0 0.6em;
+  background: var(--hud-panel-head-bg, rgb(255 255 255 / 0.04));
+  border-bottom: 1px solid var(--hud-bl-edge);
+}
+.hud-map__head .hud-map__label:first-child {
+  color: var(--hud-bl-num);
 }
 .hud-map__view {
   position: relative;
-  height: 12.6em;
+  height: 9.6em;
 }
 .hud-map__canvas {
   position: absolute;
@@ -24,22 +57,24 @@
 .hud-map__car {
   z-index: 2;
 }
+/* faint ring around the player dot */
 .hud-map__car::before {
   content: '';
   position: absolute;
-  left: -0.8em;
-  top: -0.8em;
-  width: 1.6em;
-  height: 1.6em;
+  left: -0.65em;
+  top: -0.65em;
+  width: 1.3em;
+  height: 1.3em;
   border-radius: 50%;
-  background: color-mix(in srgb, var(--hud-map-player-ring) 38%, transparent);
+  border: 1px solid rgb(255 255 255 / 0.22);
+  background: color-mix(in srgb, var(--hud-map-player-ring, #d7262e) 16%, transparent);
 }
 .hud-map__arrow {
   position: absolute;
-  left: -0.62em;
-  top: -0.62em;
-  width: 1.24em;
-  height: 1.24em;
+  left: -0.6em;
+  top: -0.6em;
+  width: 1.2em;
+  height: 1.2em;
 }
 .hud-map__arrow svg {
   display: block;
@@ -47,50 +82,46 @@
   height: 100%;
   overflow: visible;
 }
-.hud-map__arrow path {
-  fill: var(--hud-map-player);
+.hud-map__arrow path,
+.hud-map__arrow circle {
+  fill: var(--hud-map-player, #fff);
   stroke: #000;
-  stroke-width: 1.6;
+  stroke-width: 1.2;
   stroke-linejoin: round;
   paint-order: stroke;
 }
 .hud-map__ghost {
-  width: 0.8em;
-  height: 0.8em;
-  margin: -0.4em 0 0 -0.4em;
+  width: 0.55em;
+  height: 0.55em;
+  margin: -0.275em 0 0 -0.275em;
   border-radius: 50%;
-  border: 0.17em solid var(--hud-map-ghost);
+  border: 1px solid var(--hud-map-ghost, #5ec8ff);
   background: rgb(0 0 0 / 0.5);
 }
 .hud-map__ghost[data-on='false'] {
   display: none;
 }
+
+/* corner strip under the map: T-number in accent, place name, altitude */
 .hud-map__foot {
   display: flex;
   align-items: center;
-  gap: 0.5em;
-  height: 2.35em;
-  padding: 0 0.75em;
-  background: var(--hud-panel-head-bg);
-  border-top: 1px solid var(--hud-hairline);
+  gap: 0.45em;
+  height: 1.9em;
+  padding: 0 0.7em;
+  border-top: 1px solid var(--hud-bl-edge);
 }
 .hud-map__turn {
-  padding: 0.24em 0.36em 0.2em;
-  font-size: 0.86em;
-  font-weight: 700;
-  color: var(--hud-accent-text);
-  background: var(--hud-accent);
-  border-radius: 1px;
+  font-size: var(--hud-bl-fs-label);
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: var(--hud-accent, #d7262e);
 }
 .hud-map__turn[data-on='false'] {
   display: none;
 }
 .hud-map__next {
   display: none;
-  font-size: var(--hud-fs-label);
-  font-weight: 600;
-  letter-spacing: var(--hud-label-tracking);
-  color: var(--hud-text-dim);
 }
 [data-kind='next'] .hud-map__next {
   display: inline;
@@ -99,201 +130,25 @@
   flex: 1;
   min-width: 0;
   overflow: hidden;
-  font-size: 1.1em;
+  font-size: 0.95em;
   font-weight: 700;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.06em;
+  color: var(--hud-bl-num);
   white-space: pre;
   text-overflow: ellipsis;
+  transition: color var(--hud-bl-ease);
 }
 [data-kind='next'] .hud-map__corner {
-  font-weight: 600;
-  color: var(--hud-text-dim);
+  color: var(--hud-bl-label);
 }
 .hud-map__alt {
   display: flex;
   align-items: baseline;
-  gap: 0.3em;
+  gap: 0.25em;
 }
 .hud-map__alt-v {
-  font-size: 1.1em;
-  font-weight: 700;
-}
-
-/* ---- inputs + damage */
-.hud-telemetry {
-  display: flex;
-  align-items: stretch;
-  gap: 0.9em;
-  height: 10.8em;
-  padding: 0.7em 0.85em 0.65em;
-}
-.hud-telemetry__rule {
-  width: 1px;
-  background: var(--hud-hairline);
-}
-.hud-pedals {
-  display: flex;
-  gap: 0.5em;
-}
-.hud-pedal {
-  --pc: var(--hud-throttle);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.4em;
-}
-.hud-pedal--brake {
-  --pc: var(--hud-brake);
-}
-.hud-pedal__track {
-  position: relative;
-  flex: 1;
-  width: 1.1em;
-  overflow: hidden;
-  background: rgb(255 255 255 / 0.08);
-}
-.hud-pedal__fill {
-  position: absolute;
-  inset: 0;
-  background: var(--pc);
-  transform-origin: bottom;
-  transform: scaleY(var(--f, 0));
-}
-.hud-pedal__track::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: repeating-linear-gradient(0deg, transparent 0 calc(25% - 1px), rgb(0 0 0 / 0.5) calc(25% - 1px) 25%);
-}
-.hud-wheel {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.4em;
-}
-.hud-wheel__rot {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 5.4em;
-  height: 5.4em;
-  margin: auto 0;
-  transform: rotate(calc(var(--a, 0) * 1deg));
-}
-.hud-wheel__svg {
-  width: 100%;
-  height: 100%;
-  overflow: visible;
-}
-.hud-wheel__bar {
-  fill: none;
-  stroke: var(--hud-steer);
-  stroke-width: 6;
-  stroke-linecap: round;
-}
-.hud-wheel__grip {
-  fill: var(--hud-steer);
-}
-.hud-wheel__spoke {
-  fill: none;
-  stroke: var(--hud-steer);
-  stroke-width: 6;
-  stroke-linecap: round;
-}
-.hud-wheel__hub {
-  fill: #24282c;
-  stroke: var(--hud-steer);
-  stroke-width: 2.2;
-}
-.hud-wheel__screen {
-  fill: #07090a;
-}
-.hud-wheel__mark {
-  fill: var(--hud-accent);
-}
-.hud-damage {
-  display: flex;
-  gap: 0.65em;
-  transition: opacity 0.3s ease;
-}
-.hud-damage[data-pristine='true'] {
-  opacity: 0.62;
-}
-.hud-car {
-  height: 100%;
-  width: auto;
-  aspect-ratio: 64 / 132;
-  overflow: visible;
-}
-.hud-dmg {
-  --d1: 0;
-  --d2: 0;
-  fill-opacity: calc(0.5 + var(--d1) * 0.5);
-  --dmg-c: color-mix(
-    in oklch,
-    var(--hud-dmg-bad) calc(var(--d2) * 100%),
-    color-mix(in oklch, var(--hud-dmg-mid) calc(var(--d1) * 100%), var(--hud-dmg-ok))
-  );
-  fill: var(--dmg-c);
-}
-.hud-car__cabin {
-  fill: #2a2f33;
-}
-.hud-car__seams {
-  fill: none;
-  stroke: rgb(var(--hud-panel-rgb));
-  stroke-width: 1.5;
-}
-.hud-car__glass {
-  fill: #0a0c0e;
-  stroke: rgb(255 255 255 / 0.28);
-  stroke-width: 0.6;
-}
-.hud-car__outline {
-  fill: none;
-  stroke: rgb(255 255 255 / 0.5);
-  stroke-width: 1;
-}
-.hud-car__aero {
-  fill-opacity: 1;
-  stroke: rgb(0 0 0 / 0.8);
-  stroke-width: 0.8;
-}
-.hud-car__suspension {
-  fill-opacity: 1;
-  stroke: #050607;
-  stroke-width: 1;
-}
-.hud-systems {
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  padding: 0.15em 0;
-}
-.hud-sys {
-  display: grid;
-  grid-template-columns: 1.7em auto;
-  column-gap: 0.45em;
-  row-gap: 0.18em;
-  align-items: center;
-}
-.hud-sys__icon {
-  grid-row: span 2;
-  width: 1.7em;
-  height: 1.7em;
-}
-.hud-sys__suspension {
-  fill: none;
-  stroke: var(--dmg-c);
-  stroke-width: 1.8;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-.hud-sys__pct {
   font-size: 0.95em;
   font-weight: 700;
-}
-.hud-sys[data-ok='true'] .hud-sys__pct {
-  color: var(--hud-text-dim);
+  font-variant-numeric: tabular-nums;
+  color: var(--hud-bl-num);
 }

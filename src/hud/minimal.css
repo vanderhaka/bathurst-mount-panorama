@@ -24,7 +24,7 @@
   box-shadow: none;
 }
 .bx-hud[data-size='minimal'] .hud-map__view { height: 7.6em; }
-.bx-hud[data-size='minimal'] .hud-map .hud-panel__head,
+.bx-hud[data-size='minimal'] .hud-map__head,
 .bx-hud[data-size='minimal'] .hud-map__foot,
 .bx-hud[data-size='minimal'] .hud-map__ghost { display: none; }
 .bx-hud[data-size='minimal'] .hud-minimal {
