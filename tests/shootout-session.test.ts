@@ -244,7 +244,7 @@ describe('one warm-up and one Shootout lap', () => {
 
   it('uses full damage, track limits and the pro preset without mutating saved preferences', () => {
     const preferences = { ...DEFAULT_SETTINGS, damage: 'off' as const, trackLimits: false, touchAutoThrottle: true };
-    expect(competitionSettings(preferences)).toMatchObject({ damage: 'full', trackLimits: true, wear: true, autoGears: false, abs: false, tractionControl: false, racingLine: 'off', steeringAssist: false, autoRecover: false, touchAutoThrottle: false });
+    expect(competitionSettings(preferences)).toMatchObject({ damage: 'full', trackLimits: true, wear: true, autoGears: true, abs: false, tractionControl: false, racingLine: 'off', steeringAssist: false, autoRecover: false, touchAutoThrottle: false });
     expect(preferences).toMatchObject({ damage: 'off', trackLimits: false, autoGears: true, touchAutoThrottle: true });
   });
 });

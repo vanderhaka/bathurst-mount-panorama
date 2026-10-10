@@ -64,7 +64,7 @@ export const LEVEL_CARDS: readonly LevelChoice[] = ['casual', 'experienced', 'su
 export const LEVEL_FACTS: Readonly<Record<LevelChoice, readonly string[]>> = {
   casual: ['Full racing line and every help', 'No damage, track limits or wear', 'Back on track after a spin'],
   experienced: ['Racing line in the braking zones', 'Traction control, ABS, steering assist', 'Track limits, wear and damage'],
-  superstar: ['No racing line, manual gears', 'No traction control or ABS', 'Full damage, track limits and wear'],
+  superstar: ['No racing line, automatic gears', 'No traction control or ABS', 'Full damage, track limits and wear'],
   custom: ['Choose every rule yourself', 'Laps count for the highest level your rules allow'],
 };
 

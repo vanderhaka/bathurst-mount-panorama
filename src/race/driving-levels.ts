@@ -19,7 +19,7 @@ export const LEVELS: readonly DrivingLevel[] = ['casual', 'experienced', 'supers
 export const LEVEL_PRESETS: Readonly<Record<DrivingLevel, Rules>> = {
   casual: { racingLine: 'full', autoGears: true, tractionControl: true, abs: true, steeringAssist: true, damage: 'off', trackLimits: false, wear: false, autoRecover: true },
   experienced: { racingLine: 'braking', autoGears: true, tractionControl: true, abs: true, steeringAssist: true, damage: 'visual', trackLimits: true, wear: true, autoRecover: false },
-  superstar: { racingLine: 'off', autoGears: false, tractionControl: false, abs: false, steeringAssist: false, damage: 'full', trackLimits: true, wear: true, autoRecover: false },
+  superstar: { racingLine: 'off', autoGears: true, tractionControl: false, abs: false, steeringAssist: false, damage: 'full', trackLimits: true, wear: true, autoRecover: false },
 };
 
 /** Card title, short badge (results, HUD) and one-line description. */

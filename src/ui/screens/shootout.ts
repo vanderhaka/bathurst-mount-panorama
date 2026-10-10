@@ -24,7 +24,7 @@ export class ShootoutScreen implements Screen {
   private readonly rules = h('ol', 'mn-shootout-steps');
   private readonly quota = h('p', 'mn-shootout-quota');
   private readonly history = h('div', 'mn-shootout-history');
-  private readonly proRules = h('p', 'mn-shootout-fine', undefined, ['Pro rules: full damage, track limits and tyre wear. Manual gears, no racing line or driving assists. Soft tyres and standard setup. Each lap has a 10-minute limit; reaching it ends the session without a score.']);
+  private readonly proRules = h('p', 'mn-shootout-fine', undefined, ['Pro rules: full damage, track limits and tyre wear. Automatic gears, no racing line or driving assists. Soft tyres and standard setup. Each lap has a 10-minute limit; reaching it ends the session without a score.']);
   private readonly board = h('section', 'mn-shootout-board');
   private readonly boardStatus = h('p', 'mn-shootout-status', { role: 'status', 'aria-live': 'polite' });
   private readonly boardRows = h('tbody');

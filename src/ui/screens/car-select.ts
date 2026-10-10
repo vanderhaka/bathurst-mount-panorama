@@ -79,7 +79,7 @@ export class CarSelectScreen implements Screen {
     this.modeLabel.textContent = mode === 'timeTrial' ? 'Select car' : mode === 'shootoutArcade' ? 'Shootout Arcade' : 'Shootout Top 10';
     this.modeNote.hidden = !shootout;
     this.modeNote.textContent = mode === 'shootoutTop10'
-      ? `Bathurst · ${remaining} of 3 attempts left · Full damage / track limits / manual gears`
+      ? `Bathurst · ${remaining} of 3 attempts left · Full damage / track limits / automatic gears`
       : 'Bathurst · Unlimited practice · Pro rules · No official score';
     this.tyreRow.el.hidden = shootout;
     if (shootout) this.tyres = 'soft';
