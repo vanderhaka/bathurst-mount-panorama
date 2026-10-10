@@ -17,6 +17,7 @@ describe('rolling warm-up on the real car physics', () => {
     const vehicle = new Vehicle(CAR_SPECS[car], track, kerbs);
     const entity = { vehicle, reset: (s: number, d: number) => vehicle.reset(s, d), repair: () => vehicle.repair() } as unknown as CarEntity;
     const session = new RaceSession(car, track, line, entity, 'soft', competitionSettings(DEFAULT_SETTINGS), 'shootoutArcade');
+    session.warmupStart = 'rolling';
     session.placeOnGrid();
     expect(vehicle.speed).toBeCloseTo(WARMUP_SPEED, 3);
     expect(vehicle.tp.s).toBeCloseTo(WARMUP_START_S, -1);

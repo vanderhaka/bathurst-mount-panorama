@@ -73,7 +73,7 @@ export class RaceSession {
   private lapFault: string | null = null;
   shootoutRemaining: number | null = null;
   /** Shootout only: where the warm-up starts (read by placeOnGrid). */
-  warmupStart: WarmupStart = 'rolling';
+  warmupStart: WarmupStart = 'grid';
   /** Lap distance of the rolling warm-up start, until its first crossing. */
   private warmupFrom: number | null = null;
   /** The finished timed lap's ghost frames (the Top 10 replay, the Arcade best's ghost). */
@@ -151,8 +151,8 @@ export class RaceSession {
     this.shootoutRun = { phase: 'finished', attempt: run.attempt, outcome: { kind: 'invalid', timeS: null, reason } };
   }
 
-  /** Puts the car on pole position behind the standing-start line and arms the lights; a Shootout warm-up starts
-   * rolling before Forrest's Elbow instead. */
+  /** Puts the car on pole position behind the standing-start line and arms the lights; a Shootout warm-up set to
+   * 'rolling' starts before Forrest's Elbow instead. */
   placeOnGrid(): void {
     if (this.shootoutRun?.phase === 'timed' || this.shootoutRun?.phase === 'finished') throw new Error('A started Shootout lap cannot be restarted. Start a new warm-up.');
     if (this.shootoutRun) { this.shootoutRun = { phase: 'warmup' }; this.shootoutFault = null; this.timedFrames = null; if (this.warmupStart === 'rolling') return this.placeRolling(); }

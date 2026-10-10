@@ -398,10 +398,13 @@ describe('grid warm-up option', () => {
     expect(session.shootout).toEqual({ phase: 'warmup' });
   });
 
-  it('keeps the rolling start by default', () => {
-    const { session, vehicle } = fixture();
-    expect(session.warmupStart).toBe('rolling');
-    expect(vehicle.tp.s).toBe(WARMUP_START_S);
+  it('starts on the grid by default', () => {
+    const vehicle = fixture().vehicle;
+    const session = new RaceSession('camaro', track, line, { vehicle, reset: (s: number) => { vehicle.tp.s = s; }, repair() {} } as unknown as CarEntity, 'soft', competitionSettings(DEFAULT_SETTINGS), 'shootoutArcade');
+    expect(session.warmupStart).toBe('grid');
+    session.placeOnGrid();
+    expect(vehicle.tp.s).toBeCloseTo(gridSlot(track, 0).s, 6);
+    expect(session.lights).toBe(0);
   });
 
   it('ends the grid warm-up at the line after a full lap, and a warm-up reset returns to the grid', () => {

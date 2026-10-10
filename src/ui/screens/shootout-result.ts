@@ -2,7 +2,7 @@ import { h } from '@/hud/dom';
 import { formatDelta, formatLapTime } from '@/hud/format';
 import type { PracticeSummary } from '@/game/arcade-best';
 import type { ShootoutAttempt, ShootoutOutcome } from '@/shootout/model';
-import { loadWarmupStart, saveWarmupStart, warmupChoiceUnlocked } from '@/shootout/warmup-start';
+import { loadWarmupStart, saveWarmupStart } from '@/shootout/warmup-start';
 import type { ShootoutStore } from '@/shootout/store';
 import type { ShootoutMode } from '@/types/session';
 import { hintBar, kicker, menuButton, screenEl, STD_HINTS, type Screen } from '@/ui/screen';
@@ -50,7 +50,7 @@ export class ShootoutResultScreen implements Screen {
     this.confirmSkip = menuButton('Skip this score', () => this.skipScore());
     this.keep = menuButton('Keep my score', () => { this.warning.hidden = true; this.form.hidden = false; this.nickname.focus(); });
     this.again = menuButton('Next warm-up', actions.again, { variant: 'primary' });
-    this.warmupStart = menuButton(startLabel(false), () => {
+    this.warmupStart = menuButton(startLabel(true), () => {
       saveWarmupStart(this.mode, loadWarmupStart(this.mode) === 'grid' ? 'rolling' : 'grid');
       this.render();
     });
@@ -118,7 +118,7 @@ export class ShootoutResultScreen implements Screen {
     this.again.hidden = !this.decided;
     this.menu.hidden = !this.decided && !this.queued;
     this.nickname.readOnly = this.queued;
-    this.warmupStart.hidden = this.again.hidden || !warmupChoiceUnlocked(this.mode);
+    this.warmupStart.hidden = this.again.hidden;
     const startText = this.warmupStart.querySelector('.mn-btn__label');
     if (startText) startText.textContent = startLabel(loadWarmupStart(this.mode) === 'grid');
     this.leaderboard.hidden = !this.decided || this.mode !== 'shootoutTop10';

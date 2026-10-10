@@ -3,7 +3,7 @@ import { h } from '@/hud/dom';
 import { formatLapTime } from '@/hud/format';
 import { fetchBoard } from '@/shootout/leaderboard';
 import { type BoardCar, currentSeason, type LeaderboardResult, type SavedShootoutAttempt, type ShootoutSeason } from '@/shootout/model';
-import { loadWarmupStart, saveWarmupStart, warmupChoiceUnlocked } from '@/shootout/warmup-start';
+import { loadWarmupStart, saveWarmupStart } from '@/shootout/warmup-start';
 import type { ShootoutStore } from '@/shootout/store';
 import { ACTIVE_CIRCUIT } from '@/track/circuits';
 import type { ShootoutMode } from '@/types/session';
@@ -71,7 +71,7 @@ export class ShootoutScreen implements Screen {
     this.arcade = menuButton('Practice in Arcade', actions.arcade);
     this.resume = menuButton('Finish last result', () => { if (this.pending) actions.resume(this.pending); });
     this.backBtn = menuButton('Back', actions.back);
-    this.warmupStart = menuButton(startLabel(false), () => {
+    this.warmupStart = menuButton(startLabel(true), () => {
       saveWarmupStart(this.mode, loadWarmupStart(this.mode) === 'grid' ? 'rolling' : 'grid');
       this.render();
     });
@@ -132,9 +132,7 @@ export class ShootoutScreen implements Screen {
     const top10 = this.mode === 'shootoutTop10';
     this.title.textContent = top10 ? 'Shootout Top 10' : 'Shootout Arcade';
     this.subtitle.textContent = top10 ? 'One flying lap. Three chances a week to make your mark.' : 'Learn the mountain. Chase the fastest lap whenever you like.';
-    const unlocked = warmupChoiceUnlocked(this.mode);
     const grid = loadWarmupStart(this.mode) === 'grid';
-    this.warmupStart.hidden = !unlocked;
     const startText = this.warmupStart.querySelector('.mn-btn__label');
     if (startText) startText.textContent = startLabel(grid);
     const steps = top10 ? [

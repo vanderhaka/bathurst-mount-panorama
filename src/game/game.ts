@@ -24,7 +24,7 @@ import { loadArcadeBest, recordArcadeLap, type PracticeSummary } from '@/game/ar
 import { encodeReplay, isShootoutCar, type ShootoutCar } from '@/shootout/model';
 import { fetchReplay, reportPractice } from '@/shootout/leaderboard';
 import { USAGE_ANALYTICS } from '@/config/build-flags';
-import { loadWarmupStart, unlockWarmupChoice } from '@/shootout/warmup-start';
+import { loadWarmupStart } from '@/shootout/warmup-start';
 import { ShootoutStore } from '@/shootout/store';
 import { formatLapTime } from '@/hud/format';
 import { loadSettings, saveSettings } from '@/game/settings-store';
@@ -366,7 +366,7 @@ export class Game {
 
   private async startShootoutLap(race: RaceController): Promise<void> {
     const session = race.session;
-    if (session.mode === 'shootoutArcade') { session.beginShootoutTimedLap(null); unlockWarmupChoice(session.mode); return; }
+    if (session.mode === 'shootoutArcade') { session.beginShootoutTimedLap(null); return; }
     if (this.claimingShootout || !isShootoutCar(session.car)) return;
     this.claimingShootout = true;
     try {
@@ -375,7 +375,6 @@ export class Game {
       const attempt = await this.shootoutStore.reserveTimedLap(session.car);
       if (this.race !== race || this.halted) return;
       session.beginShootoutTimedLap(attempt);
-      unlockWarmupChoice('shootoutTop10');
       this.lapClock.start(performance.now(), this.state !== 'race');
       this.guardUnload(true);
       if (typeof navigator !== 'undefined' && navigator.onLine === false) session.sayNext('OFFLINE — YOUR SCORE IS SAVED FOR RETRY AFTER THIS LAP', 'warn', 5);

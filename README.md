@@ -51,9 +51,9 @@ documented estimates.
 ## Shootout
 
 Both Shootout modes run at Bathurst with the Camaro, Mustang, or Supra. Every run
-has a rolling warm-up from Forrest's Elbow on warm tyres, then one full timed lap
-from the line. After the first timed lap in a mode, the intro and result screens
-offer "Warm-up start: Grid": pole position, start lights and one full warm-up lap
+starts on the grid: pole position, start lights and one full warm-up lap, then one
+full timed lap from the line. The intro and result screens offer "Warm-up start:
+Forrest's Elbow" instead, a rolling start just before the Elbow on warm tyres
 (remembered per mode in this browser). Both use full damage, track limits,
 tyre wear, automatic gears, soft tyres, and the standard setup. ABS, traction
 control and steering assist are on for everyone (phone and keyboard pedals are

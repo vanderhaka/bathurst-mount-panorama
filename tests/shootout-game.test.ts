@@ -35,6 +35,7 @@ function session(mode: RaceMode = 'shootoutTop10') {
   const entity = { vehicle, reset: (s: number) => { vehicle.tp.s = s; }, repair() {} } as unknown as CarEntity;
   const s = new RaceSession('camaro', track, line, entity, 'soft', competitionSettings(DEFAULT_SETTINGS), mode);
   s.placeOnGrid();
+  while (!s.racing) s.updateLights(0.1);
   const until = (phase: 'ready' | 'finished'): void => {
     for (let i = 0; i < 20_000 && s.shootout?.phase !== phase; i++) { vehicle.tp.s = track.wrapS(vehicle.tp.s + speed * dt); s.update(dt); }
     expect(s.shootout?.phase).toBe(phase);
