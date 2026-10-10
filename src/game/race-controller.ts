@@ -59,6 +59,13 @@ export function startBeepFor(prev: number, now: number): 'light' | 'go' | null {
   return null;
 }
 
+/** The same beeps for the rolling start's 3, 2, 1 countdown (0 = none): one per number, the go beep at launch. */
+export function countdownBeepFor(prev: number, now: number): 'light' | 'go' | null {
+  if (now > 0 && now !== prev) return 'light';
+  if (prev > 0 && now === 0) return 'go';
+  return null;
+}
+
 /** One frame of driving: controls -> assists -> physics -> race logic -> feedback (HUD, audio, rumble, camera). */
 export class RaceController {
   readonly profiles: SessionProfiles;
@@ -74,6 +81,8 @@ export class RaceController {
   private damageMode: Settings['damage'] | null = null;
   /** Start lights at the end of the last frame, for the start beeps. */
   private prevLights: number;
+  /** Rolling-start countdown number at the end of the last frame (0 = none), for its beeps. */
+  private prevCount = 0;
 
   constructor(readonly session: RaceSession, readonly player: CarEntity, private readonly d: RaceDeps) {
     this.profiles = new SessionProfiles(player.vehicle, session.line);
@@ -154,9 +163,10 @@ export class RaceController {
     }
     this.player.sync(dt, cockpitHeaveScale(this.d.rig.mode, settings.headMotion));
     this.d.startLights(this.session.lights);
-    const beep = startBeepFor(this.prevLights, this.session.lights);
+    const beep = startBeepFor(this.prevLights, this.session.lights) ?? countdownBeepFor(this.prevCount, this.session.countdown);
     if (beep) this.d.audio?.startBeep(beep === 'go');
     this.prevLights = this.session.lights;
+    this.prevCount = this.session.countdown;
     mirrorView().update(this.d.stage.renderer, this.d.stage.scene, this.player.model, this.d.rig.mode === 'cockpit' && !this.d.rig.lookBack);
     this.d.effects.step(this.player, dt);
     this.updateGhost();
@@ -187,6 +197,7 @@ export class RaceController {
   /** Back to the grid: the lap profiles and every effect start clean. */
   restart(): void {
     this.prevLights = this.session.lights;
+    this.prevCount = 0;
     this.profiles.reset();
     this.d.effects.resetAll();
   }

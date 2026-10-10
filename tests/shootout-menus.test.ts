@@ -292,7 +292,7 @@ describe('Shootout warm-up start question', () => {
     menus.showShootout('shootoutArcade');
     await settle();
     expect(findText(screen('shootout'), 'Warm-up start: Grid')).toBeNull();
-    expect(findText(screen('shootout'), "Start on the grid or rolling at Forrest's Elbow; you choose before every run.")).not.toBeNull();
+    expect(findText(screen('shootout'), "Start on the grid or rolling just after Forrest's Elbow; you choose before every run.")).not.toBeNull();
     menus.showShootoutResult('shootoutArcade', null, valid);
     expect(findText(screen('shootoutResult'), 'Warm-up start: Grid')).toBeNull();
   });

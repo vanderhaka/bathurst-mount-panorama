@@ -1,5 +1,5 @@
-// Shootout warm-up question: asked after car select before every Shootout run. Grid or a rolling start before
-// Forrest's Elbow; the last answer is marked and focused, so Enter / A repeats it.
+// Shootout warm-up question: asked after car select before every Shootout run. Grid or a rolling start
+// just after Forrest's Elbow; the last answer is marked and focused, so Enter / A repeats it.
 import '@/ui/steer.css';
 import { h } from '@/hud/dom';
 import { loadWarmupStart, saveWarmupStart, type WarmupStart } from '@/shootout/warmup-start';
@@ -8,7 +8,7 @@ import { hintBar, kicker, menuButton, type Screen, screenEl } from '@/ui/screen'
 
 const CHOICES: readonly { start: WarmupStart; label: string; help: string }[] = [
   { start: 'grid', label: 'Grid', help: 'Pole position, the start lights, then one full warm-up lap.' },
-  { start: 'rolling', label: "Forrest's Elbow", help: 'Rolling just before the Elbow on warm tyres. Shorter, but you arrive at speed.' },
+  { start: 'rolling', label: "After Forrest's Elbow", help: 'A 3, 2, 1 countdown, then rolling down Conrod Straight on warm tyres. Shorter.' },
 ];
 
 export class WarmupStartScreen implements Screen {

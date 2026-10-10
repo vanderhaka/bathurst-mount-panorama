@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { synthBeep } from '@/audio/dsp/oneshot-synth';
 import { findPeaks, magnitudeSpectrum, peakAbs } from '@/audio/dsp/spectrum';
-import { startBeepFor } from '@/game/race-controller';
+import { countdownBeepFor, startBeepFor } from '@/game/race-controller';
 
 const SR = 48000;
 
@@ -36,5 +36,13 @@ describe('synthBeep', () => {
     const [peak] = findPeaks(magnitudeSpectrum(beep, SR, 0, 8192), 100, 5000, 1);
     expect(peak.hz).toBeGreaterThan(840);
     expect(peak.hz).toBeLessThan(920);
+  });
+});
+
+describe('countdownBeepFor', () => {
+  it('beeps on 3, 2 and 1, then the go beep at launch, and stays silent otherwise', () => {
+    const counts = [0, 3, 3, 2, 2, 1, 1, 0, 0];
+    expect(counts.slice(1).map((now, i) => countdownBeepFor(counts[i], now)).filter(Boolean)).toEqual(['light', 'light', 'light', 'go']);
+    expect(countdownBeepFor(0, 0)).toBeNull();
   });
 });

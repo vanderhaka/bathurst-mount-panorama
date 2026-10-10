@@ -104,6 +104,7 @@ export function buildHudState(session: RaceSession, profile: SpeedProfile, setti
   state.message = session.currentMessage();
   state.fps = fps;
   state.startLights = session.lights;
+  state.countdown = session.countdown;
   state.gLat = t.gLat;
   state.gLong = t.gLong;
   state.wheels = t.wheels;

@@ -37,7 +37,7 @@ export function teleport(race: RaceController, world: World, profile: SpeedProfi
   for (let k = 0; k < 900 && driven() < RUN_UP; k++) race.player.simulate(input, 1 / 60, (inp) => pilot.drive(v, inp));
   race.player.sync(0);
   if (!session.racing) {
-    session.lights = -1;
+    session.skipStart();
     session.timer.lapNumber = 1;
   }
   session.timer.invalidate();

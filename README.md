@@ -52,8 +52,9 @@ documented estimates.
 
 Both Shootout modes run at Bathurst with the Camaro, Mustang, or Supra. After
 picking a car, every run asks where the warm-up starts: the grid (pole position,
-start lights and one full warm-up lap; the default) or Forrest's Elbow (a rolling
-start just before the Elbow on warm tyres). The last answer is remembered per mode
+start lights and one full warm-up lap; the default) or after Forrest's Elbow (the
+car is held for a 3, 2, 1 countdown on Conrod Straight just past the Elbow, then
+rolls on warm tyres). The last answer is remembered per mode
 in this browser. Then comes one full timed lap from the line. Both use full damage, track limits,
 tyre wear, automatic gears, soft tyres, and the standard setup. ABS, traction
 control and steering assist are on for everyone (phone and keyboard pedals are

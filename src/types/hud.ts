@@ -63,6 +63,8 @@ export interface HudState {
   hudSize?: Settings['hudSize'];
   /** Start lights: number lit (0..5) during the countdown, -1 once the lights are out. Omit = no lights strip. */
   startLights?: number;
+  /** Rolling start: the 3, 2, 1 countdown number shown large in the centre, 0 = none. Omit = none. */
+  countdown?: number;
   /** Camera view: in 'cockpit' the timing tower moves below the interior mirror. */
   view?: 'outside' | 'cockpit';
   /** The player's line in the broadcast tower: race number as shown (e.g. '05'), 3-letter code, livery colour (CSS). */

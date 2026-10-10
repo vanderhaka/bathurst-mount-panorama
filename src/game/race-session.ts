@@ -21,11 +21,13 @@ import { restoreTelemetry, type LapTelemetry, type SessionTelemetry, type Teleme
 
 type Message = NonNullable<HudState['message']>;
 
-/** Shootout warm-up: a rolling start on the racing line just before Forrest's Elbow (T18, apex region from 3951 m),
- * at about its apex speed (the AI profile is ~80 km/h there for all three cars), instead of a 2-minute standing-start
- * lap. About 2.4 km to the line: the Elbow, Conrod Straight, The Chase and Murray's Corner. */
-export const WARMUP_START_S = 3930;
+/** Shootout warm-up: a rolling start on Conrod Straight just after Forrest's Elbow (T18, which bends from about 3960 m
+ * to 4045 m; the road is straight from 4060 m), instead of a 2-minute standing-start lap. About 2.2 km to the line:
+ * Conrod Straight, The Chase and Murray's Corner. */
+export const WARMUP_START_S = 4100;
 export const WARMUP_SPEED = 80 / 3.6;
+/** The rolling start counts down 3, 2, 1 with the car held still, then launches at WARMUP_SPEED. */
+export const ROLLING_COUNTDOWN_S = 3;
 /** Warm-up tyres start this far into their working window (soft 85 to 105 C), so the timed lap is never on cold tyres. */
 export const WARMUP_TYRE_MARGIN_C = 5;
 /** Share of the rolling warm-up's distance that must be driven forwards for its crossing to count. */
@@ -57,6 +59,8 @@ export class RaceSession {
   private bestTelemetry: LapTelemetry | null = null;
   /** Start lights: number lit (0..5), -1 = lights out (racing). */
   lights = 0;
+  /** Rolling start: seconds left in the 3, 2, 1 countdown (the car is held), or null. */
+  private rollT: number | null = null;
   private lightsT = 0;
   private holdT = 0;
   private offTrackT = 0;
@@ -152,7 +156,7 @@ export class RaceSession {
   }
 
   /** Puts the car on pole position behind the standing-start line and arms the lights; a Shootout warm-up set to
-   * 'rolling' starts before Forrest's Elbow instead. */
+   * 'rolling' starts just after Forrest's Elbow instead. */
   placeOnGrid(): void {
     if (this.shootoutRun?.phase === 'timed' || this.shootoutRun?.phase === 'finished') throw new Error('A started Shootout lap cannot be restarted. Start a new warm-up.');
     if (this.shootoutRun) { this.shootoutRun = { phase: 'warmup' }; this.shootoutFault = null; this.timedFrames = null; if (this.warmupStart === 'rolling') return this.placeRolling(); }
@@ -163,6 +167,7 @@ export class RaceSession {
     this.entity.repair();
     this.lights = 0;
     this.lightsT = 0;
+    this.rollT = null;
     this.holdT = 1.2 + Math.random() * 1.8;
     this.timer.startOutLap(this.lapDist());
     this.recorder.reset();
@@ -173,27 +178,47 @@ export class RaceSession {
     this.ghostVisible = false;
   }
 
-  /** Shootout warm-up: rolling at WARMUP_SPEED on the racing line before Forrest's Elbow, warm tyres, no start lights. */
+  /** Shootout warm-up: on the racing line just after Forrest's Elbow, warm tyres, no start lights. The car is held for a
+   * 3, 2, 1 countdown, then rolls at WARMUP_SPEED (launchRolling). */
   private placeRolling(): void {
-    const v = this.entity.vehicle, track = this.track;
+    const v = this.entity.vehicle;
     v.stint.reset({ compound: this.tyres, tempC: TYRE_COMPOUNDS[this.tyres].minC + WARMUP_TYRE_MARGIN_C });
     v.trackGrip.reset();
-    const i = Math.round(track.wrapS(WARMUP_START_S) / track.spacing) % track.n;
+    const i = Math.round(this.track.wrapS(WARMUP_START_S) / this.track.spacing) % this.track.n;
     this.entity.reset(WARMUP_START_S, this.line.offset[i]);
     this.entity.repair();
-    v.vx = Math.sin(v.heading) * WARMUP_SPEED;
-    v.vz = Math.cos(v.heading) * WARMUP_SPEED;
-    v.vy = WARMUP_SPEED * track.grade[i];
-    // As the debug teleport: about the gear for this speed (automatic gears take over from there).
-    v.pt.gear = Math.max(1, Math.min(v.spec.gearRatios.length, Math.round(WARMUP_SPEED / 14)));
     this.lights = -1;
+    this.rollT = ROLLING_COUNTDOWN_S;
     this.timer.startOutLap(this.lapDist());
     this.warmupFrom = this.lapDist();
     this.recorder.reset();
     this.telemetryRecorder.reset();
     this.ghost = null;
     this.ghostVisible = false;
-    this.say('ROLLING WARM-UP — YOUR ATTEMPT STARTS AT THE LINE', 'good', 5);
+    this.say(`ROLLING START — ${ROLLING_COUNTDOWN_S}`, 'info', 1.2);
+  }
+
+  private launchRolling(): void {
+    const v = this.entity.vehicle, track = this.track;
+    const i = Math.round(track.wrapS(v.tp.s) / track.spacing) % track.n;
+    v.vx = Math.sin(v.heading) * WARMUP_SPEED;
+    v.vz = Math.cos(v.heading) * WARMUP_SPEED;
+    v.vy = WARMUP_SPEED * track.grade[i];
+    // As the debug teleport: about the gear for this speed (automatic gears take over from there).
+    v.pt.gear = Math.max(1, Math.min(v.spec.gearRatios.length, Math.round(WARMUP_SPEED / 14)));
+    this.rollT = null;
+    this.say('GO — YOUR ATTEMPT STARTS AT THE LINE', 'good', 4);
+  }
+
+  /** The rolling start's countdown number (3, 2, 1), or 0 when there is none. */
+  get countdown(): number {
+    return this.rollT === null ? 0 : Math.max(1, Math.ceil(this.rollT - 1e-9));
+  }
+
+  /** Debug teleport: no lights, no countdown. */
+  skipStart(): void {
+    this.lights = -1;
+    this.rollT = null;
   }
 
   lapDist(): number {
@@ -201,7 +226,7 @@ export class RaceSession {
   }
 
   get racing(): boolean {
-    return this.lights < 0;
+    return this.lights < 0 && this.rollT === null;
   }
 
   /** The current settings, every frame. On the grid the session moves to the level they obey at once. */
@@ -250,6 +275,13 @@ export class RaceSession {
       const next = this.nextMessage;
       this.nextMessage = null;
       if (next) this.say(next.message.text, next.message.kind, next.seconds);
+    }
+    if (this.rollT !== null) {
+      const shown = this.countdown;
+      this.rollT -= dt;
+      if (this.rollT <= 0) { this.launchRolling(); return true; }
+      if (this.countdown !== shown) this.say(`ROLLING START — ${this.countdown}`, 'info', 1.2);
+      return false;
     }
     if (this.lights < 0) return false;
     this.lightsT += dt;
