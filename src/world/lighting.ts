@@ -4,6 +4,7 @@ import type { QualityPreset } from '@/render/renderer';
 import { SUN_DIRECTION } from '@/world/sky';
 import { createAerialPerspective } from '@/world/aerial-perspective';
 import { createShadowRig } from '@/world/shadows';
+import { addEnvSurroundings, disposeEnvSurroundings } from '@/world/env-surroundings';
 
 export interface SceneLighting {
   sun: THREE.DirectionalLight;
@@ -62,25 +63,16 @@ export function createLighting(scene: THREE.Scene, quality: QualityPreset = 'hig
   };
 }
 
-const GROUND_NADIR = new THREE.Color(0x1d1b15);
-const GROUND_HORIZON = new THREE.Color(0x3d3a2c);
-
-/** Disc of warm dark ground: darkest straight below, lifting to the horizon so the horizon line reads in paint. */
-function groundGeometry(radius: number): THREE.BufferGeometry {
-  const g = new THREE.CircleGeometry(radius, 48).rotateX(-Math.PI / 2);
-  const pos = g.getAttribute('position');
-  const col = new Float32Array(pos.count * 3);
-  const c = new THREE.Color();
-  for (let i = 0; i < pos.count; i++) {
-    const t = Math.min(1, Math.hypot(pos.getX(i), pos.getZ(i)) / radius);
-    c.copy(GROUND_NADIR).lerp(GROUND_HORIZON, Math.pow(t, 0.6)).toArray(col, i * 3);
-  }
-  g.setAttribute('color', new THREE.BufferAttribute(col, 3));
-  return g;
-}
-
-/** Builds an environment map from the sky so that car paint and glass get sky reflections. */
-export function createSkyEnvironment(renderer: THREE.WebGLRenderer, skyDome: THREE.Mesh, quality: QualityPreset = 'high'): THREE.WebGLRenderTarget {
+/**
+ * Builds an environment map for car paint and glass: procedural sky, optional outdoor HDRI,
+ * and proxy asphalt / grass / hills so reflections show surroundings, not only the sky.
+ */
+export function createSkyEnvironment(
+  renderer: THREE.WebGLRenderer,
+  skyDome: THREE.Mesh,
+  quality: QualityPreset = 'high',
+  hdri: THREE.Texture | null = null,
+): THREE.WebGLRenderTarget {
   const pmrem = new THREE.PMREMGenerator(renderer);
   const envScene = new THREE.Scene();
   const dome = skyDome.clone();
@@ -89,22 +81,34 @@ export function createSkyEnvironment(renderer: THREE.WebGLRenderer, skyDome: THR
   dome.position.set(0, 0, 0);
   dome.scale.multiplyScalar(0.01);
   envScene.add(dome);
-  // A darker lower hemisphere so reflections show "ground" below the horizon.
-  const ground = new THREE.Mesh(groundGeometry(85), new THREE.MeshBasicMaterial({ vertexColors: true, fog: false }));
-  ground.position.y = -1;
-  envScene.add(ground);
+
+  let hdriMesh: THREE.Mesh | null = null;
+  if (hdri) {
+    // Equirect backdrop under the sky dome: outdoor trees/road fill the lower hemisphere.
+    hdriMesh = new THREE.Mesh(
+      new THREE.SphereGeometry(180, 32, 16),
+      new THREE.MeshBasicMaterial({ map: hdri, side: THREE.BackSide, fog: false, depthWrite: false, opacity: 0.72, transparent: true }),
+    );
+    hdriMesh.renderOrder = -20;
+    envScene.add(hdriMesh);
+  }
+
+  const surroundings = addEnvSurroundings(envScene);
   const material = skyDome.material;
   const sunDisc = material instanceof THREE.ShaderMaterial ? material.uniforms.showSunDisc : undefined;
   const visibleSun = sunDisc?.value, backdrop = skyDome.material as THREE.Material, depthTest = backdrop.depthTest;
   if (sunDisc) sunDisc.value = 0; // Avoid a second sharp sun in filtered reflections.
   backdrop.depthTest = false;
   try {
-    return pmrem.fromScene(envScene, 0, 0.1, 200, { size: QUALITY[quality].environmentSize });
+    return pmrem.fromScene(envScene, 0, 0.1, 220, { size: QUALITY[quality].environmentSize });
   } finally {
     if (sunDisc) sunDisc.value = visibleSun;
     backdrop.depthTest = depthTest;
     pmrem.dispose();
-    ground.geometry.dispose();
-    ground.material.dispose();
+    disposeEnvSurroundings(surroundings);
+    if (hdriMesh) {
+      hdriMesh.geometry.dispose();
+      (hdriMesh.material as THREE.Material).dispose();
+    }
   }
 }

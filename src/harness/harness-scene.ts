@@ -4,7 +4,8 @@ import { GROUND, ROAD } from '@/art/palette';
 import { getGraphics, setGraphics, type ToneMapper } from '@/config/graphics';
 import { createPostChain } from '@/render/post';
 import { createRenderer } from '@/render/renderer';
-import { createLighting, createSkyEnvironment } from '@/world/lighting';
+import { createLighting } from '@/world/lighting';
+import { createCarEnv } from '@/world/car-env';
 import { createSky } from '@/world/sky';
 
 declare global {
@@ -59,7 +60,8 @@ export function createHarnessScene(opts: { ground?: 'asphalt' | 'grass'; groundS
   const camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 0.05, 20000);
   const sky = createSky(scene);
   const lighting = createLighting(scene, 'high', camera);
-  scene.environment = createSkyEnvironment(renderer, sky.dome).texture;
+  const carEnv = createCarEnv(renderer, scene, sky.dome, 'high');
+  void carEnv.ensureHdri();
   scene.environmentIntensity = getGraphics().envIntensity;
   lighting.apply(getGraphics());
   const post = createPostChain(renderer, 4);

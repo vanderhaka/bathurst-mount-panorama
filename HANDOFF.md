@@ -1,5 +1,22 @@
 # Bathurst handoff — 8 October 2026
 
+## Phase 1 car realism (lighting + paint) — in review
+
+Branch work (do **not** merge until James reviews): procedural cars get a photoreal
+lighting/paint pass. Art rules are relaxed — see `docs/ART_DIRECTION.md` and
+`docs/ASSETS.md`.
+
+- **Reflections:** `createSkyEnvironment` now includes asphalt/grass/hill proxies and
+  blends a streamed CC0 Poly Haven HDRI (KTX2) on Medium/High. Static track reflection
+  probes (4 Medium / 8 High) bake once and follow the car by centreline distance.
+  Low stays sky-only and cheap.
+- **Paint / glass / tyres:** dielectric clearcoat paint with orange-peel and flake maps;
+  glass IOR/fresnel; tyre sidewall/tread roughness and normal detail.
+- **Evidence:** before/after car close-ups in `artifacts/review/car-realism-phase1/`.
+  Perf: run `node scripts/measure-performance.mjs` against a preview build on a machine
+  with a real GPU; this Cloud Agent VM is SwiftShader-only so fps numbers are not
+  contract evidence (see the PR).
+
 ## Start here
 
 **Play on your phone, no login:** [Bathurst](https://bathurst-mount-panorama-playtest.vercel.app/) or [Adelaide](https://bathurst-mount-panorama-playtest.vercel.app/?track=adelaide). Use **Circuit** on the title screen to switch.

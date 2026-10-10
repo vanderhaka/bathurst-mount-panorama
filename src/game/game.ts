@@ -44,6 +44,7 @@ import { createMenus } from '@/ui';
 import { teleport } from '@/game/debug-tools';
 import { RacingLineMesh } from '@/world/racing-line-mesh';
 import { buildWorld, type World } from '@/world/world';
+import { carEnvMaterials } from '@/world/car-env';
 
 type GameState = 'title' | 'carSelect' | 'race' | 'paused';
 const RACING_LINES: Settings['racingLine'][] = ['off', 'braking', 'full'];
@@ -86,7 +87,12 @@ export class Game {
     this.particles = new Particles(stage.scene); this.effects = new RaceEffects(stage.scene, world, this.particles, this.settings.quality);
     this.attract = new AttractMode(stage.scene, stage.camera);
     this.graphics = new GameGraphics(stage, this.settings, {
-      world: () => this.world, replaceWorld: (next) => { this.world = next; this.effects.setWorld(next, this.settings.quality); },
+      world: () => this.world,
+      replaceWorld: (next) => {
+        this.world = next;
+        this.effects.setWorld(next, this.settings.quality);
+        this.bakeCarEnv();
+      },
       models: () => [this.race?.player.model ?? null, this.ghostModel, this.attract.model],
       // Only the tier changes: graphics holds an older copy of the settings (in-race toggles never reach it).
       changed: (s) => { this.settings = { ...this.settings, quality: s.quality, autoQuality: s.autoQuality }; this.rememberSettings(); this.menus.syncSettings(this.settings); },
@@ -124,6 +130,8 @@ export class Game {
     // Behind the loading screen rather than as stalls on the first frames and wherever a material first comes into view.
     menus.showLoading(0.97, 'Preparing shaders');
     await stage.precompile(world.root);
+    await stage.carEnv.ensureHdri();
+    stage.carEnv.bakeProbes(world.track, []);
     const hud = createHud();
     hud.mount(root, hudTrackInfo(world.track));
     hud.setVisible(false);
@@ -409,7 +417,18 @@ export class Game {
     }
     this.world.scenery.update(this.stage.camera.position);
     this.particles.update(this.state === 'paused' ? 0 : dt);
+    this.updateCarEnv();
     this.stage.render(this.focus, this.state === 'race' ? this.race?.player.vehicle.speed ?? 0 : 0, this.settings.motionBlur);
+  }
+
+  private bakeCarEnv(): void {
+    const hide = [this.race?.player.model.root, this.ghostModel?.root, this.attract.model?.root].filter(Boolean) as THREE.Object3D[];
+    this.stage.carEnv.bakeProbes(this.world.track, hide);
+  }
+
+  private updateCarEnv(): void {
+    const s = this.race?.player.vehicle.tp.s ?? this.attract.trackS ?? this.world.track.gridLineS;
+    this.stage.carEnv.follow(s, carEnvMaterials(this.race?.player.model.root, this.ghostModel?.root, this.attract.model?.root));
   }
 
   private raceFrame(dt: number): void {

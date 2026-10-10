@@ -4,6 +4,8 @@ import * as THREE from 'three';
 import { writeMaterials, type CarLook, type CarMaterialSet } from '@/car/models/look';
 import { carbonMaps } from '@/car/models/carbon';
 import { discMaps } from '@/car/models/disc-texture';
+import { paintMaps } from '@/car/models/paint-maps';
+import { tyreMaps } from '@/car/models/tyre-maps';
 
 export interface MaterialInputs {
   look: CarLook;
@@ -13,6 +15,8 @@ export interface MaterialInputs {
   /** Fallback paint colour when no livery texture is available (tests / no DOM). */
   primary: number;
   high: boolean;
+  /** Clearcoat flake / orange-peel and tyre detail maps (Medium+). */
+  paintDetail: boolean;
   /** Brake disc outer radius (m), for the drilled-disc maps. */
   discRadius: number;
 }
@@ -37,15 +41,35 @@ function discMaterial(radius: number): THREE.MeshStandardMaterial {
   return m;
 }
 
+function applyPaintDetail(paint: THREE.MeshPhysicalMaterial, look: CarLook): void {
+  const maps = paintMaps();
+  if (!maps) return;
+  paint.normalMap = maps.normalMap;
+  paint.roughnessMap = maps.roughnessMap;
+  paint.clearcoatNormalMap = maps.clearcoatNormalMap;
+  paint.normalScale = new THREE.Vector2(look.paint.flake, look.paint.flake);
+  paint.clearcoatNormalScale = new THREE.Vector2(look.paint.orangePeel, look.paint.orangePeel);
+}
+
 export function createCarMaterials(i: MaterialInputs): CarMaterialSet & { display: THREE.MeshBasicMaterial | null } {
   const paint = new THREE.MeshPhysicalMaterial({ color: i.paintMap ? 0xffffff : i.primary, map: i.paintMap, vertexColors: true });
   paint.name = 'car-paint';
+  if (i.paintDetail) applyPaintDetail(paint, i.look);
   // Front side only: tinted from outside, clear from the cockpit.
-  const glass = new THREE.MeshPhysicalMaterial({ transparent: true, depthWrite: false });
+  const glass = new THREE.MeshPhysicalMaterial({
+    transparent: true, depthWrite: false, roughness: 0.02, metalness: 0,
+    ior: i.look.glass.ior, reflectivity: i.look.glass.reflectivity,
+    specularIntensity: 1, thickness: 0.008,
+  });
   glass.name = 'car-glass';
-  const glassTint = new THREE.MeshPhysicalMaterial({ transparent: true, depthWrite: false });
+  const glassTint = new THREE.MeshPhysicalMaterial({
+    transparent: true, depthWrite: false, roughness: 0.025, metalness: 0,
+    ior: i.look.glassTint.ior, reflectivity: i.look.glassTint.reflectivity,
+    specularIntensity: 1, thickness: 0.006,
+  });
   glassTint.name = 'car-glass-tint';
   const banner = std({ map: i.bannerMap, color: i.bannerMap ? 0xffffff : 0xf1f1ee, roughness: 0.35, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -2 });
+  const tyreDetail = i.paintDetail ? tyreMaps() : null;
   const mats: CarMaterialSet & { display: THREE.MeshBasicMaterial | null } = {
     paint,
     glass,
@@ -55,7 +79,9 @@ export function createCarMaterials(i: MaterialInputs): CarMaterialSet & { displa
     rim: std({ side: THREE.DoubleSide, vertexColors: true }),
     // The nut is merged into the rim mesh (vertex colours); no material of its own.
     nut: null,
-    tyre: std(),
+    tyre: std({
+      ...(tyreDetail ? { roughnessMap: tyreDetail.roughnessMap, normalMap: tyreDetail.normalMap, normalScale: new THREE.Vector2(0.55, 0.55) } : {}),
+    }),
     plastic: std(),
     carbon: carbonMaterial(i.high),
     // Mirrors, exhaust tips, lamp housings, endplates and the diffuser: vertex colours under a satin clearcoat.
