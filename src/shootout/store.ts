@@ -1,4 +1,5 @@
 import {
+  type ShootoutRank, type ShootoutSeason,
   isShootoutAttempt, isShootoutCar, isShootoutOutcome, isUuid, MAX_SHOOTOUT_ATTEMPTS, normalizeShootoutNickname,
   type SavedShootoutAttempt, type ShootoutAttempt, type ShootoutCar, type ShootoutOutcome,
 } from './model';
@@ -21,6 +22,10 @@ export interface ShootoutSnapshot {
   attempts: SavedShootoutAttempt[];
   nickname: string;
   writable: boolean;
+  /** Contract: this season (attempts and remaining count only this season's). */
+  season?: ShootoutSeason;
+  /** Contract: why a new Top 10 attempt cannot start right now, for the screen to show; null when it can. */
+  blockedReason?: string | null;
 }
 
 function isLedger(value: unknown): value is Ledger {
@@ -196,5 +201,38 @@ export class ShootoutStore {
     const latest = this.saved(id).saved;
     this.write(RESULT_KEY(id), { ...latest, nickname, publication: 'published' } satisfies SavedShootoutAttempt);
     return 'published';
+  }
+
+  // ---- Contract (implementations to come).
+
+  /** Saves a new attempt in this browser at once, without waiting for the network, and returns it (online: false
+   * until allocateInBackground confirms it). Throws when no attempt is left this season or storage is unusable. */
+  async reserveTimedLap(car: ShootoutCar): Promise<ShootoutAttempt> {
+    void car;
+    throw new Error('reserveTimedLap: not implemented yet');
+  }
+
+  /** Allocates a reserved attempt on the server; failures are kept for a later retry. Never throws. */
+  async allocateInBackground(id: string): Promise<void> {
+    void id;
+    throw new Error('allocateInBackground: not implemented yet');
+  }
+
+  /** Saves the timed lap's replay (encodeReplay) with its result, for upload with the score. */
+  saveReplay(id: string, replay: string): void {
+    void id; void replay;
+    throw new Error('saveReplay: not implemented yet');
+  }
+
+  /** The published lap's place in its season, once known. */
+  rankOf(id: string): ShootoutRank | null {
+    void id;
+    throw new Error('rankOf: not implemented yet');
+  }
+
+  /** The last non-retryable publish error; the saved nickname is cleared so the player can edit it or skip. */
+  publishError(id: string): string | null {
+    void id;
+    throw new Error('publishError: not implemented yet');
   }
 }

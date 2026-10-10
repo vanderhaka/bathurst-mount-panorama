@@ -1,4 +1,5 @@
 import {
+  type BoardCar, type LeaderboardResult, type ShootoutCar,
   isShootoutAttempt, isShootoutCar, MAX_SHOOTOUT_LAP_S, MIN_SHOOTOUT_LAP_S, normalizeShootoutNickname,
   type LeaderboardEntry, type ShootoutAttempt,
 } from './model';
@@ -74,4 +75,16 @@ export async function fetchLeaderboard(): Promise<{ available: boolean; entries:
   } catch {
     return { available: false, entries: [] };
   }
+}
+
+/** Contract: the season board for one car or all cars. Never throws. */
+export async function fetchBoard(car: BoardCar = 'all'): Promise<LeaderboardResult> {
+  void car;
+  throw new Error('fetchBoard: not implemented yet');
+}
+
+/** Contract: the replay of the lap at this rank on this season's board, for the Arcade ghost. Null when unavailable. */
+export async function fetchReplay(car: BoardCar, rank: number): Promise<{ car: ShootoutCar; timeS: number; frames: Float32Array } | null> {
+  void car; void rank;
+  throw new Error('fetchReplay: not implemented yet');
 }

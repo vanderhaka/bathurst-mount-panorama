@@ -26,6 +26,8 @@ export interface SavedShootoutAttempt {
 }
 
 export interface LeaderboardEntry {
+  /** The attempt id, so a browser can highlight its own row. */
+  id?: string;
   rank: number;
   nickname: string;
   car: ShootoutCar;
@@ -67,4 +69,53 @@ export function isShootoutOutcome(value: unknown): value is ShootoutOutcome {
   if (value.kind === 'valid') return 'sectorsS' in value && isPlausibleShootoutLap(value.timeS, value.sectorsS);
   return value.kind === 'invalid' && (value.timeS === null || typeof value.timeS === 'number' && Number.isFinite(value.timeS) && value.timeS >= 0) &&
     'reason' in value && typeof value.reason === 'string' && value.reason.length > 0 && value.reason.length <= 200;
+}
+
+// ---- Contract for the Shootout overhaul (seasons, per-car boards, rank, replays). Implementations land in this
+// module, leaderboard.ts and store.ts; the game and menus code against these signatures.
+
+/** A board for one eligible car, or every car together. */
+export type BoardCar = ShootoutCar | 'all';
+
+/** Weekly season: Monday 00:00 to the next Monday 00:00, Australia/Sydney time. Attempts and boards are per season. */
+export interface ShootoutSeason {
+  /** e.g. '2026-10-12' (the Sydney date the season starts). */
+  id: string;
+  startsAt: string;
+  endsAt: string;
+}
+
+/** Where a published lap placed in its season's board for all cars. */
+export interface ShootoutRank {
+  rank: number;
+  of: number;
+}
+
+export interface LeaderboardResult {
+  available: boolean;
+  season: ShootoutSeason;
+  car: BoardCar;
+  entries: LeaderboardEntry[];
+  /** Why the board is unavailable: no network on this device, or the server failed. */
+  unavailable?: 'offline' | 'server';
+}
+
+/** Replays travel at this rate (Hz), quantised; decodeReplay returns ghost frames at GHOST_RATE. */
+export const REPLAY_RATE = 10;
+
+export function currentSeason(now: Date = new Date()): ShootoutSeason {
+  void now;
+  throw new Error('currentSeason: not implemented yet');
+}
+
+/** Ghost frames (src/race/ghost.ts layout: stride 8 at GHOST_RATE) to a compact string for upload. */
+export function encodeReplay(frames: Float32Array): string {
+  void frames;
+  throw new Error('encodeReplay: not implemented yet');
+}
+
+/** Back to ghost frames (stride 8 at GHOST_RATE; pitch, roll and steer 0, speed from motion); null when malformed. */
+export function decodeReplay(encoded: string): Float32Array | null {
+  void encoded;
+  throw new Error('decodeReplay: not implemented yet');
 }
