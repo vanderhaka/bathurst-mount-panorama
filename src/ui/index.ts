@@ -102,7 +102,8 @@ class MenuController implements Menus {
     const backFromSub = (): void => (this.returnTo ? this.show(this.returnTo) : this.showTitle());
     const screens: ScreenSet = {
       loading: new LoadingScreen(),
-      title: new TitleScreen({ race: () => { this.mode = 'timeTrial'; this.showCarSelect(); }, shootout: mode => this.showShootout(mode), settings: () => sub(screens.settings), controls: () => sub(screens.controls) }),
+      title: new TitleScreen({ race: () => { this.mode = 'timeTrial'; this.showCarSelect(); }, shootout: mode => this.showShootout(mode), settings: () => sub(screens.settings), controls: () => sub(screens.controls) },
+        () => new Set(this.shootoutStore.snapshot().attempts.map(a => a.attempt.id))),
       car: new CarSelectScreen({ preview: (c, l) => this.cb.onPreviewCar(c, l), start: (c, l, t) => this.start(c, l, t), back: () => this.mode === 'timeTrial' ? this.showTitle() : this.showShootout(this.mode) }),
       onboarding: new OnboardingScreen({ get: () => this.settings, set: (s) => this.applySettings(s), back: () => this.showCarSelect() }),
       steer: new SteerOnboardingScreen({ get: () => this.settings, set: (s) => this.applySettings(s), enableTilt: () => this.cb.onEnableTilt?.() ?? Promise.resolve('unavailable'), back: () => this.showCarSelect() }),

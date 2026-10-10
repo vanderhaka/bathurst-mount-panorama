@@ -5,6 +5,7 @@ import { flushRecords } from '@/race/records-queue';
 import { hintBar, menuButton, type Screen, screenEl, STD_HINTS, valueRow } from '@/ui/screen';
 import { ACTIVE_CIRCUIT, CIRCUITS, nextCircuit, switchCircuit } from '@/track/circuits';
 import type { ShootoutMode } from '@/types/session';
+import { TitleBoard } from '@/ui/screens/title-board';
 
 export interface TitleActions {
   race(): void;
@@ -36,8 +37,10 @@ export class TitleScreen implements Screen {
   private readonly buttons: HTMLButtonElement[];
   private readonly circuitRow;
   private readonly credit = geometryCredit();
+  /** The live Top 10 on the right (Bathurst only: the Shootout runs there). */
+  private readonly board: TitleBoard | null;
 
-  constructor(actions: TitleActions) {
+  constructor(actions: TitleActions, myAttemptIds?: () => ReadonlySet<string>) {
     const circuit = CIRCUITS[ACTIVE_CIRCUIT];
     // The page reloads for the other circuit: pending records are written first.
     this.circuitRow = valueRow('Circuit', (dir) => {
@@ -61,6 +64,7 @@ export class TitleScreen implements Screen {
         h('span', 'mn-shootout-feature__rank', { 'aria-hidden': 'true' }, ['10']),
       );
     }
+    this.board = ACTIVE_CIRCUIT === 'bathurst' ? new TitleBoard(myAttemptIds) : null;
     const options: Array<readonly [string, () => void]> = [
       ['Time trial', actions.race],
       ...(ACTIVE_CIRCUIT === 'bathurst' ? [['Shootout Arcade', () => actions.shootout('shootoutArcade')] as const] : []),
@@ -84,6 +88,7 @@ export class TitleScreen implements Screen {
         fullScreenTip(),
         this.credit,
       ]),
+      ...(this.board ? [this.board.el] : []),
       hintBar(STD_HINTS.slice(0, 2)),
     );
   }
@@ -91,6 +96,9 @@ export class TitleScreen implements Screen {
   items(): HTMLElement[] {
     return [...(this.featured ? [this.featured] : []), this.circuitRow.el, ...this.buttons, ...(this.credit ? Array.from(this.credit.querySelectorAll('a')) : [])];
   }
+
+  onShow(): void { this.board?.show(); }
+  onHide(): void { this.board?.hide(); }
 
   back(): void {}
 }

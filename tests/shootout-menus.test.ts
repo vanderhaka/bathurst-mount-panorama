@@ -221,3 +221,41 @@ describe('Shootout pause menu', () => {
     expect(findText(screen('pause'), 'Restart')).not.toBeNull();
   });
 });
+
+describe('Title screen Top 10', () => {
+  it('shows the all-car board with the player\'s own lap and open places to rank 10', async () => {
+    saved = [{ attempt, outcome: { kind: 'valid', timeS: 125, sectorsS: [50, 40, 35] }, nickname: 'Me', publication: 'published' }];
+    board.fetchBoard.mockResolvedValue({ available: true, season, car: 'all', entries: [
+      { rank: 1, nickname: 'Fast', car: 'supra', timeS: 123, id: 'other' },
+      { rank: 2, nickname: 'Me', car: 'camaro', timeS: 125, id: attempt.id },
+    ] });
+    const { menus, screen, settle } = await open();
+    menus.showTitle();
+    await settle();
+    const title = screen('title').querySelector('.mn-title-board')!;
+    expect(board.fetchBoard).toHaveBeenLastCalledWith('all');
+    const rows = title.querySelectorAll('tr').slice(1);
+    expect(rows).toHaveLength(10);
+    expect(rows.map((r) => r.classList.contains('is-mine')).slice(0, 2)).toEqual([false, true]);
+    expect(rows[1].textContent).toContain('Me (you)');
+    expect(rows.slice(2).every((r) => r.classList.contains('is-open'))).toBe(true);
+    expect(title.querySelector('.mn-title-board__season')!.textContent).toBe('Resets in 3d 4h');
+  });
+
+  it('says why the board is unavailable, refreshes every 30 s and stops when the title closes', async () => {
+    board.fetchBoard.mockResolvedValue({ available: false, season, car: 'all', entries: [], unavailable: 'offline' });
+    const { menus, screen, settle } = await open();
+    menus.showTitle();
+    await settle();
+    const title = screen('title').querySelector('.mn-title-board')!;
+    expect(title.querySelector('.mn-shootout-status')!.textContent).toBe("You're offline. Practice in Arcade; Top 10 needs a connection.");
+    expect(title.dataset.available).toBe('false');
+    board.fetchBoard.mockClear();
+    vi.advanceTimersByTime(30_000);
+    expect(board.fetchBoard).toHaveBeenCalledTimes(1);
+    menus.showCarSelect();
+    board.fetchBoard.mockClear();
+    vi.advanceTimersByTime(90_000);
+    expect(board.fetchBoard).not.toHaveBeenCalled();
+  });
+});

@@ -209,6 +209,91 @@
   letter-spacing: -0.05em;
   color: rgb(255 255 255 / 0.25);
 }
+/* live Top 10 on the right of the title screen (display only) */
+.mn-title-board {
+  position: absolute;
+  top: 50%;
+  right: max(3.5em, 5.5vw);
+  width: min(26em, 32vw);
+  max-height: calc(100% - 9em);
+  overflow-y: auto;
+  padding: 1.2em 1.4em 1em;
+  background: var(--menu-panel-bg);
+  border: 1px solid var(--hud-panel-border);
+  border-top: 0.2em solid var(--hud-accent);
+  border-radius: var(--hud-radius);
+  transform: translateY(-50%);
+  animation: mn-in 0.34s ease-out both;
+}
+.mn-title-board__head {
+  margin-bottom: 0.6em;
+}
+.mn-title-board__eyebrow {
+  margin: 0;
+  font-size: 0.75em;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--hud-text-dim);
+}
+.mn-title-board__title {
+  margin: 0.15em 0 0;
+  font-size: 1.6em;
+  font-weight: 800;
+  line-height: 1.05;
+  text-transform: uppercase;
+}
+.mn-title-board__season {
+  margin: 0.35em 0 0;
+  font-family: var(--hud-font-text);
+  font-size: 0.82em;
+  color: var(--hud-text-dim);
+}
+.mn-title-board .mn-table {
+  font-size: 0.95em;
+  font-variant-numeric: tabular-nums;
+}
+.mn-title-board .mn-table th,
+.mn-title-board .mn-table td {
+  padding-left: 0.45em;
+  padding-right: 0.45em;
+}
+.mn-title-board .mn-table td:nth-child(2) {
+  max-width: 9em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.mn-title-board .mn-time {
+  text-align: right;
+  white-space: nowrap;
+}
+.mn-title-board .mn-table th:last-child {
+  text-align: right;
+}
+.mn-title-board__rank {
+  width: 1.6em;
+  color: var(--hud-text-dim);
+}
+.mn-title-board tr:first-child .mn-title-board__rank {
+  color: var(--hud-accent);
+}
+.mn-title-board tr.is-open td {
+  font-weight: 500;
+  color: var(--hud-text-faint);
+}
+.mn-title-board tr.is-mine td {
+  color: var(--hud-accent);
+  font-weight: 700;
+}
+.mn-title-board[data-available='false'] .mn-table {
+  display: none;
+}
+@media (max-width: 960px), (pointer: coarse) and (max-height: 540px) {
+  .mn-title-board {
+    display: none;
+  }
+}
 @media (pointer: coarse) and (max-height: 540px) {
   .mn-screen--title .mn-side {
     gap: 0.45em;
