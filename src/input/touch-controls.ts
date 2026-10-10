@@ -64,7 +64,7 @@ export class TouchControls {
 
   /** The one way to ask for motion access: the Enable tilt button and the steering question both
    * call it synchronously inside a tap. Works while the controls are hidden: listening starts when
-   * they show, centred on the pose held then. */
+   * they show, with level as straight ahead. While driving, the same tap makes the angle held straight ahead. */
   enableTilt(): Promise<TiltStatus> { return this.tilt.enableFromTap(); }
 
   configure(options: Readonly<TouchOptions>, manualGears = false): void {
@@ -138,7 +138,7 @@ export class TouchControls {
     const note = this.tilt.status === 'denied' ? 'Permission off · drag works'
       : this.tilt.status === 'unavailable' ? 'Tilt unavailable · drag works'
       : this.tilt.status === 'requesting' ? 'Waiting for permission'
-      : this.tilt.ready ? 'Tilt to steer' : 'Hold phone centred';
+      : this.tilt.ready ? 'Level = straight' : 'Waiting for tilt';
     if (this.tiltNote.textContent !== note) this.tiltNote.textContent = note;
   }
   dispose(): void {

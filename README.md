@@ -50,11 +50,11 @@ documented estimates.
 
 ## Shootout
 
-Both Shootout modes run at Bathurst with the Camaro, Mustang, or Supra. Every run
-starts on the grid: pole position, start lights and one full warm-up lap, then one
-full timed lap from the line. The intro and result screens offer "Warm-up start:
-Forrest's Elbow" instead, a rolling start just before the Elbow on warm tyres
-(remembered per mode in this browser). Both use full damage, track limits,
+Both Shootout modes run at Bathurst with the Camaro, Mustang, or Supra. After
+picking a car, every run asks where the warm-up starts: the grid (pole position,
+start lights and one full warm-up lap; the default) or Forrest's Elbow (a rolling
+start just before the Elbow on warm tyres). The last answer is remembered per mode
+in this browser. Then comes one full timed lap from the line. Both use full damage, track limits,
 tyre wear, automatic gears, soft tyres, and the standard setup. ABS, traction
 control and steering assist are on for everyone (phone and keyboard pedals are
 on/off, so without them every brake press locks the wheels). Racing lines and
@@ -62,7 +62,9 @@ automatic recovery are disabled; Top 10 shows no ghost, while Arcade races the
 current #1 lap for the car (or your own Arcade best). Steering sensitivity, touch
 auto-throttle, analog pedals and other controls stay the player's choice in
 Settings during a run. On a touch screen, every run
-first asks whether to steer with Finger or Tilt. Touch controls include
+then asks whether to steer with Finger or Tilt. Tilt drives straight when the
+phone's left-right axis is level, however upright or flat it is held; Centre tilt
+makes the angle held straight ahead (up to 15° off level). Touch controls include
 gear buttons when manual gears are active.
 
 Each warm-up and flying lap ends at the 10-minute limit without a score. The

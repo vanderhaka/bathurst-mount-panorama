@@ -38,6 +38,7 @@ import { TitleScreen } from '@/ui/screens/title';
 import { TelemetryScreen } from '@/ui/screens/telemetry';
 import { ShootoutScreen } from '@/ui/screens/shootout';
 import { ShootoutResultScreen } from '@/ui/screens/shootout-result';
+import { WarmupStartScreen } from '@/ui/screens/warmup-start';
 import { ACTIVE_CIRCUIT, CIRCUITS } from '@/track/circuits';
 
 const KEYS: Record<string, MenuNav> = {
@@ -73,6 +74,7 @@ interface ScreenSet {
   telemetry: TelemetryScreen;
   shootout: ShootoutScreen;
   shootoutResult: ShootoutResultScreen;
+  warmup: WarmupStartScreen;
 }
 
 class MenuController implements Menus {
@@ -143,6 +145,7 @@ class MenuController implements Menus {
         leaderboard: () => { this.cb.onQuitToMenu(); this.showShootout('shootoutTop10'); },
         menu: () => { this.cb.onQuitToMenu(); this.showTitle(); },
       }),
+      warmup: new WarmupStartScreen(() => this.showCarSelect()),
     };
     this.screens = screens;
     this.root = h('div', 'bx-menus', { 'data-open': 'false' }, Object.values(screens).map((s: Screen) => s.el));
@@ -165,10 +168,13 @@ class MenuController implements Menus {
       this.leave(() => this.cb.onStart(config));
     };
     // First race setup (everyone, once; it opens on its selected card, not a remembered button), then the steering question (touch players, once).
-    const { steer, onboarding } = this.screens ?? {};
-    const shootout = this.mode !== 'timeTrial';
+    // A Shootout run asks where the warm-up starts first, every time.
+    const { steer, onboarding, warmup } = this.screens ?? {};
+    const mode = this.mode;
+    const shootout = mode !== 'timeTrial';
     const steerThenGo = (): void => { if (steer?.required(this.settings, shootout)) { steer.ask(go); this.show(steer); } else go(); };
-    if (!shootout && onboarding?.required(this.settings)) { onboarding.ask(steerThenGo, steer?.required(this.settings) ? 'Continue' : 'Start'); this.lastFocus.delete(onboarding); this.show(onboarding); } else steerThenGo();
+    if (shootout && warmup) { warmup.ask(mode, steerThenGo); this.lastFocus.set(warmup, warmup.current()); this.show(warmup); }
+    else if (!shootout && onboarding?.required(this.settings)) { onboarding.ask(steerThenGo, steer?.required(this.settings) ? 'Continue' : 'Start'); this.lastFocus.delete(onboarding); this.show(onboarding); } else steerThenGo();
   }
 
   /** Close the menus, then notify the game (which may open another screen). */

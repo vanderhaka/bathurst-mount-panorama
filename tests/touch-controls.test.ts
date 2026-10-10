@@ -102,7 +102,7 @@ describe('touch overlay event wiring', () => {
     expect(root.dataset.tiltReady).toBe('true');
     root.find('tc-tilt-enable').dispatch('click');
     await Promise.resolve();
-    host.dispatchEvent(Object.assign(new Event('deviceorientation'), { beta: 24, gamma: 90 }));
+    host.dispatchEvent(Object.assign(new Event('deviceorientation'), { beta: 10, gamma: 90 }));
     expect(touch.update(0.2, true).steer).toBe(0);
     expect(request).toHaveBeenCalledTimes(1);
   });
@@ -135,18 +135,19 @@ describe('steering onboarding hands the permission tap to the touch controls', (
     expect(request).toHaveBeenCalledTimes(1);
   });
 
-  it('starts centred when access is granted before the controls are showing', async () => {
+  it('starts with level as straight ahead when access is granted before the controls are showing', async () => {
     touch.update(0, false);
     configure({ mode: 'tilt' });
     await touch.enableTilt();
     host.dispatchEvent(Object.assign(new Event('deviceorientation'), { beta: 30, gamma: 90 })); // ignored: not driving yet
     expect(touch.update(0.016, true).steer).toBe(0); // the race starts, the controls show
+    // The phone is still tilted from the Start tap: that steers, it does not become the centre.
     host.dispatchEvent(Object.assign(new Event('deviceorientation'), { beta: 30, gamma: 90 }));
-    expect(touch.update(0.2, true).steer).toBeCloseTo(0); // this pose is the centre
+    expect(touch.update(0.2, true).steer).toBeGreaterThan(0.9);
     expect(root.dataset.tiltReady).toBe('true');
     expect(root.find('tc-tilt-enable').textContent).toBe('Centre tilt');
-    host.dispatchEvent(Object.assign(new Event('deviceorientation'), { beta: 54, gamma: 90 }));
-    expect(touch.update(0.2, true).steer).toBeGreaterThan(0.9);
+    host.dispatchEvent(Object.assign(new Event('deviceorientation'), { beta: 0, gamma: 90 }));
+    expect(touch.update(0.5, true).steer).toBeCloseTo(0, 2); // level = straight
   });
 
   it('resolves unavailable without asking when the page cannot use sensors', async () => {

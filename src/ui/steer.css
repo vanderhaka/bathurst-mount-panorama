@@ -44,3 +44,6 @@
   text-transform: none;
   color: var(--hud-text-dim);
 }
+.mn-screen--warmup [hidden] {
+  display: none;
+}

@@ -2,12 +2,9 @@ import { h } from '@/hud/dom';
 import { formatDelta, formatLapTime } from '@/hud/format';
 import type { PracticeSummary } from '@/game/arcade-best';
 import type { ShootoutAttempt, ShootoutOutcome } from '@/shootout/model';
-import { loadWarmupStart, saveWarmupStart } from '@/shootout/warmup-start';
 import type { ShootoutStore } from '@/shootout/store';
 import type { ShootoutMode } from '@/types/session';
 import { hintBar, kicker, menuButton, screenEl, STD_HINTS, type Screen } from '@/ui/screen';
-
-const startLabel = (grid: boolean) => `Warm-up start: ${grid ? 'Grid' : "Forrest's Elbow"}`;
 
 interface ResultActions { again(): void; leaderboard(): void; menu(): void }
 
@@ -37,7 +34,6 @@ export class ShootoutResultScreen implements Screen {
   private readonly confirmSkip: HTMLButtonElement;
   private readonly keep: HTMLButtonElement;
   private readonly again: HTMLButtonElement;
-  private readonly warmupStart: HTMLButtonElement;
   private readonly leaderboard: HTMLButtonElement;
   private readonly menu: HTMLButtonElement;
   private decided = false;
@@ -50,10 +46,6 @@ export class ShootoutResultScreen implements Screen {
     this.confirmSkip = menuButton('Skip this score', () => this.skipScore());
     this.keep = menuButton('Keep my score', () => { this.warning.hidden = true; this.form.hidden = false; this.nickname.focus(); });
     this.again = menuButton('Next warm-up', actions.again, { variant: 'primary' });
-    this.warmupStart = menuButton(startLabel(true), () => {
-      saveWarmupStart(this.mode, loadWarmupStart(this.mode) === 'grid' ? 'rolling' : 'grid');
-      this.render();
-    });
     this.leaderboard = menuButton('View Top 10', actions.leaderboard);
     this.menu = menuButton('Main menu', actions.menu);
     this.form.append(h('label', 'mn-shootout-label', { for: 'shootout-nickname' }, ['Claim your lap']), this.nickname,
@@ -66,7 +58,7 @@ export class ShootoutResultScreen implements Screen {
     this.el.append(h('div', 'mn-panel mn-panel--shootout-result', undefined, [
       h('header', 'mn-panel__head', undefined, [kicker('Bathurst Shootout'), this.title]),
       this.time, this.verdict, this.detail, this.standing, this.quota, this.form, this.warning, this.status,
-      h('div', 'mn-actions', undefined, [this.again, this.warmupStart, this.leaderboard, this.menu]),
+      h('div', 'mn-actions', undefined, [this.again, this.leaderboard, this.menu]),
     ]), hintBar(STD_HINTS));
   }
 
@@ -118,9 +110,6 @@ export class ShootoutResultScreen implements Screen {
     this.again.hidden = !this.decided;
     this.menu.hidden = !this.decided && !this.queued;
     this.nickname.readOnly = this.queued;
-    this.warmupStart.hidden = this.again.hidden;
-    const startText = this.warmupStart.querySelector('.mn-btn__label');
-    if (startText) startText.textContent = startLabel(loadWarmupStart(this.mode) === 'grid');
     this.leaderboard.hidden = !this.decided || this.mode !== 'shootoutTop10';
     this.again.disabled = this.mode === 'shootoutTop10' && this.store.snapshot().remaining === 0;
     const label = this.mode === 'shootoutArcade' ? 'Another warm-up' : this.attempt ? 'Next warm-up' : 'Restart warm-up';
@@ -187,7 +176,7 @@ export class ShootoutResultScreen implements Screen {
 
   items(): HTMLElement[] {
     const controls = this.warning.hidden ? [this.nickname, this.submit, this.skip] : [this.keep, this.confirmSkip];
-    return [...(!this.decided ? controls : []), this.again, this.warmupStart, this.leaderboard, this.menu].filter(b => !b.hidden && !b.disabled);
+    return [...(!this.decided ? controls : []), this.again, this.leaderboard, this.menu].filter(b => !b.hidden && !b.disabled);
   }
 
   back(): void {

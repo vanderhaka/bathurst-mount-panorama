@@ -154,6 +154,8 @@ describe('Start warm-up in a Shootout on a touch device', () => {
     menus.showShootout('shootoutArcade');
     menus.showCarSelect();
     findText(doc.body, 'Start warm-up')!.parent!.click();
+    // Where the warm-up starts comes first, then the steering question.
+    doc.body.querySelectorAll('[data-warmup-start]').find((el) => el.attributes['data-warmup-start'] === 'grid')!.click();
   };
 
   it('asks Finger or Tilt before every run, marking the current choice', () => {

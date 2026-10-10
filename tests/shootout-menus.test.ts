@@ -276,7 +276,7 @@ describe('Title screen Top 10', () => {
   });
 });
 
-describe('Shootout warm-up start toggle', () => {
+describe('Shootout warm-up start question', () => {
   const valid = { kind: 'valid' as const, timeS: 125, sectorsS: [50, 40, 35] };
   const mem = new Map<string, string>();
   beforeEach(() => {
@@ -284,38 +284,40 @@ describe('Shootout warm-up start toggle', () => {
     vi.stubGlobal('localStorage', { getItem: (k: string) => mem.get(k) ?? null, setItem: (k: string, v: string) => mem.set(k, v) });
   });
   const KEY = (mode: string) => `bathurst.shootout.warmupStart.v2.${mode}`;
+  const choice = (doc: Awaited<ReturnType<typeof open>>['doc'], start: string): MenuNode =>
+    doc.body.querySelectorAll('[data-warmup-start]').find((el) => el.attributes['data-warmup-start'] === start)!;
 
-  it('shows the grid on the intro from the first visit, then flips and persists', async () => {
-    const { menus, screen, label, settle } = await open();
+  it('is not on the intro or the result screen', async () => {
+    const { menus, screen, settle } = await open();
     menus.showShootout('shootoutArcade');
     await settle();
-    const intro = screen('shootout');
-    const toggle = label(intro, 'Warm-up start: Grid');
-    expect(toggle.hidden).toBe(false);
-    expect(findText(intro, 'Start on the grid and drive one full warm-up lap before every run.')).not.toBeNull();
-    toggle.click();
-    expect(mem.get(KEY('shootoutArcade'))).toBe('rolling');
-    expect(findText(intro, "Warm-up start: Forrest's Elbow")).not.toBeNull();
-    label(intro, "Warm-up start: Forrest's Elbow").click();
-    expect(mem.get(KEY('shootoutArcade'))).toBe('grid');
-  });
-
-  it('appears on the very first result, and persists there', async () => {
-    const { menus, screen, label } = await open();
+    expect(findText(screen('shootout'), 'Warm-up start: Grid')).toBeNull();
+    expect(findText(screen('shootout'), "Start on the grid or rolling at Forrest's Elbow; you choose before every run.")).not.toBeNull();
     menus.showShootoutResult('shootoutArcade', null, valid);
-    const result = screen('shootoutResult');
-    const toggle = label(result, 'Warm-up start: Grid');
-    expect(toggle.hidden).toBe(false);
-    toggle.click();
-    expect(mem.get(KEY('shootoutArcade'))).toBe('rolling');
-    expect(findText(result, "Warm-up start: Forrest's Elbow")).not.toBeNull();
+    expect(findText(screen('shootoutResult'), 'Warm-up start: Grid')).toBeNull();
   });
 
-  it('stays hidden on the result while the Top 10 score is undecided', async () => {
-    saved = [{ attempt, outcome: valid, nickname: null, publication: 'pending' }];
-    const { menus, screen, label } = await open();
-    menus.showShootoutResult('shootoutTop10', attempt, valid);
-    expect(label(screen('shootoutResult'), 'Warm-up start: Grid').hidden).toBe(true);
+  it('asks after car select, Grid first, then remembers the answer for the next run', async () => {
+    const { doc, menus, settle } = await open();
+    const startWarmUp = async (): Promise<void> => {
+      menus.showShootout('shootoutTop10');
+      await settle();
+      menus.showCarSelect();
+      findText(doc.body, 'Start warm-up')!.parent!.click();
+    };
+    const current = () => doc.body.children[0].dataset.screen;
+    await startWarmUp();
+    expect(current()).toBe('warmup');
+    expect(choice(doc, 'grid').classList.contains('is-current')).toBe(true);
+    expect(doc.activeElement).toBe(choice(doc, 'grid'));
+    choice(doc, 'rolling').click();
+    expect(mem.get(KEY('shootoutTop10'))).toBe('rolling');
+    expect(doc.body.children[0].dataset.open).toBe('false');
+    await startWarmUp();
+    expect(choice(doc, 'rolling').classList.contains('is-current')).toBe(true);
+    expect(doc.activeElement).toBe(choice(doc, 'rolling'));
+    menus.nav('back');
+    expect(current()).toBe('car');
   });
 
   it('tells the pause menu where the warm-up restarts', async () => {

@@ -90,7 +90,7 @@ export const SETTING_GROUPS: ReadonlyArray<{ title: string; fields: SettingField
       { key: 'phoneVibration', kind: 'choice', label: 'Phone vibration', help: 'Short pulses on kerbs and impacts, on phones that support vibration.', options: ON_OFF },
       { key: 'steerPad', ...SENSITIVITY, label: 'Controller steering', help: 'How much the car steers for a small stick movement. Higher = more steering near the centre. Full stick is always full lock.' },
       { key: 'steerKeyboard', ...SENSITIVITY, label: 'Keyboard steering', help: 'How fast the steering turns while you hold a steering key. Higher = quicker.' },
-      { key: 'touchMode', kind: 'choice', label: 'Touch steering mode', help: 'Drag, tilt the phone, or hold left/right. Tap Enable tilt while driving and hold the phone centred.', options: [
+      { key: 'touchMode', kind: 'choice', label: 'Touch steering mode', help: 'Drag, tilt the phone, or hold left/right. Hold the phone level to drive straight. Centre tilt makes the angle you hold straight ahead.', options: [
         { value: 'drag', label: 'Drag' }, { value: 'tilt', label: 'Tilt' }, { value: 'buttons', label: 'Buttons' },
       ] },
       { key: 'steerTouch', ...SENSITIVITY, label: 'Touch sensitivity', help: 'Higher = a shorter drag or tilt for full lock.' },
