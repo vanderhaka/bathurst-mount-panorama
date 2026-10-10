@@ -1,4 +1,4 @@
-import { synthImpact, synthPop, synthShiftCrack } from '@/audio/dsp/oneshot-synth';
+import { synthBeep, synthImpact, synthPop, synthShiftCrack } from '@/audio/dsp/oneshot-synth';
 import { clamp01, lerp, lerpLog } from '@/audio/dsp/math';
 import { createRng, type Rng } from '@/audio/dsp/rng';
 import { toBuffer } from '@/audio/graph/noise-set';
@@ -14,12 +14,16 @@ const POP_LEVEL = 1.5;
 const POP_SIZE_SCALE = [0.5, 0.8, 1.0] as const;
 const CRACK_LEVEL = 1.1;
 const IMPACT_LEVEL = 2.0;
+const BEEP_LEVEL = 0.35;
 
-/** Pre-rendered transient sounds triggered on events: pops, shift crack, impacts. */
+/** Pre-rendered transient sounds triggered on events: pops, shift crack, impacts, start-light beeps. */
 export class OneShots {
   private readonly pops: AudioBuffer[];
   private readonly crackBuf: AudioBuffer;
   private readonly impacts: AudioBuffer[];
+  /** Start lights: a short beep per light, then a longer, higher beep at lights out. */
+  private readonly lightBeep: AudioBuffer;
+  private readonly goBeep: AudioBuffer;
   private readonly rng: Rng;
   private readonly active = new Set<AudioBufferSourceNode>();
 
@@ -32,6 +36,8 @@ export class OneShots {
     this.pops = ([0, 1, 2] as const).map((size) => toBuffer(env.ctx, synthPop(sr, size, createRng(100 + size))));
     this.crackBuf = toBuffer(env.ctx, synthShiftCrack(sr, createRng(7)));
     this.impacts = [toBuffer(env.ctx, synthImpact(sr, 301)), toBuffer(env.ctx, synthImpact(sr, 302))];
+    this.lightBeep = toBuffer(env.ctx, synthBeep(sr, 880, 0.14));
+    this.goBeep = toBuffer(env.ctx, synthBeep(sr, 1320, 0.5));
   }
 
   pop(t: number, level: number, size: 0 | 1 | 2): void {
@@ -50,6 +56,10 @@ export class OneShots {
     const buf = this.impacts[Math.floor(this.rng() * this.impacts.length)];
     const rate = 1.15 - 0.35 * e;
     this.play(buf, t, IMPACT_LEVEL * (0.25 + 0.75 * Math.pow(e, 0.8)), rate, this.buses.impact, lerpLog(2500, 9000, e));
+  }
+
+  beep(t: number, go: boolean): void {
+    this.play(go ? this.goBeep : this.lightBeep, t, BEEP_LEVEL, 1, this.buses.impact);
   }
 
   stopAll(): void {

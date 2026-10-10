@@ -246,6 +246,11 @@ class CarAudioEngine implements CarAudioDebug {
     this.oneShots?.impact(this.ctx.currentTime, energy);
   }
 
+  startBeep(go: boolean): void {
+    if (!this.built || this.disposed || !this.ctx) return;
+    this.oneShots?.beep(this.ctx.currentTime, go);
+  }
+
   setMasterVolume(v: number): void {
     this.volume = clamp(finite(v, 1), 0, 1.5);
     if (this.master && this.ctx) this.master.setVolume(this.volume, this.ctx.currentTime);

@@ -49,6 +49,16 @@ export interface RaceDeps {
   stage: { renderer: THREE.WebGLRenderer; scene: THREE.Scene };
 }
 
+/**
+ * The start beep for a change of the start lights between frames (0..5 lit, -1 = lights out): a light beep when
+ * another light comes on, the go beep when all five go out. A rolling start (no lights) never beeps.
+ */
+export function startBeepFor(prev: number, now: number): 'light' | 'go' | null {
+  if (now > prev && now >= 1) return 'light';
+  if (prev === 5 && now === -1) return 'go';
+  return null;
+}
+
 /** One frame of driving: controls -> assists -> physics -> race logic -> feedback (HUD, audio, rumble, camera). */
 export class RaceController {
   readonly profiles: SessionProfiles;
@@ -62,9 +72,12 @@ export class RaceController {
   /** Casual: puts a stuck car back on the track (Settings.autoRecover). */
   private readonly recover = new AutoRecover();
   private damageMode: Settings['damage'] | null = null;
+  /** Start lights at the end of the last frame, for the start beeps. */
+  private prevLights: number;
 
   constructor(readonly session: RaceSession, readonly player: CarEntity, private readonly d: RaceDeps) {
     this.profiles = new SessionProfiles(player.vehicle, session.line);
+    this.prevLights = session.lights;
     d.lineMesh.setProfile(this.profiles.player);
     // One RaceController per race started from the menu (Restart reuses it, so it is not counted again).
     trackRaceStart(session.track.id, session.car);
@@ -141,6 +154,9 @@ export class RaceController {
     }
     this.player.sync(dt, cockpitHeaveScale(this.d.rig.mode, settings.headMotion));
     this.d.startLights(this.session.lights);
+    const beep = startBeepFor(this.prevLights, this.session.lights);
+    if (beep) this.d.audio?.startBeep(beep === 'go');
+    this.prevLights = this.session.lights;
     mirrorView().update(this.d.stage.renderer, this.d.stage.scene, this.player.model, this.d.rig.mode === 'cockpit' && !this.d.rig.lookBack);
     this.d.effects.step(this.player, dt);
     this.updateGhost();
@@ -170,6 +186,7 @@ export class RaceController {
 
   /** Back to the grid: the lap profiles and every effect start clean. */
   restart(): void {
+    this.prevLights = this.session.lights;
     this.profiles.reset();
     this.d.effects.resetAll();
   }
