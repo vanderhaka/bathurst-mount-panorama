@@ -56,15 +56,21 @@ export class SteerOnboardingScreen implements Screen {
     this.render('ask');
   }
 
-  /** Whether this player is asked before the race: a touch screen that has not chosen yet. */
-  required(settings: Settings): boolean {
-    return needsSteerOnboarding(settings, touchControlsAvailable());
+  /** Whether this player is asked before the race: a touch screen that has not chosen yet, or before every
+   * Shootout run (the one choice worth confirming before a timed attempt) unless they picked Buttons in Settings. */
+  required(settings: Settings, shootout = false): boolean {
+    const touch = touchControlsAvailable();
+    return shootout ? touch && settings.touchMode !== 'buttons' : needsSteerOnboarding(settings, touch);
   }
 
   /** Call before showing the screen. `proceed` starts the race once the choice is saved. */
   ask(proceed: () => void): void {
     this.proceed = proceed;
     this.render('ask');
+  }
+
+  items(): HTMLElement[] {
+    return this.phase === 'note' ? [this.start] : this.choices;
   }
 
   private choose(mode: SteerChoice): void {
@@ -96,13 +102,14 @@ export class SteerOnboardingScreen implements Screen {
     this.title.textContent = phase === 'note' ? 'Using Finger' : 'Choose how to steer';
     this.group.hidden = phase === 'note';
     this.group.setAttribute('aria-busy', String(phase === 'wait'));
-    for (const choice of this.choices) choice.setAttribute('aria-disabled', String(phase !== 'ask'));
+    // A player who has answered before sees their current way marked (Shootout asks before every run).
+    const settings = this.actions.get() as Settings | undefined;
+    for (const choice of this.choices) {
+      choice.setAttribute('aria-disabled', String(phase !== 'ask'));
+      choice.classList.toggle('is-current', Boolean(settings?.steerOnboarded) && choice.dataset.steerChoice === settings?.touchMode);
+    }
     this.start.hidden = phase !== 'note';
     this.help.textContent = phase === 'note' ? note : phase === 'wait' ? STEER_WAITING : STEER_LATER;
-  }
-
-  items(): HTMLElement[] {
-    return this.phase === 'note' ? [this.start] : this.choices;
   }
 
   back(): void {

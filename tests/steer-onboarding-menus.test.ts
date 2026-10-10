@@ -148,3 +148,32 @@ describe('Start time trial when there is nothing to ask', () => {
     expect(started[0].settings.touchMode).toBe('buttons');
   });
 });
+
+describe('Start warm-up in a Shootout on a touch device', () => {
+  const startWarmUp = (menus: Menus, doc: ReturnType<typeof stubMenuDom>): void => {
+    menus.showShootout('shootoutArcade');
+    menus.showCarSelect();
+    findText(doc.body, 'Start warm-up')!.parent!.click();
+  };
+
+  it('asks Finger or Tilt before every run, marking the current choice', () => {
+    const { doc, menus, started, screen, choice } = open({ touch: true, settings: { touchMode: 'tilt', steerOnboarded: true } });
+    startWarmUp(menus, doc);
+    expect(screen()).toBe('steer');
+    expect(started).toHaveLength(0);
+    expect(choice('tilt').classList.contains('is-current')).toBe(true);
+    expect(choice('drag').classList.contains('is-current')).toBe(false);
+    choice('drag').click();
+    expect(started[0]).toMatchObject({ mode: 'shootoutArcade', settings: { touchMode: 'drag' } });
+  });
+
+  it('does not ask a player who chose Buttons in Settings, or a desktop', () => {
+    const buttons = open({ touch: true, settings: { touchMode: 'buttons', steerOnboarded: true } });
+    startWarmUp(buttons.menus, buttons.doc);
+    expect(buttons.started).toHaveLength(1);
+    vi.unstubAllGlobals();
+    const desktop = open({ touch: false });
+    startWarmUp(desktop.menus, desktop.doc);
+    expect(desktop.started).toHaveLength(1);
+  });
+});

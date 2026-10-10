@@ -12,6 +12,7 @@ import type { RaceSession } from '@/game/race-session';
 import { trackLapsDriven, trackRaceStart } from '@/game/usage-analytics';
 import { PhoneVibration } from '@/input/phone-vibration';
 import type { InputManager } from '@/input/input-manager';
+import { TOUCH_STEER_SCALE } from '@/input/touch-model';
 import { impactSeverity } from '@/physics/damage';
 import type { VehicleInput } from '@/physics/types';
 import { applyAssists } from '@/race/assists';
@@ -79,7 +80,7 @@ export class RaceController {
     const sens = input.steerSensitivity;
     sens.keyboard = settings.steerKeyboard;
     sens.pad = settings.steerPad;
-    sens.touch = settings.steerTouch;
+    sens.touch = settings.steerTouch * TOUCH_STEER_SCALE;
     const controls = input.update(dt);
     v.assists = { abs: settings.abs, tc: settings.tractionControl, autoGears: settings.autoGears, mechanicalDamage: settings.damage === 'full', wear: settings.wear };
     this.player.visualDamage = settings.damage !== 'off';

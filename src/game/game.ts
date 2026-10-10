@@ -74,7 +74,8 @@ export class Game {
     this.graphics = new GameGraphics(stage, this.settings, {
       world: () => this.world, replaceWorld: (next) => { this.world = next; this.effects.setWorld(next, this.settings.quality); },
       models: () => [this.race?.player.model ?? null, this.ghostModel, this.attract.model],
-      changed: (s) => { this.settings = this.shootoutPreferences ? competitionSettings(s) : s; this.rememberSettings(); this.menus.syncSettings(this.settings); },
+      // Only the tier changes: graphics holds an older copy of the settings (in-race toggles never reach it).
+      changed: (s) => { this.settings = { ...this.settings, quality: s.quality, autoQuality: s.autoQuality }; this.rememberSettings(); this.menus.syncSettings(this.settings); },
       notify: (text) => this.race?.session.say(text, 'info', 4),
     });
     this.tuner = new GraphicsTuner(() => { void this.graphics.rebuildWorld(); }, { setScale: setHudScale, setOpacity: setHudOpacity }, this.effects);
@@ -93,7 +94,7 @@ export class Game {
       onResetCar: () => game?.resetCar(),
       onResults: () => { if (game?.race) menus.showResults(...sessionResults(game.race.session)); },
       telemetry: () => game?.race?.session.telemetrySnapshot() ?? null,
-      onToggleTuner: () => game?.tuner.toggle(),
+      onToggleTuner: () => { if (!game?.race?.session.shootout) game?.tuner.toggle(); },
       onQuitToMenu: () => game?.quitToTitle(),
       onSettingsChange: (s) => game?.applySettings(s),
       onPreviewCar: (car, livery) => game?.preview(car, livery),
@@ -263,6 +264,8 @@ export class Game {
     this.input.configureTouch(touchOptions(this.settings), !this.settings.autoGears);
     void this.graphics.applySettings(this.settings);
     this.rememberSettings();
+    // Settings is open during a Shootout too (controls are the player's own); a rule row snaps back to the fixed rules.
+    if (this.shootoutPreferences) this.menus.syncSettings(this.settings);
     this.audio?.setMasterVolume(s.masterVolume);
   }
 

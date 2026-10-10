@@ -52,8 +52,12 @@ documented estimates.
 
 Both Shootout modes run at Bathurst with the Camaro, Mustang, or Supra. Every run
 has one warm-up lap and one timed flying lap. Both use full damage, track limits,
-tyre wear, automatic gears, soft tyres, and the standard setup. Driving assists,
-racing lines, ghosts, and automatic recovery are disabled. Touch controls include
+tyre wear, automatic gears, soft tyres, and the standard setup. ABS, traction
+control and steering assist are on for everyone (phone and keyboard pedals are
+on/off, so without them every brake press locks the wheels). Racing lines,
+ghosts, and automatic recovery are disabled. Steering sensitivity and other
+controls stay adjustable in Settings during a run. On a touch screen, every run
+first asks whether to steer with Finger or Tilt. Touch controls include
 gear buttons when manual gears are active.
 
 Each warm-up and flying lap ends at the 10-minute limit without a score. The

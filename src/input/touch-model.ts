@@ -28,6 +28,9 @@ export function steerOnboarded(s: { steerOnboarded?: unknown; touchMode?: unknow
   return s.steerOnboarded === true || touchOptions(s).mode !== DEFAULT_TOUCH_OPTIONS.mode;
 }
 
+/** Settings > Touch sensitivity 1.0 (100%) steers like the old 0.6, which play-testing found to be normal. */
+export const TOUCH_STEER_SCALE = 0.6;
+
 const clamp = (v: number, lo = 0, hi = 1): number => Math.max(lo, Math.min(hi, v));
 const approach = (v: number, target: number, up: number, down: number, dt: number): number =>
   v + clamp(target - v, -down * dt, up * dt);

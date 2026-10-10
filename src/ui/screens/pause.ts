@@ -54,7 +54,6 @@ export class PauseScreen implements Screen {
     this.warning.textContent = competition
       ? shootout.timed ? 'Your timed lap has started. Restarting, resetting or quitting keeps this attempt used.' : 'Warm-up is free. Restarting or quitting now uses no competition attempt.'
       : 'Arcade practice. No official score and no competition attempt used.';
-    this.buttons[3].hidden = Boolean(shootout);
     this.buttons[5].hidden = Boolean(shootout);
     this.buttons[6].hidden = Boolean(shootout);
     const label = shootout ? shootout.timed ? 'End this lap' : 'Restart warm-up' : 'Restart';

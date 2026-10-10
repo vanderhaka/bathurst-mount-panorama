@@ -164,8 +164,9 @@ class MenuController implements Menus {
     };
     // First race setup (everyone, once; it opens on its selected card, not a remembered button), then the steering question (touch players, once).
     const { steer, onboarding } = this.screens ?? {};
-    const steerThenGo = (): void => { if (steer?.required(this.settings)) { steer.ask(go); this.show(steer); } else go(); };
-    if (this.mode === 'timeTrial' && onboarding?.required(this.settings)) { onboarding.ask(steerThenGo, steer?.required(this.settings) ? 'Continue' : 'Start'); this.lastFocus.delete(onboarding); this.show(onboarding); } else steerThenGo();
+    const shootout = this.mode !== 'timeTrial';
+    const steerThenGo = (): void => { if (steer?.required(this.settings, shootout)) { steer.ask(go); this.show(steer); } else go(); };
+    if (!shootout && onboarding?.required(this.settings)) { onboarding.ask(steerThenGo, steer?.required(this.settings) ? 'Continue' : 'Start'); this.lastFocus.delete(onboarding); this.show(onboarding); } else steerThenGo();
   }
 
   /** Close the menus, then notify the game (which may open another screen). */

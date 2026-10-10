@@ -242,9 +242,16 @@ describe('one warm-up and one Shootout lap', () => {
     }
   });
 
-  it('uses full damage, track limits and the pro preset without mutating saved preferences', () => {
+  it('uses full damage, track limits and the pro preset with stability aids on, without mutating saved preferences', () => {
     const preferences = { ...DEFAULT_SETTINGS, damage: 'off' as const, trackLimits: false, touchAutoThrottle: true };
-    expect(competitionSettings(preferences)).toMatchObject({ damage: 'full', trackLimits: true, wear: true, autoGears: true, abs: false, tractionControl: false, racingLine: 'off', steeringAssist: false, autoRecover: false, touchAutoThrottle: false });
+    expect(competitionSettings(preferences)).toMatchObject({ damage: 'full', trackLimits: true, wear: true, autoGears: true, abs: true, tractionControl: true, racingLine: 'off', steeringAssist: true, autoRecover: false, touchAutoThrottle: false });
     expect(preferences).toMatchObject({ damage: 'off', trackLimits: false, autoGears: true, touchAutoThrottle: true });
+  });
+});
+
+describe('Shootout controls stay the player\'s own', () => {
+  it('keeps steering sensitivity and touch mode from the player\'s settings', () => {
+    const own = { ...DEFAULT_SETTINGS, steerTouch: 0.7, steerKeyboard: 1.4, steerPad: 0.8, touchMode: 'tilt' as const };
+    expect(competitionSettings(own)).toMatchObject({ steerTouch: 0.7, steerKeyboard: 1.4, steerPad: 0.8, touchMode: 'tilt' });
   });
 });
