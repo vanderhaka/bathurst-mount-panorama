@@ -24,6 +24,7 @@ import { loadArcadeBest, recordArcadeLap, type PracticeSummary } from '@/game/ar
 import { encodeReplay, isShootoutCar, type ShootoutCar } from '@/shootout/model';
 import { fetchReplay, reportPractice } from '@/shootout/leaderboard';
 import { USAGE_ANALYTICS } from '@/config/build-flags';
+import { loadWarmupStart, unlockWarmupChoice } from '@/shootout/warmup-start';
 import { ShootoutStore } from '@/shootout/store';
 import { formatLapTime } from '@/hud/format';
 import { loadSettings, saveSettings } from '@/game/settings-store';
@@ -187,6 +188,7 @@ export class Game {
     if (mode === 'shootoutTop10') session.shootoutRemaining = this.shootoutStore.snapshot().remaining;
     session.realLapTime = () => this.lapClock.elapsedS(performance.now());
     if (mode === 'shootoutArcade' && isShootoutCar(cfg.car)) { this.loadPractice(session, cfg.car); this.countPractice(cfg.car, 'start'); }
+    if (mode !== 'timeTrial') session.warmupStart = loadWarmupStart(mode);
     session.placeOnGrid();
     this.ghostModel = createCarModel(cfg.car, { livery: LIVERY_PRESETS[cfg.car][0].livery, detail: 'low', quality: this.settings.quality });
     this.ghostModel.setGhost(true);
@@ -256,7 +258,7 @@ export class Game {
     this.lapClock.pause(performance.now());
     this.audio?.suspend();
     const session = this.race?.session;
-    this.menus.showPause(session?.mode !== 'timeTrial' && session?.shootout ? { mode: session.mode, timed: session.shootout.phase === 'timed' } : undefined);
+    this.menus.showPause(session?.mode !== 'timeTrial' && session?.shootout ? { mode: session.mode, timed: session.shootout.phase === 'timed', grid: session.warmupStart === 'grid' } : undefined);
   }
 
   /** The WebGL context is lost and main.ts offers a reload: pause for good, releasing wake lock and audio. */
@@ -277,6 +279,7 @@ export class Game {
       this.finishShootout(this.race.session);
       return;
     }
+    if (this.race.session.mode !== 'timeTrial') this.race.session.warmupStart = loadWarmupStart(this.race.session.mode);
     this.race.session.placeOnGrid();
     if (this.race.session.mode === 'shootoutArcade' && isShootoutCar(this.race.session.car)) this.countPractice(this.race.session.car, 'start');
     this.race.restart();
@@ -363,7 +366,7 @@ export class Game {
 
   private async startShootoutLap(race: RaceController): Promise<void> {
     const session = race.session;
-    if (session.mode === 'shootoutArcade') { session.beginShootoutTimedLap(null); return; }
+    if (session.mode === 'shootoutArcade') { session.beginShootoutTimedLap(null); unlockWarmupChoice(session.mode); return; }
     if (this.claimingShootout || !isShootoutCar(session.car)) return;
     this.claimingShootout = true;
     try {
@@ -372,6 +375,7 @@ export class Game {
       const attempt = await this.shootoutStore.reserveTimedLap(session.car);
       if (this.race !== race || this.halted) return;
       session.beginShootoutTimedLap(attempt);
+      unlockWarmupChoice('shootoutTop10');
       this.lapClock.start(performance.now(), this.state !== 'race');
       this.guardUnload(true);
       if (typeof navigator !== 'undefined' && navigator.onLine === false) session.sayNext('OFFLINE — YOUR SCORE IS SAVED FOR RETRY AFTER THIS LAP', 'warn', 5);

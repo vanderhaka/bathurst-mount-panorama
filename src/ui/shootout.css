@@ -15,7 +15,10 @@
 .mn-shootout-attempt { font-size: 0.85em; padding: 0.45em 0; margin: 0; border-bottom: 1px solid var(--hud-hairline); }
 .mn-shootout-board .mn-table td:nth-child(2) { overflow-wrap: anywhere; max-width: 12em; }
 .mn-shootout-time { font-size: 4em; line-height: 1; font-weight: 700; font-variant-numeric: tabular-nums; margin: 0.3em 0; }
-.mn-shootout-time[data-valid='false'] { color: var(--hud-text-dim); }
+.mn-shootout-time[data-valid='false'] { color: var(--hud-text-dim); text-decoration: line-through; text-decoration-thickness: 0.06em; }
+.mn-shootout-verdict { margin: 0.2em 0 0.4em; padding: 0.4em 0.7em; font-size: 1.4em; font-weight: 700;
+  letter-spacing: var(--hud-label-tracking); text-transform: uppercase; color: var(--hud-text); background: rgb(255 77 58 / 0.14);
+  border-left: 0.25em solid var(--hud-bad); }
 .mn-shootout-label { display: block; font-size: 1.1em; font-weight: 700; margin: 0.8em 0 0.5em; }
 .mn-shootout-nickname { width: 100%; box-sizing: border-box; padding: 0.7em; color: var(--hud-text); background: rgb(255 255 255 / 0.05); border: 1px solid var(--hud-hairline); border-radius: 0; font: inherit; }
 .mn-shootout-nickname:focus { border-color: var(--hud-accent); outline: 2px solid var(--hud-accent); outline-offset: 2px; }
@@ -33,6 +36,7 @@
 .mn-shootout-tabs { display: flex; flex-wrap: wrap; gap: 0.35em; margin-bottom: 0.4em; }
 .mn-shootout-tabs .mn-btn { width: auto; flex: 1; min-width: 5em; padding-top: 0.45em; padding-bottom: 0.45em; font-size: 0.9em; }
 .mn-shootout-tabs .mn-btn.is-active { border-color: var(--hud-accent); box-shadow: inset 0 -0.18em 0 var(--hud-accent); }
-.mn-shootout-board tr.is-mine td { color: var(--hud-accent); font-weight: 700; }
+.mn-shootout-board tr.is-mine td { background: var(--hud-row-you-bg); color: var(--hud-text); font-weight: 700; }
+.mn-shootout-board tr.is-mine td:first-child { box-shadow: inset 0.2em 0 0 var(--hud-text); }
 .mn-shootout-blocked { margin: 0.4em 0 0; flex-shrink: 0; }
 .mn-shootout-standing { font-size: 1.15em; font-weight: 700; margin: 0.4em 0; }

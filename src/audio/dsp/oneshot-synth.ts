@@ -136,3 +136,18 @@ export function synthNoise(sampleRate: number, colour: NoiseColour, seed: number
   }
   return normalise(out.subarray(0, n - fade), 0.9).slice();
 }
+
+/**
+ * Start-light beep: a pure tone with a little third harmonic (a timing-system buzz), 4 ms attack and 25 ms release
+ * so it never clicks. Peak 0.8.
+ */
+export function synthBeep(sampleRate: number, hz: number, seconds: number): Float32Array {
+  const out = new Float32Array(Math.floor(seconds * sampleRate));
+  const attack = 0.004 * sampleRate, release = 0.025 * sampleRate;
+  for (let n = 0; n < out.length; n++) {
+    const w = (2 * Math.PI * hz * n) / sampleRate;
+    const env = Math.min(1, n / attack, (out.length - n) / release);
+    out[n] = 0.8 * env * (0.85 * Math.sin(w) + 0.15 * Math.sin(3 * w));
+  }
+  return out;
+}

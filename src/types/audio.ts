@@ -28,6 +28,8 @@ export interface CarAudio {
   update(frame: CarAudioFrame, dt: number): void;
   /** Collision thump/crunch. energy 0..1. */
   impact(energy: number): void;
+  /** Start lights: a short beep as each light comes on; `go` = the longer, higher beep at lights out. */
+  startBeep(go: boolean): void;
   setMasterVolume(v: number): void;
   suspend(): void;
   resume(): void;

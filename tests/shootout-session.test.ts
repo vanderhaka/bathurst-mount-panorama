@@ -8,6 +8,7 @@ import { GHOST_RATE } from '@/race/ghost';
 import type { ShootoutAttempt } from '@/shootout/model';
 import { flushRecords } from '@/race/records-queue';
 import type { RacingLine } from '@/track/racing-line';
+import { gridSlot } from '@/race/grid';
 import { Track } from '@/track/track-model';
 import { DEFAULT_SETTINGS, type RaceMode } from '@/types/session';
 
@@ -24,7 +25,7 @@ beforeEach(() => {
 });
 afterEach(() => { flushRecords(); vi.unstubAllGlobals(); });
 
-function fixture(mode: RaceMode = 'shootoutTop10', car: CarKind = 'camaro', raceTrack = track) {
+function fixture(mode: RaceMode = 'shootoutTop10', car: CarKind = 'camaro', raceTrack = track, warmupStart: 'rolling' | 'grid' = 'rolling') {
   const vehicle = {
     tp: { s: 0, index: 0 }, x: 0, y: 0, z: 0, heading: 0.3, pitch: 0, roll: 0, steerAngle: 0, speed, vx: 0, vy: 0, vz: 0,
     pt: { gear: 1 }, spec: { gearRatios: [3, 2.4, 1.9, 1.5, 1.2, 1] },
@@ -33,6 +34,7 @@ function fixture(mode: RaceMode = 'shootoutTop10', car: CarKind = 'camaro', race
   };
   const entity = { vehicle, reset: (s: number) => { vehicle.tp.s = s; }, repair() {} } as unknown as CarEntity;
   const session = new RaceSession(car, raceTrack, line, entity, 'soft', competitionSettings(DEFAULT_SETTINGS), mode);
+  session.warmupStart = warmupStart;
   session.placeOnGrid();
   while (!session.racing) session.updateLights(0.1);
   const step = (): void => { vehicle.tp.s = raceTrack.wrapS(vehicle.tp.s + speed * dt); session.update(dt); };
@@ -124,7 +126,8 @@ describe('one warm-up and one Shootout lap', () => {
         for (const wheel of vehicle.wheels) wheel.surface = 'road';
       }
       until('finished');
-      expect(session.shootout).toMatchObject({ phase: 'finished', outcome: { kind: 'invalid' } });
+      expect(session.shootout).toMatchObject({ phase: 'finished', outcome: { kind: 'invalid',
+        reason: verification ? expect.stringContaining('Verification') : expect.stringMatching(/^Track limits at .+: all four wheels left the track\.$/) } });
     }
   });
 
@@ -377,5 +380,38 @@ describe('Shootout slow motion, replay and Arcade reference', () => {
     top10.session.beginShootoutTimedLap(attempt);
     expect(top10.session.ghost).toBeNull();
     expect(top10.session.timer.bestS).toBeNull();
+  });
+});
+
+describe('grid warm-up option', () => {
+  it('arms the start lights on the pole slot for a Shootout, cold tyres and no practice ghost', () => {
+    const vehicle = fixture('shootoutTop10', 'camaro', track, 'grid').vehicle;
+    const session = new RaceSession('camaro', track, line, { vehicle, reset: (s: number) => { vehicle.tp.s = s; }, repair() {} } as unknown as CarEntity, 'soft', competitionSettings(DEFAULT_SETTINGS), 'shootoutTop10');
+    session.warmupStart = 'grid';
+    session.placeOnGrid();
+    expect(session.lights).toBe(0);
+    expect(session.racing).toBe(false);
+    expect(vehicle.tp.s).toBeCloseTo(gridSlot(track, 0).s, 6);
+    expect(vehicle.stint.start).toEqual({ compound: 'soft' });
+    expect(session.ghost).toBeNull();
+    expect(session.ghostVisible).toBe(false);
+    expect(session.shootout).toEqual({ phase: 'warmup' });
+  });
+
+  it('keeps the rolling start by default', () => {
+    const { session, vehicle } = fixture();
+    expect(session.warmupStart).toBe('rolling');
+    expect(vehicle.tp.s).toBe(WARMUP_START_S);
+  });
+
+  it('ends the grid warm-up at the line after a full lap, and a warm-up reset returns to the grid', () => {
+    const { session, vehicle, until, step } = fixture('shootoutTop10', 'camaro', track, 'grid');
+    for (let i = 0; i < 100; i++) step();
+    session.resetToTrack();
+    expect(vehicle.tp.s).toBeCloseTo(gridSlot(track, 0).s, 6);
+    expect(session.lights).toBe(0);
+    while (!session.racing) session.updateLights(0.1);
+    until('ready');
+    expect(session.timer.lineCovered).toBeGreaterThan(0);
   });
 });

@@ -172,6 +172,22 @@ describe('Shootout result', () => {
     expect(findText(result, 'Submit to leaderboard')).not.toBeNull();
   });
 
+  it('says plainly that an invalid lap is not on the leaderboard, and why', async () => {
+    const invalid = { kind: 'invalid' as const, timeS: 131.2, reason: 'Track limits at The Chase: all four wheels left the track.' };
+    saved = [{ attempt, outcome: invalid, nickname: null, publication: 'pending' }];
+    const { menus, screen } = await open();
+    menus.showShootoutResult('shootoutTop10', attempt, invalid);
+    const result = screen('shootoutResult');
+    const verdict = result.querySelector('.mn-shootout-verdict')!;
+    expect(result.querySelector('h2')!.textContent).toBe('Invalid lap');
+    expect(verdict.hidden).toBe(false);
+    expect(verdict.textContent).toBe('Not on the leaderboard');
+    expect(result.querySelector('.mn-shootout-lead')!.textContent).toBe(invalid.reason);
+    expect(result.querySelector('.mn-shootout-time')!.dataset.valid).toBe('false');
+    menus.showShootoutResult('shootoutTop10', attempt, valid);
+    expect(verdict.hidden).toBe(true);
+  });
+
   it('shows an Arcade lap against the player\'s Arcade best', async () => {
     const { practiceLine } = await import('@/ui/screens/shootout-result');
     expect(practiceLine({ bestS: 124, deltaS: 1.25, improved: false })).toBe('+1.250 to your Arcade best 2:04.000');
@@ -257,5 +273,63 @@ describe('Title screen Top 10', () => {
     board.fetchBoard.mockClear();
     vi.advanceTimersByTime(90_000);
     expect(board.fetchBoard).not.toHaveBeenCalled();
+  });
+});
+
+describe('Shootout warm-up start toggle', () => {
+  const valid = { kind: 'valid' as const, timeS: 125, sectorsS: [50, 40, 35] };
+  const mem = new Map<string, string>();
+  const unlocked = (_mode: string) => JSON.stringify({ unlocked: true, start: 'rolling' });
+  beforeEach(() => {
+    mem.clear();
+    vi.stubGlobal('localStorage', { getItem: (k: string) => mem.get(k) ?? null, setItem: (k: string, v: string) => mem.set(k, v) });
+  });
+  const KEY = (mode: string) => `bathurst.shootout.warmupStart.v1.${mode}`;
+
+  it('is hidden on the intro until a timed lap has started, then flips and persists', async () => {
+    const { menus, screen, label, settle } = await open();
+    menus.showShootout('shootoutArcade');
+    await settle();
+    const intro = screen('shootout');
+    expect(label(intro, "Warm-up start: Forrest's Elbow").hidden).toBe(true);
+    mem.set(KEY('shootoutArcade'), unlocked('shootoutArcade'));
+    menus.showShootout('shootoutArcade');
+    await settle();
+    const toggle = label(intro, "Warm-up start: Forrest's Elbow");
+    expect(toggle.hidden).toBe(false);
+    toggle.click();
+    expect(JSON.parse(mem.get(KEY('shootoutArcade'))!)).toEqual({ unlocked: true, start: 'grid' });
+    expect(findText(intro, 'Warm-up start: Grid')).not.toBeNull();
+    expect(findText(intro, 'Start on the grid and drive one full warm-up lap before every run.')).not.toBeNull();
+    label(intro, 'Warm-up start: Grid').click();
+    expect(JSON.parse(mem.get(KEY('shootoutArcade'))!).start).toBe('rolling');
+  });
+
+  it('appears on the very first result once the lap has started, and persists there', async () => {
+    const { menus, screen, label } = await open();
+    mem.set(KEY('shootoutArcade'), unlocked('shootoutArcade'));
+    menus.showShootoutResult('shootoutArcade', null, valid);
+    const result = screen('shootoutResult');
+    const toggle = label(result, "Warm-up start: Forrest's Elbow");
+    expect(toggle.hidden).toBe(false);
+    toggle.click();
+    expect(JSON.parse(mem.get(KEY('shootoutArcade'))!).start).toBe('grid');
+    expect(findText(result, 'Warm-up start: Grid')).not.toBeNull();
+  });
+
+  it('stays hidden on the result while locked, and while the Top 10 score is undecided', async () => {
+    saved = [{ attempt, outcome: valid, nickname: null, publication: 'pending' }];
+    const { menus, screen, label } = await open();
+    menus.showShootoutResult('shootoutArcade', null, valid);
+    expect(label(screen('shootoutResult'), "Warm-up start: Forrest's Elbow").hidden).toBe(true);
+    mem.set(KEY('shootoutTop10'), unlocked('shootoutTop10'));
+    menus.showShootoutResult('shootoutTop10', attempt, valid);
+    expect(label(screen('shootoutResult'), "Warm-up start: Forrest's Elbow").hidden).toBe(true);
+  });
+
+  it('tells the pause menu where the warm-up restarts', async () => {
+    const { menus, screen, label } = await open();
+    menus.showPause({ mode: 'shootoutTop10', timed: false, grid: true });
+    expect(label(screen('pause'), 'Back to the start').attributes['aria-label']).toContain('on the grid');
   });
 });

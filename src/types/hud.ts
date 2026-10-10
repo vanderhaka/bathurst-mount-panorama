@@ -142,7 +142,7 @@ export interface Menus {
   showShootout(mode: ShootoutMode): void;
   /** `practice`: an Arcade lap against the player's Arcade best for the car. */
   showShootoutResult(mode: ShootoutMode, attempt: ShootoutAttempt | null, outcome: ShootoutOutcome, error?: string, practice?: PracticeSummary): void;
-  showPause(shootout?: { mode: ShootoutMode; timed: boolean }): void;
+  showPause(shootout?: { mode: ShootoutMode; timed: boolean; grid?: boolean }): void;
   /** Settings changed in the race (camera, racing line, ghost): menus show and start from these. */
   syncSettings(s: Settings): void;
   /** Controller family of the connected gamepad: menus show its button names (Xbox or PlayStation). */

@@ -14,6 +14,7 @@ import type { Track } from '@/track/track-model';
 import type { HudState } from '@/types/hud';
 import { DEFAULT_SETTINGS, type DrivingLevel, type LapRecord, type RaceMode } from '@/types/session';
 import { isPlausibleShootoutLap, isShootoutCar, MAX_SHOOTOUT_LAP_S, type ShootoutAttempt, type ShootoutOutcome } from '@/shootout/model';
+import type { WarmupStart } from '@/shootout/warmup-start';
 import { TYRE_COMPOUNDS, type TyreCompound } from '@/physics/tyre-state';
 import { restoreTelemetry, type LapTelemetry, type SessionTelemetry, type TelemetrySample } from '@/types/telemetry';
 
@@ -68,7 +69,11 @@ export class RaceSession {
   ghostVisible = false;
   private shootoutRun: ShootoutRun | null;
   private shootoutFault: string | null = null;
+  /** Why the timed lap became invalid on track (track limits, rules), shown on the result screen. */
+  private lapFault: string | null = null;
   shootoutRemaining: number | null = null;
+  /** Shootout only: where the warm-up starts (read by placeOnGrid). */
+  warmupStart: WarmupStart = 'rolling';
   /** Lap distance of the rolling warm-up start, until its first crossing. */
   private warmupFrom: number | null = null;
   /** The finished timed lap's ghost frames (the Top 10 replay, the Arcade best's ghost). */
@@ -112,6 +117,7 @@ export class RaceSession {
     if (this.shootoutRun?.phase !== 'ready') throw new Error('Complete the warm-up before starting a Shootout lap.');
     if (this.mode === 'shootoutTop10' && (!attempt || attempt.car !== this.car)) throw new Error('A competition attempt must be saved before the timed lap starts.');
     this.shootoutRun = { phase: 'timed', attempt };
+    this.lapFault = null;
     if (attempt) this.shootoutRemaining = 3 - attempt.number;
     if (this.shootoutFault) this.timer.invalidate();
     this.ghost = this.practiceGhost;
@@ -149,7 +155,7 @@ export class RaceSession {
    * rolling before Forrest's Elbow instead. */
   placeOnGrid(): void {
     if (this.shootoutRun?.phase === 'timed' || this.shootoutRun?.phase === 'finished') throw new Error('A started Shootout lap cannot be restarted. Start a new warm-up.');
-    if (this.shootoutRun) { this.shootoutRun = { phase: 'warmup' }; this.shootoutFault = null; this.timedFrames = null; return this.placeRolling(); }
+    if (this.shootoutRun) { this.shootoutRun = { phase: 'warmup' }; this.shootoutFault = null; this.timedFrames = null; if (this.warmupStart === 'rolling') return this.placeRolling(); }
     this.entity.vehicle.stint.reset({ compound: this.tyres });
     this.entity.vehicle.trackGrip.reset();
     const pole = gridSlot(this.track, 0);
@@ -162,6 +168,8 @@ export class RaceSession {
     this.recorder.reset();
     this.telemetryRecorder.reset();
     // The ghost replays a flying lap: like the delta, it returns at the first crossing.
+    // The Shootout's practice ghost only shows in the timed lap.
+    if (this.shootoutRun) { this.warmupFrom = null; this.ghost = null; }
     this.ghostVisible = false;
   }
 
@@ -268,12 +276,14 @@ export class RaceSession {
     this.offTrackT = allOff ? this.offTrackT + dt : 0;
     if (this.trackLimits && this.offTrackT > 0.15 && this.timer.valid && this.timer.lapNumber > 0) {
       this.timer.invalidate();
-      this.say('TRACK LIMITS — LAP INVALIDATED', 'warn');
+      this.faultLap(`Track limits at ${this.track.placeAt(v.tp.s)}: all four wheels left the track.`);
+      this.say(`TRACK LIMITS — LAP INVALIDATED${this.shootoutConsequence()}`, 'warn', this.shootoutRun ? 4 : undefined);
     }
     // A lap counts for a level only when its rules held for the whole lap.
     if (levelRank(this.rulesLevel) < levelRank(this.level) && this.timer.valid && this.timer.lapNumber > 0) {
       this.timer.invalidate();
-      this.say('RULES CHANGED — LAP INVALIDATED', 'warn');
+      this.faultLap('The rules or assists changed during the lap.');
+      this.say(`RULES CHANGED — LAP INVALIDATED${this.shootoutConsequence()}`, 'warn', this.shootoutRun ? 4 : undefined);
     }
     const crossingsBefore = this.timer.crossings;
     const elapsed = this.timer.lapTime + dt;
@@ -331,8 +341,19 @@ export class RaceSession {
     this.timedFrames = this.recorder.take();
     const outcome: ShootoutOutcome = result && result.valid && !result.standing && !this.shootoutFault
       ? { kind: 'valid', timeS: result.timeS, sectorsS: result.sectorsS }
-      : { kind: 'invalid', timeS: result?.timeS ?? null, reason: this.shootoutFault ?? (result ? 'Track limits or a reset invalidated this lap.' : 'The full Shootout lap was not completed.') };
+      : { kind: 'invalid', timeS: result?.timeS ?? null, reason: this.shootoutFault ?? this.lapFault ?? (result ? 'Track limits or a reset invalidated this lap.' : 'The full Shootout lap was not completed.') };
     this.shootoutRun = { phase: 'finished', attempt: run.attempt, outcome };
+  }
+
+  /** Keeps the first on-track reason the timed Shootout lap became invalid. */
+  private faultLap(reason: string): void {
+    if (this.shootoutRun?.phase === 'timed') this.lapFault ??= reason;
+  }
+
+  /** Added to an invalidation banner during a timed Shootout lap: what the invalid lap costs. */
+  private shootoutConsequence(): string {
+    if (this.shootoutRun?.phase !== 'timed') return '';
+    return this.mode === 'shootoutTop10' ? ' · NO LEADERBOARD SCORE' : ' · NO ARCADE BEST';
   }
 
   /** The crossing just made ends the rolling warm-up: the car drove (most of) the way from its start to the line. */
