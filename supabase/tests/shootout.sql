@@ -198,7 +198,8 @@ begin
   delete from public.shootout_ip_starts where ip_hash = repeat('9',64);
   insert into public.shootout_ip_starts(ip_hash, started_at) select repeat('9',64), now() - interval '25 hours' from generate_series(1, 40);
   perform public.shootout_start_attempt(pg_temp.hex('rate15'), repeat('9',64), gen_random_uuid(), 1, 'camaro', pg_temp.week());
-  perform pg_temp.assert_true((select count(*) = 1 from public.shootout_ip_starts where ip_hash = repeat('9',64)), 'Day-old starts are pruned');
+  perform pg_temp.assert_true((select count(*) = 1 from public.shootout_ip_starts where ip_hash = repeat('9',64)
+    and started_at > now() - interval '1 day'), 'Day-old starts no longer count');
 end;
 $$;
 

@@ -119,15 +119,19 @@ sectorsS, replay? }` and returns `{ publication: 'published', rank, of }`. Error
 ### Connect the shared leaderboard
 
 The dedicated [Bathurst Shootout project](https://supabase.com/dashboard/project/ggkqzuqzmkxcvvcpcdue)
-runs in Sydney. Its first migration is applied, and the local server and Vercel production
-environment have their credentials. The game source still needs a release to activate
-the competition on the public website.
+runs in Sydney. All its migrations, including the five seasons parts, are applied (10 October
+2026), and the local server and Vercel production environment have their credentials. The
+game source still needs a release to activate the competition on the public website.
 
 1. Apply the migrations in [supabase/migrations](supabase/migrations) in order to a
-   dedicated Supabase project. `20261010100000_shootout_seasons.sql` is safe to apply
-   before the matching API deploys, and again: the first migration's RPCs keep their
-   signatures and responses (under the season rules), and the new API calls
-   `shootout_start_attempt`, `shootout_submit_lap`, `shootout_board` and `shootout_replay`.
+   dedicated Supabase project. The seasons migration is five files
+   (`20261010100000` to `20261010100400`), each small enough for one remote migration
+   call. They are safe to apply before the matching API deploys, and again: the first
+   migration's RPCs keep their signatures and responses (under the season rules), and the
+   new API calls `shootout_start_attempt`, `shootout_submit_lap`, `shootout_board` and
+   `shootout_replay`. Old rows in `shootout_ip_starts` stop counting after a day; prune
+   them with `delete from public.shootout_ip_starts where started_at < now() - interval '1 day';`
+   if the table ever grows large.
 2. Set `SHOOTOUT_SUPABASE_URL` and `SHOOTOUT_SUPABASE_SERVICE_KEY` in the server
    environment. Use a server secret API key. Optionally set `SHOOTOUT_IP_SALT` to a
    long random string (without it, the service key salts the IP hashes). For local
