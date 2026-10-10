@@ -51,9 +51,19 @@ describe('sky overdraw', () => {
       return new THREE.WebGLRenderTarget(1, 1);
     };
     THREE.PMREMGenerator.prototype.dispose = () => {};
-    try { createSkyEnvironment(renderer, sky.dome, 'high'); }
+    try { createSkyEnvironment(renderer, sky.dome, 'high', null); }
     finally { Object.assign(THREE.PMREMGenerator.prototype, { fromScene, dispose }); }
+    // Without an HDRI the procedural sky remains the env backdrop.
     expect(seen).toEqual([{ order: -10, depthTest: false }]);
     expect(material.depthTest).toBe(true);
+  });
+
+  it('enables HDRI and probes only on Medium and High', async () => {
+    const { QUALITY } = await import('@/config/graphics');
+    expect(QUALITY.low.hdriEnv).toBe(false);
+    expect(QUALITY.low.reflectionProbes).toBe(0);
+    expect(QUALITY.medium.hdriEnv).toBe(true);
+    expect(QUALITY.medium.reflectionProbes).toBeGreaterThan(0);
+    expect(QUALITY.high.reflectionProbes).toBeGreaterThan(QUALITY.medium.reflectionProbes);
   });
 });

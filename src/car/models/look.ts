@@ -11,9 +11,21 @@
 import * as THREE from 'three';
 import type { CarModel } from '@/types/car-model';
 
-export interface PaintLook { roughness: number; metalness: number; clearcoat: number; clearcoatRoughness: number; envMapIntensity: number }
+export interface PaintLook {
+  roughness: number; metalness: number; clearcoat: number; clearcoatRoughness: number; envMapIntensity: number;
+  /** Clearcoat orange-peel normal strength (0 = flat clearcoat). */
+  orangePeel: number;
+  /** Flake normal strength under the clearcoat. */
+  flake: number;
+}
 export interface SurfaceLook { colour: number; roughness: number; metalness: number; envMapIntensity: number; /** Physical materials only (carbon, trim, head, tail). */ clearcoat?: number }
-export interface GlassLook extends SurfaceLook { opacity: number }
+export interface GlassLook extends SurfaceLook {
+  opacity: number;
+  /** Index of refraction (windscreen ~1.5). */
+  ior: number;
+  /** Reflection boost at grazing angles (MeshPhysicalMaterial reflectivity alternative via ior). */
+  reflectivity: number;
+}
 export interface DiscLook extends SurfaceLook { glowColour: number; glowMax: number }
 export interface LightsLook {
   headColour: number; headIntensity: number;
@@ -65,13 +77,14 @@ export interface CarLook {
 }
 
 export const CAR_LOOK: CarLook = {
-  paint: { roughness: 0.25, metalness: 0.3, clearcoat: 1, clearcoatRoughness: 0.04, envMapIntensity: 1.7 },
-  glass: { colour: 0x080d10, roughness: 0.03, metalness: 0.1, envMapIntensity: 1.4, opacity: 0.82 },
-  glassTint: { colour: 0x040608, roughness: 0.03, metalness: 0.15, envMapIntensity: 1.4, opacity: 0.93 },
+  // Dielectric binder + clearcoat (not a metal): flakes live in the roughness/normal maps.
+  paint: { roughness: 0.36, metalness: 0.05, clearcoat: 1, clearcoatRoughness: 0.028, envMapIntensity: 1.55, orangePeel: 0.22, flake: 0.4 },
+  glass: { colour: 0x0a141c, roughness: 0.02, metalness: 0, envMapIntensity: 2.0, opacity: 0.72, ior: 1.52, reflectivity: 0.55 },
+  glassTint: { colour: 0x050910, roughness: 0.025, metalness: 0, envMapIntensity: 1.75, opacity: 0.88, ior: 1.5, reflectivity: 0.5 },
   // Gunmetal alloy; the polished lip is baked as vertex colours (RIM_LIP in wheels.ts).
   rim: { colour: 0x5b5f66, roughness: 0.36, metalness: 0.72, envMapIntensity: 1.2 },
   nut: { colour: 0xc8261e, roughness: 0.35, metalness: 0.6, envMapIntensity: 1 },
-  tyre: { colour: 0x1b1b1d, roughness: 0.95, metalness: 0, envMapIntensity: 0.6 },
+  tyre: { colour: 0x1a1a1c, roughness: 0.88, metalness: 0, envMapIntensity: 0.45 },
   plastic: { colour: 0x151618, roughness: 0.72, metalness: 0, envMapIntensity: 0.8 },
   carbon: { colour: 0x1a1c20, roughness: 0.35, metalness: 0.15, envMapIntensity: 0.8, clearcoat: 0.6 },
   trim: { colour: 0xffffff, roughness: 0.4, metalness: 0.2, envMapIntensity: 1, clearcoat: 0.45 },
@@ -163,10 +176,16 @@ export function setTailGlow(mats: CarMaterialSet, look: CarLook, brakeOn: boolea
 export function writeMaterials(mats: CarMaterialSet, look: CarLook, brakeOn: boolean, glow: number): void {
   const p = look.paint;
   Object.assign(mats.paint, { roughness: p.roughness, metalness: p.metalness, clearcoat: p.clearcoat, clearcoatRoughness: p.clearcoatRoughness, envMapIntensity: p.envMapIntensity });
+  mats.paint.clearcoatNormalScale?.set(p.orangePeel, p.orangePeel);
+  mats.paint.normalScale?.set(p.flake, p.flake);
   setSurface(mats.glass, look.glass);
   mats.glass.opacity = mats.glass.transparent ? look.glass.opacity : 1;
+  mats.glass.ior = look.glass.ior;
+  mats.glass.reflectivity = look.glass.reflectivity;
   setSurface(mats.glassTint, look.glassTint);
   mats.glassTint.opacity = mats.glassTint.transparent ? look.glassTint.opacity : 1;
+  mats.glassTint.ior = look.glassTint.ior;
+  mats.glassTint.reflectivity = look.glassTint.reflectivity;
   setSurface(mats.rim, look.rim);
   setSurface(mats.nut, look.nut);
   setSurface(mats.tyre, look.tyre);

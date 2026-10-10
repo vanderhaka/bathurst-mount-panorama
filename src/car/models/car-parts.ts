@@ -2,6 +2,7 @@
 // root -> body (sprung: shell, glass, aero, lights, interior, anchors)
 //      -> wheels (instanced, unsprung).
 import * as THREE from 'three';
+import { QUALITY } from '@/config/graphics';
 import { liveryAtlasSize } from '@/car/models/texture-quality';
 import { CAR_SPECS, type CarKind } from '@/car/car-specs';
 import type { CarModelOptions } from '@/types/car-model';
@@ -96,7 +97,11 @@ export function buildCarParts(kind: CarKind, options: CarModelOptions): CarParts
   const l = options.livery;
   const [width, height] = liveryAtlasSize(seg.atlasWidth, seg.atlasHeight, options.quality ?? 'high');
   const tex = createLiveryTextures(l, { kind, profile, zFront, zRear, axleZ: dims.wheelbase / 2, wheelR: dims.wheelRadius }, width, height);
-  const mats: CarParts['mats'] = createCarMaterials({ look, paintMap: tex?.paint ?? null, bannerMap: tex?.banner ?? null, displayMap: tex?.display ?? null, primary: l.primary, high, discRadius: (profile.wheel ?? GEN3_WHEEL).discRadius });
+  const paintDetail = QUALITY[options.quality ?? 'high'].carPaintDetail && high;
+  const mats: CarParts['mats'] = createCarMaterials({
+    look, paintMap: tex?.paint ?? null, bannerMap: tex?.banner ?? null, displayMap: tex?.display ?? null,
+    primary: l.primary, high, paintDetail, discRadius: (profile.wheel ?? GEN3_WHEEL).discRadius,
+  });
   // Amber tail-lamp sections: an unlit amber lens that never takes the brake glow.
   if (profile.taillight.amber) mats.amber = new THREE.MeshStandardMaterial({ name: 'car-amber', color: 0xff7400, emissive: 0xff5200, emissiveIntensity: 0.8, roughness: 0.2, metalness: 0 });
 

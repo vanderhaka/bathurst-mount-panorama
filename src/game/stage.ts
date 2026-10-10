@@ -4,7 +4,8 @@ import { GpuTimer } from '@/render/gpu-timer';
 import { capPixelRatio } from '@/render/pixel-density';
 import { createPostChain, type PostChain } from '@/render/post';
 import { createRenderer, setRendererQuality, type QualityPreset } from '@/render/renderer';
-import { createLighting, createSkyEnvironment, type SceneLighting } from '@/world/lighting';
+import { createLighting, type SceneLighting } from '@/world/lighting';
+import { createCarEnv, type CarEnv } from '@/world/car-env';
 import { createSky, SKY_GRAPHICS_KEYS, SUN_DIRECTION, type Sky } from '@/world/sky';
 
 /** Renderer, scene, camera, sky, lights and post chain, all driven by the graphics config. */
@@ -15,8 +16,9 @@ export class Stage {
   readonly sky: Sky;
   readonly lighting: SceneLighting;
   readonly post: PostChain;
+  /** Sky + HDRI + track probes for car reflections. */
+  readonly carEnv: CarEnv;
   private quality: QualityPreset;
-  private environment: THREE.WebGLRenderTarget;
   private environmentTimer: number | null = null;
   /** Fixed when the WebGL context is created: only a page that starts on a tier without a post chain needs it. */
   private readonly nativeAntialias: boolean;
@@ -40,8 +42,8 @@ export class Stage {
     this.camera = new THREE.PerspectiveCamera(g.fov, 1, 0.1, 16000);
     this.sky = createSky(this.scene, 9000, quality);
     this.lighting = createLighting(this.scene, quality, this.camera);
-    this.environment = createSkyEnvironment(this.renderer, this.sky.dome, quality);
-    this.scene.environment = this.environment.texture;
+    this.carEnv = createCarEnv(this.renderer, this.scene, this.sky.dome, quality);
+    void this.carEnv.ensureHdri();
     this.post = createPostChain(this.renderer, QUALITY[quality].msaa);
     this.applyPost(quality);
     this.applyGraphics();
@@ -67,10 +69,7 @@ export class Stage {
   refreshEnvironment(): void {
     if (this.environmentTimer !== null) window.clearTimeout(this.environmentTimer);
     this.environmentTimer = null;
-    const old = this.environment;
-    this.environment = createSkyEnvironment(this.renderer, this.sky.dome, this.quality);
-    this.scene.environment = this.environment.texture;
-    old.dispose();
+    this.carEnv.refreshSky();
   }
 
   private scheduleEnvironment(): void {
@@ -92,8 +91,8 @@ export class Stage {
     this.basePixelRatio = this.renderer.getPixelRatio();
     this.sky.setQuality(q);
     this.lighting.setQuality(q);
+    this.carEnv.setQuality(q);
     this.applyPost(q);
-    this.refreshEnvironment();
     this.resize();
   }
 

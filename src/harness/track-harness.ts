@@ -4,7 +4,8 @@ import { getGraphics, onGraphicsChange, setGraphics, type ToneMapper } from '@/c
 import { createPostChain } from '@/render/post';
 import { createRenderer } from '@/render/renderer';
 import { pointAt } from '@/track/track-query';
-import { createLighting, createSkyEnvironment } from '@/world/lighting';
+import { createLighting } from '@/world/lighting';
+import { createCarEnv } from '@/world/car-env';
 import { createSky } from '@/world/sky';
 import { buildWorld } from '@/world/world';
 
@@ -23,8 +24,8 @@ const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(getGraphics().fov, window.innerWidth / window.innerHeight, 0.1, 20000);
 const sky = createSky(scene);
 const lighting = createLighting(scene, 'high', camera);
-let environment = createSkyEnvironment(renderer, sky.dome);
-scene.environment = environment.texture;
+const carEnv = createCarEnv(renderer, scene, sky.dome, 'high');
+void carEnv.ensureHdri();
 scene.environmentIntensity = getGraphics().envIntensity;
 const post = createPostChain(renderer, 4);
 post.setSize(window.innerWidth, window.innerHeight);
@@ -34,15 +35,14 @@ onGraphicsChange((cfg) => {
   sky.apply(cfg);
   lighting.apply(cfg);
   post.apply(cfg);
-  const old = environment;
-  environment = createSkyEnvironment(renderer, sky.dome);
-  scene.environment = environment.texture;
-  old.dispose();
+  carEnv.refreshSky();
 });
 
 const t0 = performance.now();
 const world = await buildWorld(renderer);
 scene.add(world.root);
+await carEnv.ensureHdri();
+carEnv.bakeProbes(world.track, []);
 const buildMs = Math.round(performance.now() - t0);
 
 const a: [number, number, number] = [0, 0, 0], b: [number, number, number] = [0, 0, 0];
