@@ -24,7 +24,6 @@ export const CIRCUITS = {
     elevationEstimated: true, centrelineDataUrl: '/data/gold-coast-centerline.json' },
 } as const satisfies Record<CircuitId, CircuitInfo>;
 
-/** Last circuit chosen on the title screen; read when the address names none (a Home Screen launch opens "/"). */
 const STORAGE_KEY = 'bathurst.circuit.v1';
 
 export type CircuitStorage = Pick<Storage, 'getItem' | 'setItem'>;
@@ -51,18 +50,13 @@ export function loadSavedCircuit(storage: CircuitStorage | null = browserStorage
   try { return parseCircuit(storage?.getItem(STORAGE_KEY)); } catch { return null; }
 }
 
-/** Remembers the choice for the next launch. Returns false when storage is missing, blocked or full. */
+/** Saves the circuit choice. Returns false when storage is missing, blocked or full. */
 export function saveCircuit(circuit: CircuitId, storage: CircuitStorage | null = browserStorage()): boolean {
   try {
     if (!storage) return false;
     storage.setItem(STORAGE_KEY, circuit);
     return true;
   } catch { return false; }
-}
-
-/** An explicit ?track= wins, then the saved choice, then Bathurst on first launch. */
-export function resolveCircuit(search: string, saved: CircuitId | null): CircuitId {
-  return explicitCircuit(search) ?? saved ?? 'bathurst';
 }
 
 /** Every circuit but the default Bathurst is named in the address; Bathurst's parameter is dropped unless `keepParam`. */
@@ -87,4 +81,4 @@ export function switchCircuit(circuit: CircuitId, nav: Pick<Location, 'href' | '
   nav.replace(circuitUrl(nav.href, circuit, !saved));
 }
 
-export const ACTIVE_CIRCUIT: CircuitId = typeof location === 'undefined' ? 'bathurst' : resolveCircuit(location.search, loadSavedCircuit());
+export const ACTIVE_CIRCUIT: CircuitId = typeof location === 'undefined' ? 'bathurst' : circuitFromSearch(location.search);

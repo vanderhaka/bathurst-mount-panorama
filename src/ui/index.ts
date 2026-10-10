@@ -37,7 +37,7 @@ import { TitleScreen } from '@/ui/screens/title';
 import { TelemetryScreen } from '@/ui/screens/telemetry';
 import { ShootoutScreen } from '@/ui/screens/shootout';
 import { ShootoutResultScreen } from '@/ui/screens/shootout-result';
-import { ACTIVE_CIRCUIT, CIRCUITS, circuitUrl, saveCircuit } from '@/track/circuits';
+import { ACTIVE_CIRCUIT, CIRCUITS } from '@/track/circuits';
 
 const KEYS: Record<string, MenuNav> = {
   ArrowUp: 'up',
@@ -131,14 +131,7 @@ class MenuController implements Menus {
       }),
       telemetry: new TelemetryScreen(() => this.cb.telemetry?.() ?? null, backFromSub, () => this.settings.units),
       shootout: new ShootoutScreen(this.shootoutStore, {
-        start: () => {
-          if (ACTIVE_CIRCUIT !== 'bathurst') {
-            saveCircuit('bathurst');
-            const url = new URL(circuitUrl(location.href, 'bathurst', true));
-            url.searchParams.set('shootout', this.mode === 'shootoutTop10' ? 'top10' : 'arcade');
-            location.replace(url.href);
-          } else this.showCarSelect();
-        },
+        start: () => this.showCarSelect(),
         arcade: () => this.showShootout('shootoutArcade'),
         resume: saved => { if (saved.outcome) this.showShootoutResult('shootoutTop10', saved.attempt, saved.outcome); },
         back: () => this.showTitle(),
@@ -286,7 +279,7 @@ class MenuController implements Menus {
   }
 
   showShootout(mode: ShootoutMode): void {
-    if (!this.screens) return;
+    if (!this.screens || ACTIVE_CIRCUIT !== 'bathurst') return;
     this.mode = mode;
     this.screens.shootout.setMode(mode);
     this.show(this.screens.shootout);

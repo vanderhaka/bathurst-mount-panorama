@@ -7,6 +7,7 @@ import { chromium } from 'playwright';
 const baseUrl = process.argv[2] ?? 'http://127.0.0.1:5180/';
 const output = resolve(process.argv[3] ?? 'artifacts/shootout-landing');
 const quick = process.argv.includes('--quick');
+const live = process.argv.includes('--live');
 await mkdir(output, { recursive: true });
 const browser = await chromium.launch({ channel: 'chrome', headless: true, args: ['--enable-gpu', '--ignore-gpu-blocklist', '--use-angle=metal'] });
 const checks = [];
@@ -79,6 +80,11 @@ try {
       const intro = page.locator('.mn-screen--shootout');
       for (const mode of ['Shootout Arcade', 'Shootout Top 10']) {
         await title.getByRole('button', { name: mode, exact: true }).click();
+        if (live && mode === 'Shootout Top 10') {
+          await page.waitForFunction(() => document.querySelector('.mn-shootout-board')?.dataset.available === 'true');
+          check(`${fixture.name}: live leaderboard connected`, await intro.locator('.mn-shootout-board').getAttribute('data-available') === 'true');
+          check(`${fixture.name}: competition enabled`, await intro.getByRole('button', { name: 'Choose car', exact: true }).isEnabled());
+        }
         const copy = await intro.innerText();
         check(`${mode}: introduction`, await intro.isVisible() && copy.toLowerCase().includes(mode.toLowerCase()), copy);
         check(`${mode}: rules`, mode === 'Shootout Arcade' ? /Unlimited runs/i.test(copy) : /three attempts/i.test(copy) && /nickname/i.test(copy), copy);

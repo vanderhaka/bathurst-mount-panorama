@@ -32,7 +32,7 @@ function geometryCredit(): HTMLElement | null {
 export class TitleScreen implements Screen {
   readonly id = 'title' as const;
   readonly el = screenEl('title', 'Main menu', 'mn-screen--side');
-  private readonly featured: HTMLButtonElement;
+  private readonly featured: HTMLButtonElement | null;
   private readonly buttons: HTMLButtonElement[];
   private readonly circuitRow;
   private readonly credit = geometryCredit();
@@ -46,23 +46,28 @@ export class TitleScreen implements Screen {
     });
     this.circuitRow.value.textContent = circuit.name;
     this.circuitRow.el.setAttribute('aria-label', `Circuit: ${circuit.name}. Left and right to change.`);
-    this.featured = menuButton('Shootout Top 10', () => actions.shootout('shootoutTop10'), { variant: 'primary', aria: 'Shootout Top 10' });
-    this.featured.classList.add('mn-shootout-feature');
-    this.featured.replaceChildren(
-      h('span', 'mn-shootout-feature__body', undefined, [
-        h('span', 'mn-shootout-feature__eyebrow', undefined, ['Global competition']),
-        h('span', 'mn-btn__label', undefined, ['Shootout Top 10']),
-        h('span', 'mn-shootout-feature__detail', undefined, ['Bathurst · One flying lap · 3 total attempts']),
-        h('span', 'mn-shootout-feature__cta', undefined, ['Enter competition', h('span', undefined, { 'aria-hidden': 'true' }, [' →'])]),
-      ]),
-      h('span', 'mn-shootout-feature__rank', { 'aria-hidden': 'true' }, ['10']),
-    );
-    this.buttons = [
-      menuButton('Time trial', actions.race, { index: '01' }),
-      menuButton('Shootout Arcade', () => actions.shootout('shootoutArcade'), { index: '02' }),
-      menuButton('Settings', actions.settings, { index: '03' }),
-      menuButton('Controls', actions.controls, { index: '04' }),
+    this.featured = ACTIVE_CIRCUIT === 'bathurst'
+      ? menuButton('Shootout Top 10', () => actions.shootout('shootoutTop10'), { variant: 'primary', aria: 'Shootout Top 10' })
+      : null;
+    if (this.featured) {
+      this.featured.classList.add('mn-shootout-feature');
+      this.featured.replaceChildren(
+        h('span', 'mn-shootout-feature__body', undefined, [
+          h('span', 'mn-shootout-feature__eyebrow', undefined, ['Global competition']),
+          h('span', 'mn-btn__label', undefined, ['Shootout Top 10']),
+          h('span', 'mn-shootout-feature__detail', undefined, ['Bathurst · One flying lap · 3 total attempts']),
+          h('span', 'mn-shootout-feature__cta', undefined, ['Enter competition', h('span', undefined, { 'aria-hidden': 'true' }, [' →'])]),
+        ]),
+        h('span', 'mn-shootout-feature__rank', { 'aria-hidden': 'true' }, ['10']),
+      );
+    }
+    const options: Array<readonly [string, () => void]> = [
+      ['Time trial', actions.race],
+      ...(ACTIVE_CIRCUIT === 'bathurst' ? [['Shootout Arcade', () => actions.shootout('shootoutArcade')] as const] : []),
+      ['Settings', actions.settings],
+      ['Controls', actions.controls],
     ];
+    this.buttons = options.map(([label, action], i) => menuButton(label, action, { index: String(i + 1).padStart(2, '0') }));
     this.el.append(
       h('div', 'mn-side', undefined, [
         h('p', 'mn-kicker', undefined, [h('i', 'mn-kicker__bar', { 'aria-hidden': 'true' }), circuit.location]),
@@ -84,7 +89,7 @@ export class TitleScreen implements Screen {
   }
 
   items(): HTMLElement[] {
-    return [this.featured, this.circuitRow.el, ...this.buttons, ...(this.credit ? Array.from(this.credit.querySelectorAll('a')) : [])];
+    return [...(this.featured ? [this.featured] : []), this.circuitRow.el, ...this.buttons, ...(this.credit ? Array.from(this.credit.querySelectorAll('a')) : [])];
   }
 
   back(): void {}
