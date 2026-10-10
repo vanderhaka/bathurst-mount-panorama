@@ -148,3 +148,26 @@ describe('manual choices and observation limits', () => {
     expect(steady(q, 6, 0.1)[0]?.quality).toBe('medium');
   });
 });
+
+describe('dynamic resolution takes small deficits first', () => {
+  const slow = (q: AdaptiveQuality, seconds: number, interval: number, exhausted: boolean) => {
+    const changes: QualityChoice[] = [];
+    for (let i = 0, n = Math.round(seconds / interval); i < n; i++) {
+      const change = q.sample(interval, 0, exhausted);
+      if (change) changes.push(change);
+    }
+    return changes;
+  };
+
+  it('keeps the tier while a smaller render scale can still absorb a 20 % deficit', () => {
+    expect(slow(high(), 10, 1 / 50, false)).toEqual([]);
+  });
+
+  it('steps the tier once the scale is exhausted', () => {
+    expect(slow(high(), 6, 1 / 50, true).map(c => c.quality)).toEqual(['medium']);
+  });
+
+  it('steps the tier for a large deficit even while the scale has room', () => {
+    expect(slow(high(), 6, 1 / 30, false).map(c => c.quality)).toEqual(['medium']);
+  });
+});

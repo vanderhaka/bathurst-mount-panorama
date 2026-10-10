@@ -140,3 +140,53 @@ describe('cascade fit', () => {
     rig.dispose();
   });
 });
+
+describe('staggered far cascades', () => {
+  /** One frame: fit and schedule, then report which maps the renderer would draw (and clear the flags like it does). */
+  const frame = (rig: ReturnType<typeof createShadowRig>, lights: THREE.DirectionalLight[], focus: THREE.Vector3) => {
+    rig.update(focus);
+    const drawn = lights.map(l => l.shadow.needsUpdate);
+    for (const l of lights) l.shadow.needsUpdate = false;
+    return drawn;
+  };
+  const setup = () => {
+    const scene = new THREE.Scene(), camera = view();
+    const rig = createShadowRig(scene, camera, 'high');
+    const lights = scene.children.filter((o): o is THREE.DirectionalLight => o instanceof THREE.DirectionalLight);
+    for (const l of lights) expect(l.shadow.autoUpdate).toBe(false);
+    return { rig, lights, camera };
+  };
+
+  it('draws the near cascade every frame and the two far ones on alternate frames', () => {
+    const { rig, lights } = setup(), car = new THREE.Vector3(0, 0, -6);
+    expect(frame(rig, lights, car)).toEqual([true, true, true]);
+    const frames = Array.from({ length: 6 }, () => frame(rig, lights, car));
+    for (const drawn of frames) {
+      expect(drawn[0]).toBe(true);
+      expect(drawn[1] !== drawn[2]).toBe(true);
+    }
+    // Two of three maps per frame instead of three.
+    expect(frames.flat().filter(Boolean)).toHaveLength(12);
+    rig.dispose();
+  });
+
+  it('redraws every map in the frame the camera cuts away, and after a refit', () => {
+    const { rig, lights, camera } = setup(), car = new THREE.Vector3(0, 0, -6);
+    frame(rig, lights, car); frame(rig, lights, car);
+    camera.position.x += 60; camera.updateMatrixWorld(); car.x += 60;
+    expect(frame(rig, lights, car)).toEqual([true, true, true]);
+    frame(rig, lights, car);
+    camera.fov = 30; camera.updateProjectionMatrix();
+    expect(frame(rig, lights, car)).toEqual([true, true, true]);
+    rig.dispose();
+  });
+
+  it('keeps the cascade that holds the car (a distant TV camera) at the full rate', () => {
+    const { rig, lights } = setup(), car = new THREE.Vector3(0, 0, -200);
+    frame(rig, lights, car);
+    const frames = Array.from({ length: 6 }, () => frame(rig, lights, car));
+    for (const drawn of frames) expect(drawn[2]).toBe(true);
+    expect(frames.filter(drawn => drawn[1])).toHaveLength(3);
+    rig.dispose();
+  });
+});

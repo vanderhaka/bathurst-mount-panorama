@@ -1,4 +1,5 @@
-import { AdaptiveQuality } from '@/game/adaptive-quality';
+import { AdaptiveQuality, frameBudget } from '@/game/adaptive-quality';
+import { DynamicResolution } from '@/render/dynamic-resolution';
 import { loadQualityChoice, qualityFromSettings, saveQualityChoice, type QualityChoice } from '@/game/quality-store';
 import type { Stage } from '@/game/stage';
 import type { CarModel } from '@/types/car-model';
@@ -17,6 +18,8 @@ interface GraphicsHost {
 export class GameGraphics {
   private choice: QualityChoice;
   private readonly adaptive: AdaptiveQuality;
+  /** Small, continuous deficits: the scene target's scale. Tier steps (adaptive) take the large ones. */
+  private readonly resolution = new DynamicResolution();
   private revision = 0;
   private building: Promise<void> | null = null;
 
@@ -25,10 +28,13 @@ export class GameGraphics {
     this.adaptive = new AdaptiveQuality(this.choice);
   }
 
-  startRace(): void { this.adaptive.startRace(); }
+  startRace(): void { this.adaptive.startRace(); this.resolution.hold(); }
 
   /** After a pause: the first second of frames is not frame-rate evidence. */
-  settle(): void { this.adaptive.settle(); }
+  settle(): void { this.adaptive.settle(); this.resolution.hold(); }
+
+  /** Menus and the title screen are never measured, so they render at the full scale. */
+  endRace(): void { this.resetResolution(); }
 
   applySettings(settings: Settings): Promise<void> {
     this.settings = settings;
@@ -40,7 +46,14 @@ export class GameGraphics {
   sample(rawSeconds: number, cap: Settings['frameRate']): void {
     // Frames during a rebuild say nothing about the new tier; the block itself lands in the warm-up.
     if (this.building) return;
-    const choice = this.adaptive.sample(rawSeconds, cap);
+    // Manual tiers keep their full pixel density, like their tier; Low without a post chain has no scene target.
+    let exhausted = true;
+    if (this.choice.automatic && this.stage.scalable) {
+      const scale = this.resolution.sample(rawSeconds, this.stage.takeGpuSeconds(), frameBudget(this.choice.quality, cap));
+      if (scale !== null) this.stage.setRenderScale(scale);
+      exhausted = this.resolution.exhausted;
+    }
+    const choice = this.adaptive.sample(rawSeconds, cap, exhausted);
     if (!choice) return;
     this.settings = { ...this.settings, quality: choice.quality, autoQuality: true };
     this.host.changed(this.settings);
@@ -56,11 +69,16 @@ export class GameGraphics {
     const densityChanged = choice.pixelRatio !== this.choice.pixelRatio;
     this.choice = choice;
     saveQualityChoice(choice);
+    if (tierChanged || densityChanged || !choice.automatic) this.resetResolution();
     if (!tierChanged && !densityChanged) return Promise.resolve();
     this.stage.setQuality(choice.quality, choice.pixelRatio);
     if (!tierChanged) return Promise.resolve();
     for (const model of this.host.models()) model?.setQuality(choice.quality);
     return this.rebuildWorld(false);
+  }
+
+  private resetResolution(): void {
+    if (this.resolution.reset()) this.stage.setRenderScale(1);
   }
 
   /** Serializes rebuilds; a newer tier/config request supersedes an unfinished world. */
@@ -70,7 +88,7 @@ export class GameGraphics {
     if (this.building) return this.building;
     this.building = this.build().catch(() => {
       this.host.notify('Graphics could not finish updating. Try again in Settings.');
-    }).finally(() => { this.building = null; this.adaptive.settle(); });
+    }).finally(() => { this.building = null; this.adaptive.settle(); this.resolution.hold(); });
     return this.building;
   }
 
@@ -80,6 +98,8 @@ export class GameGraphics {
       revision = this.revision;
       const old = this.host.world();
       const next = await buildWorld(this.stage.renderer, () => {}, this.choice.quality, old);
+      // Compile the new world's shaders in the background (the old world keeps rendering meanwhile).
+      if (revision === this.revision) await this.stage.precompile(next.root);
       if (revision !== this.revision) { disposeWorld(next, old); continue; }
       this.stage.scene.remove(old.root);
       this.stage.scene.add(next.root);

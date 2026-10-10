@@ -27,6 +27,10 @@ export class CameraAntialias {
       void import('three/addons/postprocessing/SMAAPass.js').then(({ SMAAPass }) => {
         if (!this.enabled || this.disposed) return;
         this.pass = new SMAAPass();
+        // Edges and blend weights are 0..1 values: 8 bits, as in the reference SMAA, halve the bandwidth of two
+        // full-screen passes (the add-on allocates half floats). Before first use, so nothing is reallocated.
+        const own = this.pass as unknown as { _edgesRT?: THREE.WebGLRenderTarget; _weightsRT?: THREE.WebGLRenderTarget };
+        for (const rt of [own._edgesRT, own._weightsRT]) if (rt?.texture) rt.texture.type = THREE.UnsignedByteType;
         this.pass.setSize(this.width, this.height);
         this.target = new THREE.WebGLRenderTarget(this.width, this.height, {
           type: THREE.HalfFloatType, depthBuffer: false, colorSpace: THREE.LinearSRGBColorSpace,

@@ -1,5 +1,7 @@
 import * as THREE from 'three';
 import { getGraphics, onGraphicsChange, QUALITY } from '@/config/graphics';
+import { GpuTimer } from '@/render/gpu-timer';
+import { capPixelRatio } from '@/render/pixel-density';
 import { createPostChain, type PostChain } from '@/render/post';
 import { createRenderer, setRendererQuality, type QualityPreset } from '@/render/renderer';
 import { createLighting, createSkyEnvironment, type SceneLighting } from '@/world/lighting';
@@ -18,11 +20,19 @@ export class Stage {
   private environmentTimer: number | null = null;
   /** Fixed when the WebGL context is created: only a page that starts on a tier without a post chain needs it. */
   private readonly nativeAntialias: boolean;
+  /** The tier's pixel ratio (before the cap for very large canvases, which depends on the canvas size). */
+  private basePixelRatio: number;
+  /** Renders through the post chain, whose scene target dynamic resolution scales. */
+  private viaPost = false;
+  private readonly gpuTimer: GpuTimer;
+  private gpuSeconds: number | null = null;
 
   constructor(private readonly container: HTMLElement, quality: QualityPreset, pixelRatio?: number) {
     this.quality = quality;
     this.nativeAntialias = !QUALITY[quality].post;
     this.renderer = createRenderer({ quality, pixelRatio, antialias: this.nativeAntialias });
+    this.basePixelRatio = this.renderer.getPixelRatio();
+    this.gpuTimer = new GpuTimer(this.renderer.getContext() as WebGL2RenderingContext);
     // The canvas always fills the game area (CSS); resize() only sets its pixel size.
     Object.assign(this.renderer.domElement.style, { display: 'block', width: '100%', height: '100%' });
     container.appendChild(this.renderer.domElement);
@@ -73,11 +83,13 @@ export class Stage {
   setQuality(q: QualityPreset, pixelRatio?: number): void {
     if (q === this.quality) {
       setRendererQuality(this.renderer, q, pixelRatio);
+      this.basePixelRatio = this.renderer.getPixelRatio();
       this.resize();
       return;
     }
     this.quality = q;
     setRendererQuality(this.renderer, q, pixelRatio);
+    this.basePixelRatio = this.renderer.getPixelRatio();
     this.sky.setQuality(q);
     this.lighting.setQuality(q);
     this.applyPost(q);
@@ -88,7 +100,7 @@ export class Stage {
   /** A canvas without MSAA (the page started on Medium or High) keeps Low's edges smooth through the post chain's MSAA target. */
   private applyPost(q: QualityPreset): void {
     const tier = QUALITY[q];
-    const viaPost = tier.post || !this.nativeAntialias;
+    const viaPost = this.viaPost = tier.post || !this.nativeAntialias;
     this.post.setEnabled(viaPost, tier.post ? tier.msaa : QUALITY.medium.msaa, tier.bloom, tier.screenAo, tier.cameraEffects);
   }
 
@@ -99,6 +111,8 @@ export class Stage {
   resize(): void {
     const w = Math.max(1, this.container.clientWidth || window.innerWidth);
     const h = Math.max(1, this.container.clientHeight || window.innerHeight);
+    const ratio = capPixelRatio(this.basePixelRatio, w, h);
+    if (ratio !== this.renderer.getPixelRatio()) this.renderer.setPixelRatio(ratio);
     this.renderer.setSize(w, h, false);
     this.post.setSize(w, h);
     this.camera.aspect = w / h;
@@ -110,6 +124,37 @@ export class Stage {
     this.lighting.follow(focus);
     this.sky.follow(this.camera);
     this.post.setCameraEffects(speed, motionBlur, this.camera, SUN_DIRECTION);
+    const gpu = this.gpuTimer.poll();
+    if (gpu !== null) this.gpuSeconds = gpu;
+    this.gpuTimer.begin();
     this.post.render(this.scene, this.camera);
+    this.gpuTimer.end();
+  }
+
+  /** GPU seconds of a recent frame's render, once per result (null without timer queries or before one arrives). */
+  takeGpuSeconds(): number | null {
+    const value = this.gpuSeconds;
+    this.gpuSeconds = null;
+    return value;
+  }
+
+  /** Whether a dynamic render scale applies (the post chain draws the scene into its own target). */
+  get scalable(): boolean {
+    return this.viaPost;
+  }
+
+  /** Dynamic resolution for the scene target; the final grade still fills the canvas. */
+  setRenderScale(scale: number): void {
+    this.post.setRenderScale(scale);
+  }
+
+  /**
+   * Compiles a subtree's shaders against this scene's lights and fog (KHR_parallel_shader_compile where available)
+   * before it is shown, so a world rebuild or the first race frame does not stall on synchronous compiles.
+   */
+  async precompile(object: THREE.Object3D): Promise<void> {
+    this.lighting.prepare(object);
+    try { await this.renderer.compileAsync(object, this.camera, this.scene); }
+    catch { /* the first draw compiles instead */ }
   }
 }

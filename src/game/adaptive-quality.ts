@@ -2,6 +2,8 @@ import type { QualityChoice } from '@/game/quality-store';
 import type { Settings } from '@/types/session';
 
 const FPS_BUDGET = { high: 60, medium: 50, low: 30 } as const;
+/** A deficit this large steps the tier even while dynamic resolution still has room: pixels alone will not cover it. */
+const LARGE_DEFICIT = 1.5;
 /** Seconds of steady frames averaged into one verdict. */
 const WINDOW_SECONDS = 2;
 /** One step down needs this many over-budget windows in a row. */
@@ -15,6 +17,11 @@ const HITCH_RUN = 4;
 /** Steady-frame evidence per race, so a slow scene later in the race never triggers a rebuild. */
 const OBSERVE_SECONDS = 10;
 const EPSILON = 1e-6;
+
+/** Seconds per frame that a tier aims for, honouring the player's frame-rate cap. */
+export function frameBudget(quality: QualityChoice['quality'], cap: Settings['frameRate']): number {
+  return 1 / Math.min(FPS_BUDGET[quality], cap || Infinity);
+}
 
 /** Uses observed render intervals, before the game clamps its physics delta. */
 export class AdaptiveQuality {
@@ -47,7 +54,8 @@ export class AdaptiveQuality {
     this.settle();
   }
 
-  sample(rawSeconds: number, cap: Settings['frameRate']): QualityChoice | null {
+  /** `resolutionExhausted` is false while dynamic resolution can still absorb a small deficit (DynamicResolution). */
+  sample(rawSeconds: number, cap: Settings['frameRate'], resolutionExhausted = true): QualityChoice | null {
     if (!Number.isFinite(rawSeconds) || rawSeconds <= 0 || !this.choice.automatic) return null;
     if (this.observed >= OBSERVE_SECONDS - EPSILON) return null;
     if (this.warmUp > EPSILON) {
@@ -66,11 +74,11 @@ export class AdaptiveQuality {
     this.frames += seconds / rawSeconds;
     if (this.seconds < WINDOW_SECONDS - EPSILON) return null;
     const observed = this.seconds / this.frames;
-    const budget = 1 / Math.min(FPS_BUDGET[this.choice.quality], cap || Infinity);
+    const budget = frameBudget(this.choice.quality, cap);
     this.seconds = 0;
     this.frames = 0;
     // Three percent allows timer jitter without treating a deliberate FPS cap as overload.
-    return this.verdict(observed > budget * 1.03);
+    return this.verdict(observed > budget * 1.03 && (resolutionExhausted || observed > budget * LARGE_DEFICIT));
   }
 
   private verdict(overBudget: boolean): QualityChoice | null {

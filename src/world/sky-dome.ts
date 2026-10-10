@@ -38,7 +38,8 @@ export function createTunedDome(radius: number, sun: THREE.Vector3): THREE.Mesh<
     `,
     side: THREE.BackSide,
     depthWrite: false,
-    depthTest: false,
+    // Far-plane depth (p.xyww) with a depth test: only uncovered pixels are shaded (sky.ts draws it last).
+    depthTest: true,
     fog: false,
   });
   return new THREE.Mesh(new THREE.SphereGeometry(radius, 24, 12), material);

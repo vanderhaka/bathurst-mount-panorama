@@ -122,6 +122,25 @@ describe('HDR post pipeline', () => {
     post.dispose();
   });
 
+  it('renders the scene and its passes at the dynamic scale while the grade still fills the canvas', () => {
+    const { renderer, rendered } = mockRenderer();
+    const post = createPostChain(renderer);
+    post.setEnabled(true, 4, true);
+    post.apply(DEFAULT_GRAPHICS);
+    post.setRenderScale(0.7);
+    post.render(new THREE.Scene(), new THREE.PerspectiveCamera());
+    expect([rendered[0]?.width, rendered[0]?.height]).toEqual([1344, 756]);
+    expect(rendered[1]?.width).toBe(336);
+    expect(rendered.at(-1)).toBeNull();
+    const scene = rendered[0]!;
+    post.setRenderScale(1);
+    post.render(new THREE.Scene(), new THREE.PerspectiveCamera());
+    // Resized in place (same target), back to the full drawing buffer.
+    expect(rendered.at(-4)).toBe(scene);
+    expect([scene.width, scene.height]).toEqual([1920, 1080]);
+    post.dispose();
+  });
+
   it('disposes High bloom buffers when moving to Medium', () => {
     const { renderer, info, rendered } = mockRenderer();
     const post = createPostChain(renderer);

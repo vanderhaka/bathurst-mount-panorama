@@ -68,11 +68,14 @@ export function createHud(): Hud {
   let parts: Parts | null = null;
   let visible = true;
   let fpsShown = -1;
+  /** The game calls setVisible and update every frame: attribute writes happen only on change. */
+  let shootoutShown: boolean | null = null;
   return {
     mount(container: HTMLElement, track: HudTrackInfo): void {
       if (parts) parts.root.remove();
       if (container !== document.body && getComputedStyle(container).position === 'static') container.style.position = 'relative';
       parts = build(track);
+      shootoutShown = null;
       parts.root.dataset.visible = visible ? 'true' : 'false';
       container.append(parts.root);
     },
@@ -93,8 +96,11 @@ export function createHud(): Hud {
       parts.dash.update(state);
       parts.telemetry.update(state);
       parts.banner.update(state);
-      if (state.shootout) parts.shootout.el.removeAttribute('hidden');
-      else parts.shootout.el.setAttribute('hidden', '');
+      if (Boolean(state.shootout) !== shootoutShown) {
+        shootoutShown = Boolean(state.shootout);
+        if (shootoutShown) parts.shootout.el.removeAttribute('hidden');
+        else parts.shootout.el.setAttribute('hidden', '');
+      }
       if (state.shootout) {
         const s = state.shootout;
         const mode = s.mode === 'shootoutTop10' ? 'TOP 10' : 'ARCADE';
@@ -111,7 +117,8 @@ export function createHud(): Hud {
     },
     setVisible(v: boolean): void {
       visible = v;
-      if (parts) parts.root.dataset.visible = v ? 'true' : 'false';
+      const value = v ? 'true' : 'false';
+      if (parts && parts.root.dataset.visible !== value) parts.root.dataset.visible = value;
     },
     dispose(): void {
       parts?.map.dispose();

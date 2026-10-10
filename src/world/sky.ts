@@ -11,6 +11,9 @@ export const SKY_GRAPHICS_KEYS: (keyof GraphicsConfig)[] = [
   'skyTurbidity', 'skyRayleigh', 'skyMie', 'cloudCoverage',
 ];
 
+/** After every opaque object (all of which write depth); transparent objects still draw over it afterwards. */
+export const SKY_RENDER_ORDER = 1000;
+
 export interface Sky {
   readonly dome: THREE.Mesh;
   follow(camera: THREE.Camera): void;
@@ -21,7 +24,9 @@ export interface Sky {
 export function createSky(scene: THREE.Scene, radius = 9000, quality: QualityPreset = 'high'): Sky {
   const physical = new PhysicalSky();
   physical.scale.setScalar(radius * 2);
-  physical.material.depthTest = false;
+  // Drawn after the opaque scene with a depth test at the far plane (both domes project to z = w), so the
+  // expensive sky (four-octave cloud noise on High) is shaded only where no terrain, tree or building covers it.
+  physical.material.depthTest = true;
   // Native procedural clouds replace the geometric puffs and stay on High only.
   physical.material.uniforms.cloudSpeed.value = 0;
   physical.material.uniforms.cloudElevation.value = 0.35;
@@ -29,7 +34,7 @@ export function createSky(scene: THREE.Scene, radius = 9000, quality: QualityPre
   for (const mesh of [physical, tuned]) {
     mesh.name = 'sky-dome';
     mesh.frustumCulled = false;
-    mesh.renderOrder = -10;
+    mesh.renderOrder = SKY_RENDER_ORDER;
   }
   let cfg = getGraphics();
   let dome: THREE.Mesh = tuned;
