@@ -124,7 +124,8 @@ describe('one warm-up and one Shootout lap', () => {
         for (const wheel of vehicle.wheels) wheel.surface = 'road';
       }
       until('finished');
-      expect(session.shootout).toMatchObject({ phase: 'finished', outcome: { kind: 'invalid' } });
+      expect(session.shootout).toMatchObject({ phase: 'finished', outcome: { kind: 'invalid',
+        reason: verification ? expect.stringContaining('Verification') : expect.stringMatching(/^Track limits at .+: all four wheels left the track\.$/) } });
     }
   });
 

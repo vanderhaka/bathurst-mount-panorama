@@ -172,6 +172,22 @@ describe('Shootout result', () => {
     expect(findText(result, 'Submit to leaderboard')).not.toBeNull();
   });
 
+  it('says plainly that an invalid lap is not on the leaderboard, and why', async () => {
+    const invalid = { kind: 'invalid' as const, timeS: 131.2, reason: 'Track limits at The Chase: all four wheels left the track.' };
+    saved = [{ attempt, outcome: invalid, nickname: null, publication: 'pending' }];
+    const { menus, screen } = await open();
+    menus.showShootoutResult('shootoutTop10', attempt, invalid);
+    const result = screen('shootoutResult');
+    const verdict = result.querySelector('.mn-shootout-verdict')!;
+    expect(result.querySelector('h2')!.textContent).toBe('Invalid lap');
+    expect(verdict.hidden).toBe(false);
+    expect(verdict.textContent).toBe('Not on the leaderboard');
+    expect(result.querySelector('.mn-shootout-lead')!.textContent).toBe(invalid.reason);
+    expect(result.querySelector('.mn-shootout-time')!.dataset.valid).toBe('false');
+    menus.showShootoutResult('shootoutTop10', attempt, valid);
+    expect(verdict.hidden).toBe(true);
+  });
+
   it('shows an Arcade lap against the player\'s Arcade best', async () => {
     const { practiceLine } = await import('@/ui/screens/shootout-result');
     expect(practiceLine({ bestS: 124, deltaS: 1.25, improved: false })).toBe('+1.250 to your Arcade best 2:04.000');
