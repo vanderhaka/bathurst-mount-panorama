@@ -10,6 +10,8 @@ export interface SceneLighting {
   hemi: THREE.HemisphereLight;
   /** Refits the shadow cascades to the camera and keeps `focus` inside them (call every frame). */
   follow(focus: THREE.Vector3): void;
+  /** Installs the cascade and haze shader hooks on a subtree that is not in the scene yet (for precompiling it). */
+  prepare(object: THREE.Object3D): void;
   setQuality(q: QualityPreset): void;
   /** Applies live graphics values (intensities, colours, fog). Call after Sky.apply(). */
   apply(cfg: GraphicsConfig): void;
@@ -38,6 +40,7 @@ export function createLighting(scene: THREE.Scene, quality: QualityPreset = 'hig
     // Haze owns the inner shader hook (installed as the shadow rig registers a material); CSM wraps it,
     // so changing cascades cannot erase it.
     follow(focus) { shadows.update(focus); },
+    prepare(object) { shadows.register(object); },
     resize() { shadows.resize(); },
     dispose() { shadows.dispose(); scene.remove(hemi); scene.onBeforeRender = previousRender; },
     setQuality(q) {
@@ -81,6 +84,8 @@ export function createSkyEnvironment(renderer: THREE.WebGLRenderer, skyDome: THR
   const pmrem = new THREE.PMREMGenerator(renderer);
   const envScene = new THREE.Scene();
   const dome = skyDome.clone();
+  // The live dome draws last with a depth test (see sky.ts); here it stays the backdrop drawn first.
+  dome.renderOrder = -10;
   dome.position.set(0, 0, 0);
   dome.scale.multiplyScalar(0.01);
   envScene.add(dome);
@@ -90,12 +95,14 @@ export function createSkyEnvironment(renderer: THREE.WebGLRenderer, skyDome: THR
   envScene.add(ground);
   const material = skyDome.material;
   const sunDisc = material instanceof THREE.ShaderMaterial ? material.uniforms.showSunDisc : undefined;
-  const visibleSun = sunDisc?.value;
+  const visibleSun = sunDisc?.value, backdrop = skyDome.material as THREE.Material, depthTest = backdrop.depthTest;
   if (sunDisc) sunDisc.value = 0; // Avoid a second sharp sun in filtered reflections.
+  backdrop.depthTest = false;
   try {
     return pmrem.fromScene(envScene, 0, 0.1, 200, { size: QUALITY[quality].environmentSize });
   } finally {
     if (sunDisc) sunDisc.value = visibleSun;
+    backdrop.depthTest = depthTest;
     pmrem.dispose();
     ground.geometry.dispose();
     ground.material.dispose();

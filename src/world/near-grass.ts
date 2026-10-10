@@ -84,8 +84,13 @@ export function createNearGrass(ground: (x: number, z: number) => GrassGround, s
       mesh.setColorAt(i, colour.copy(green).lerp(dry, b.dry));
     }
     mesh.count = blades.length;
-    mesh.instanceMatrix.needsUpdate = true;
-    if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
+    // Relayouts come every 8 m of travel (several a second at speed): upload only the live instances.
+    for (const attribute of [mesh.instanceMatrix, mesh.instanceColor]) {
+      if (!attribute) continue;
+      attribute.clearUpdateRanges();
+      attribute.addUpdateRange(0, blades.length * attribute.itemSize);
+      attribute.needsUpdate = true;
+    }
     if (mesh.count) mesh.computeBoundingSphere();
     if (mesh.boundingSphere) mesh.boundingSphere.radius += 0.25;
   };

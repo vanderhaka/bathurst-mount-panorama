@@ -41,6 +41,7 @@ import { RacingLineMesh } from '@/world/racing-line-mesh';
 import { buildWorld, type World } from '@/world/world';
 
 type GameState = 'title' | 'carSelect' | 'race' | 'paused';
+const RACING_LINES: Settings['racingLine'][] = ['off', 'braking', 'full'];
 
 export class Game {
   private state: GameState = 'title';
@@ -106,6 +107,9 @@ export class Game {
       await new Promise((r) => setTimeout(r, 0));
     }, settings.quality);
     stage.scene.add(world.root);
+    // Behind the loading screen rather than as stalls on the first frames and wherever a material first comes into view.
+    menus.showLoading(0.97, 'Preparing shaders');
+    await stage.precompile(world.root);
     const hud = createHud();
     hud.mount(root, hudTrackInfo(world.track));
     hud.setVisible(false);
@@ -135,6 +139,7 @@ export class Game {
   /** Title screen: an AI car laps the mountain behind the menu (attract mode). */
   private enterTitle(): void {
     this.state = 'title'; this.hud.setVisible(false);
+    this.graphics.endRace();
     this.attract.drop();
     const entity = this.makeEntity('camaro', 0);
     const s = 900;
@@ -345,15 +350,17 @@ export class Game {
     const race = this.race!;
     const input = this.input;
     if (input.consume('pause')) return this.pause();
-    const before = JSON.stringify(this.settings);
+    // Only these three settings change here; comparing them avoids serialising all settings twice a frame.
+    const { camera, ghost, racingLine } = this.settings;
     if (input.consume('camera')) this.settings.camera = this.rig.cycle();
     if (input.consume('reset')) race.resetToTrack();
     if (input.consume('ghost') && !race.session.shootout) this.settings.ghost = !this.settings.ghost;
     if (input.consume('hud')) this.hudHidden = !this.hudHidden;
-    const lines: Settings['racingLine'][] = ['off', 'braking', 'full'];
-    if (input.consume('racingLine') && !race.session.shootout) this.settings.racingLine = lines[(lines.indexOf(this.settings.racingLine) + 1) % 3];
+    if (input.consume('racingLine') && !race.session.shootout) this.settings.racingLine = RACING_LINES[(RACING_LINES.indexOf(this.settings.racingLine) + 1) % 3];
     // In-race toggles persist and the menus show (and start the next race with) the same values.
-    if (JSON.stringify(this.settings) !== before) { this.rememberSettings(); this.menus.syncSettings(this.settings); }
+    if (this.settings.camera !== camera || this.settings.ghost !== ghost || this.settings.racingLine !== racingLine) {
+      this.rememberSettings(); this.menus.syncSettings(this.settings);
+    }
     this.hud.setVisible(!this.hudHidden);
     this.rig.lookBack = input.isHeld('lookBack');
     if (this.timeScale !== 1) race.session.invalidateShootout('Changed simulation speed cannot enter the competition.');

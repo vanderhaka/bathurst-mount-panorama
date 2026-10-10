@@ -14,6 +14,8 @@ import type { GTAOPass } from 'three/addons/postprocessing/GTAOPass.js';
 export interface PostChain {
   render(scene: THREE.Scene, camera: THREE.Camera): void;
   setSize(width: number, height: number): void;
+  /** Dynamic resolution: the scene and its passes render at this share of the canvas size (0.25..1). */
+  setRenderScale(scale: number): void;
   setEnabled(enabled: boolean, msaa: number, bloom?: boolean, ao?: boolean, cameraEffects?: boolean): void;
   setCameraEffects(speedMs: number, blur: boolean, camera: THREE.Camera, sun: THREE.Vector3): void;
   apply(cfg: GraphicsConfig): void;
@@ -62,6 +64,8 @@ export function createPostChain(renderer: THREE.WebGLRenderer, msaa = 4): PostCh
     type: THREE.HalfFloatType, samples, colorSpace: THREE.LinearSRGBColorSpace,
     depthTexture: depth ? new THREE.DepthTexture(width, height, THREE.UnsignedIntType) : null,
   });
+  // The full drawing-buffer size, and the scaled size every pass before the final grade renders at.
+  let fullWidth = size.x, fullHeight = size.y, scale = 1;
   let width = size.x, height = size.y, samples = msaa;
   let target: THREE.WebGLRenderTarget | null = null;
   const material = new THREE.ShaderMaterial({
@@ -111,6 +115,15 @@ export function createPostChain(renderer: THREE.WebGLRenderer, msaa = 4): PostCh
       bloom = null;
     }
     material.uniforms.bloomStrength.value = bloom ? cfg.bloomStrength : 0;
+  };
+
+  /** The final quad samples the (bilinear) scene texture by UV, so a smaller target upscales to the canvas for free. */
+  const resize = () => {
+    width = Math.max(1, Math.round(fullWidth * scale)); height = Math.max(1, Math.round(fullHeight * scale));
+    if (target && (target.width !== width || target.height !== height)) target.setSize(width, height);
+    bloom?.setSize(width, height);
+    ao?.setSize(Math.floor(width / 2), Math.floor(height / 2));
+    updateAa();
   };
 
   return {
@@ -164,11 +177,14 @@ export function createPostChain(renderer: THREE.WebGLRenderer, msaa = 4): PostCh
     },
     setSize(w, h) {
       const pr = renderer.getPixelRatio();
-      width = Math.max(1, Math.floor(w * pr)); height = Math.max(1, Math.floor(h * pr));
-      target?.setSize(width, height);
-      bloom?.setSize(width, height);
-      ao?.setSize(Math.floor(width / 2), Math.floor(height / 2));
-      updateAa();
+      fullWidth = Math.max(1, Math.floor(w * pr)); fullHeight = Math.max(1, Math.floor(h * pr));
+      resize();
+    },
+    setRenderScale(next) {
+      next = Math.min(1, Math.max(0.25, next));
+      if (next === scale) return;
+      scale = next;
+      resize();
     },
     setEnabled(on, nextSamples, highBloom = false, highAo = false, highCamera = false) {
       enabled = on;

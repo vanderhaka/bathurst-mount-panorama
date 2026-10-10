@@ -22,7 +22,7 @@ function world(name: string): World {
 function setup() {
   let current = world('original');
   const original = current;
-  const stage = { scene: new THREE.Scene(), renderer: {}, setQuality: vi.fn(), refreshEnvironment: vi.fn() };
+  const stage = { scene: new THREE.Scene(), renderer: {}, setQuality: vi.fn(), refreshEnvironment: vi.fn(), precompile: vi.fn(async () => {}), scalable: false, setRenderScale: vi.fn(), takeGpuSeconds: () => null };
   stage.scene.add(current.root);
   const models = [0, 1, 2].map(() => ({ setQuality: vi.fn() }));
   const changed = vi.fn(), notify = vi.fn();
@@ -150,5 +150,45 @@ describe('automatic quality evidence around rebuilds', () => {
     expect(mocks.save).not.toHaveBeenCalled();
     expect(s.changed).not.toHaveBeenCalled();
     expect(s.stage.setQuality).not.toHaveBeenCalled();
+  });
+});
+
+describe('dynamic resolution on automatic tiers', () => {
+  const scalable = (s: ReturnType<typeof setup>) => { s.stage.scalable = true; return s; };
+
+  it('lowers the scene scale on a small deficit instead of stepping the tier', () => {
+    const s = scalable(setup());
+    s.graphics.startRace();
+    feed(s.graphics, 3, 1 / 52);
+    expect(Math.min(...s.stage.setRenderScale.mock.calls.map(c => c[0] as number))).toBeLessThan(1);
+    // The smaller scene target brings the frames back to budget.
+    feed(s.graphics, 10, 1 / 60);
+    expect(s.stage.setQuality).not.toHaveBeenCalled();
+  });
+
+  it('still steps the tier within the observation when the lowest scale cannot keep up', () => {
+    const s = scalable(setup());
+    mocks.build.mockResolvedValueOnce(world('medium'));
+    s.graphics.startRace();
+    feed(s.graphics, 10, 1 / 52);
+    expect(s.stage.setRenderScale).toHaveBeenCalledWith(0.7);
+    expect(s.stage.setQuality).toHaveBeenCalledWith('medium', 1.5);
+  });
+
+  it('restores full resolution for the menus', () => {
+    const s = scalable(setup());
+    s.graphics.startRace();
+    feed(s.graphics, 3, 1 / 52);
+    s.stage.setRenderScale.mockClear();
+    s.graphics.endRace();
+    expect(s.stage.setRenderScale).toHaveBeenCalledWith(1);
+  });
+
+  it('never scales a manual tier', async () => {
+    const s = scalable(setup());
+    await s.graphics.applySettings({ ...DEFAULT_SETTINGS, quality: 'high', autoQuality: false });
+    s.graphics.startRace();
+    feed(s.graphics, 10, 1 / 40);
+    expect(s.stage.setRenderScale).not.toHaveBeenCalled();
   });
 });
