@@ -74,14 +74,19 @@ export function bakeReflectionProbes(
         if (d < best) { second = best; b = a; best = d; a = i; }
         else if (d < second) { second = d; b = i; }
       }
-      if (a === lastA && b === lastB) return;
-      lastA = a; lastB = b;
-      // Prefer the nearer probe; dual-probe lerp needs a custom RT. Nearest is stable with hysteresis above.
-      blended = probes[a]!.target.texture;
+      if (a !== lastA || b !== lastB) {
+        lastA = a; lastB = b;
+        // Prefer the nearer probe; dual-probe lerp needs a custom RT. Nearest is stable with hysteresis above.
+        blended = probes[a]!.target.texture;
+      }
+      // Always apply: new cars (ghost, preview, race start) share this pair until the car moves far enough.
       for (const m of carMaterials) {
         if ('envMap' in m) {
-          (m as THREE.MeshStandardMaterial).envMap = blended;
-          m.needsUpdate = true;
+          const mat = m as THREE.MeshStandardMaterial;
+          if (mat.envMap !== blended) {
+            mat.envMap = blended;
+            m.needsUpdate = true;
+          }
         }
       }
     },

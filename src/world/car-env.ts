@@ -72,7 +72,19 @@ export function createCarEnv(
       probes?.dispose();
       probes = bakeReflectionProbes(renderer, scene, track, probeCountFor(q), hide);
     },
-    follow(s, carMaterials) { probes?.update(s, carMaterials); },
+    follow(s, carMaterials) {
+      if (!probes) {
+        // Drop disposed / absent probe maps so paint falls back to scene.environment (Low, mid-rebuild).
+        for (const m of carMaterials) {
+          if ('envMap' in m) {
+            const mat = m as THREE.MeshStandardMaterial;
+            if (mat.envMap) { mat.envMap = null; m.needsUpdate = true; }
+          }
+        }
+        return;
+      }
+      probes.update(s, carMaterials);
+    },
     setQuality(next) {
       if (next === q) return;
       q = next;
