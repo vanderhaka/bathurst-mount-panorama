@@ -20,13 +20,18 @@ export function suspensionCorners(spec: CarSpec, a: number, b: number): Suspensi
   return [mk(d.trackFront / 2, a, 125000, loadF, ROLL_CENTRE_FRONT_M), mk(-d.trackFront / 2, a, 125000, loadF, ROLL_CENTRE_FRONT_M), mk(d.trackRear / 2, -b, 112000, loadR, ROLL_CENTRE_REAR_M), mk(-d.trackRear / 2, -b, 112000, loadR, ROLL_CENTRE_REAR_M)];
 }
 
+/** Bump stop damping (N per m/s) as it extends: about critical for its rate and a corner's mass. */
+const BUMP_STOP_REBOUND = 36000;
+
 /** Spring, blow-off damper, bump stop and bar: the default reproduces the existing forces. */
 export function suspensionForce(c: SuspensionCorner, comp: number, previous: number, opposite: number, cgHeight: number, arb: number, dt: number): number {
   const rate = (comp - previous) / dt;
   const staticComp = c.h0 - cgHeight;
   const damper = Math.max(-9000, Math.min(14000, c.c * rate));
   let force = comp > 0 ? c.k * comp + damper : 0;
-  if (comp > staticComp + 0.07) force += (comp - staticComp - 0.07) * 900000;
+  // Bump stop: stiff rubber that soaks up energy. Damped as it extends, so a deep compression (a sudden step in
+  // the ground) does not throw the car into the air.
+  if (comp > staticComp + 0.07) force += Math.max(0, (comp - staticComp - 0.07) * 900000 + Math.min(0, rate) * BUMP_STOP_REBOUND);
   if (comp > 0) force += arb * (comp - opposite) * 0.5;
   return Math.max(0, force);
 }

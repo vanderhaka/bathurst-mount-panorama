@@ -37,6 +37,12 @@ export function projectToTrack(track: Track, x: number, z: number, hint: number,
     }
     if (bestD > 60 * 60) best = track.nearestIndex(x, z);
   }
+  return projectOnSection(track, x, z, best, out);
+}
+
+/** Projects a world x/z point onto the section of centreline around sample `best` (no search). */
+export function projectOnSection(track: Track, x: number, z: number, best: number, out: TrackPoint): TrackPoint {
+  const { px, pz } = track;
   // Exact inverse of pointAt(): on segment [a, b] the frame is c(t) = A + t(B - A) with
   // normal n(t) = lerp(nA, nB, t). Solve cross(p - c(t), n(t)) = 0 for t (a quadratic).
   // This is continuous across samples, also on the inside of tight corners.
@@ -88,6 +94,45 @@ function solveSegment(track: Track, a: number, b: number, x: number, z: number):
   const t1 = (-B + r) / (2 * A), t2 = (-B - r) / (2 * A);
   const pick = ok(t1) && ok(t2) ? (Math.abs(t1 - 0.5) < Math.abs(t2 - 0.5) ? t1 : t2) : ok(t1) ? t1 : ok(t2) ? t2 : null;
   return pick === null ? null : Math.min(1, Math.max(0, pick));
+}
+
+/** Two sections of road that are both locally nearest to a point (see foldAt). */
+export interface Fold {
+  /** Nearest sample, and the nearest sample of the other section. */
+  near: number;
+  rival: number;
+  /** Depth (m) of each distance valley below the ridge between them: 0 as a section first becomes a rival. */
+  nearDepth: number;
+  rivalDepth: number;
+}
+
+const FOLD_DIST = new Float64Array(35);
+
+/**
+ * Past the centre of a tight bend (a wide gravel trap) two sections of road can be about equally near. Finds the
+ * nearest sample and the nearest separate local minimum of distance within the local search window. Returns false
+ * when there is no second section.
+ */
+export function foldAt(track: Track, x: number, z: number, hint: number, out: Fold): boolean {
+  const { px, pz } = track;
+  for (let k = -17; k <= 17; k++) { const i = track.wrap(hint + k); FOLD_DIST[k + 17] = Math.hypot(px[i] - x, pz[i] - z); }
+  const dist = (k: number) => FOLD_DIST[k + 17];
+  let near = 0, nearD = Infinity;
+  for (let k = -16; k <= 16; k++) { const d = dist(k); if (d < nearD) { nearD = d; near = k; } }
+  let rival = 0, rivalD = Infinity;
+  for (let k = -16; k <= 16; k++) {
+    if (k === near) continue;
+    const d = dist(k);
+    if (d < rivalD && d < dist(k - 1) && d < dist(k + 1)) { rivalD = d; rival = k; }
+  }
+  if (rivalD === Infinity) return false;
+  let ridge = 0;
+  for (let k = Math.min(near, rival); k <= Math.max(near, rival); k++) ridge = Math.max(ridge, dist(k));
+  out.near = track.wrap(hint + near);
+  out.rival = track.wrap(hint + rival);
+  out.nearDepth = ridge - nearD;
+  out.rivalDepth = ridge - rivalD;
+  return true;
 }
 
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
