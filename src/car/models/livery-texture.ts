@@ -103,6 +103,17 @@ export function createTyreTexture(base: number, plain = false): THREE.CanvasText
   ctx.fillStyle = TYRE_SIDEWALL;
   ctx.fillRect(0, 0, w, h * 0.4);
   ctx.fillRect(0, h * 0.6, w, h * 0.4);
+  // Circumferential micro-groove hint on the slick tread (v mid-band).
+  const treadY0 = h * 0.38, treadY1 = h * 0.62;
+  ctx.fillStyle = 'rgba(0,0,0,0.18)';
+  for (let i = 0; i < 5; i++) {
+    const y = treadY0 + ((i + 0.5) / 5) * (treadY1 - treadY0);
+    ctx.fillRect(0, y, w, Math.max(1, h * 0.004));
+  }
+  // Soft moulding ring on the outer sidewall.
+  ctx.fillStyle = 'rgba(255,255,255,0.05)';
+  ctx.fillRect(0, h * 0.12, w, h * 0.01);
+  ctx.fillRect(0, h * 0.87, w, h * 0.01);
   const y0 = (1 - 0.925) * h;
   const y1 = (1 - 0.812) * h;
   if (plain) {

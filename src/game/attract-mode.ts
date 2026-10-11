@@ -15,6 +15,8 @@ export class AttractMode {
   constructor(private readonly scene: THREE.Scene, private readonly camera: THREE.PerspectiveCamera) {}
 
   get model() { return this.demo?.entity.model ?? null; }
+  /** Centreline distance of the demo car, or null when none is set. */
+  get trackS(): number | null { return this.demo?.entity.vehicle.tp.s ?? null; }
 
   /** Replaces the demo car (the entity's model must already be in the scene). */
   set(entity: CarEntity, line: RacingLine): void {
