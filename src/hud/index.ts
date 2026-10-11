@@ -14,7 +14,7 @@ import type { Hud, HudState, HudTrackInfo } from '@/types/hud';
 import { Banner } from '@/hud/banner';
 import { Dash } from '@/hud/dash';
 import { DeltaStrip } from '@/hud/delta-strip';
-import { h, TextSlot } from '@/hud/dom';
+import { AttrSlot, h, TextSlot } from '@/hud/dom';
 import { MinimalReadout } from '@/hud/minimal-readout';
 import { StartLights } from '@/hud/start-lights';
 import { Telemetry } from '@/hud/telemetry';
@@ -37,6 +37,8 @@ interface Parts {
   banner: Banner;
   fps: TextSlot;
   shootout: TextSlot;
+  /** Rolling start: the big 3, 2, 1. */
+  countdown: { text: TextSlot; on: AttrSlot };
 }
 
 function build(track: HudTrackInfo): Parts {
@@ -51,6 +53,8 @@ function build(track: HudTrackInfo): Parts {
   const banner = new Banner();
   const fps = new TextSlot(h('span', 'hud-fps', { 'data-on': 'false' }));
   const shootout = new TextSlot(h('div', 'hud-shootout', { hidden: true, 'aria-live': 'polite' }));
+  const countdownEl = h('div', 'hud-countdown', { 'data-on': 'false', 'aria-live': 'assertive' });
+  const countdown = { text: new TextSlot(countdownEl), on: new AttrSlot(countdownEl, 'data-on') };
   const root = h('div', 'bx-hud', { 'data-visible': 'true' }, [
     h('div', 'hud-region hud-region--tl', undefined, [timing.el, fps.el]),
     h('div', 'hud-region hud-region--tr', undefined, [map.el]),
@@ -59,8 +63,9 @@ function build(track: HudTrackInfo): Parts {
     h('div', 'hud-region hud-region--br', undefined, [dash.el]),
     minimal.el,
     shootout.el,
+    countdownEl,
   ]);
-  return { root, timing, minimal, map, dash, telemetry, tyreFuel, delta, lights, banner, fps, shootout };
+  return { root, timing, minimal, map, dash, telemetry, tyreFuel, delta, lights, banner, fps, shootout, countdown };
 }
 
 /** Creates the HUD. The container must cover the game viewport; it is made position:relative if static. */
@@ -96,6 +101,9 @@ export function createHud(): Hud {
       parts.dash.update(state);
       parts.telemetry.update(state);
       parts.banner.update(state);
+      const count = state.countdown ?? 0;
+      parts.countdown.text.set(count > 0 ? String(count) : '');
+      parts.countdown.on.set(count > 0 ? 'true' : 'false');
       if (Boolean(state.shootout) !== shootoutShown) {
         shootoutShown = Boolean(state.shootout);
         if (shootoutShown) parts.shootout.el.removeAttribute('hidden');

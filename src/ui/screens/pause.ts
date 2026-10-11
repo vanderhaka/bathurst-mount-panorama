@@ -70,7 +70,7 @@ export class PauseScreen implements Screen {
     // A reset ends a timed lap, so the timed lap only offers the deliberate End button; in the warm-up it restarts it.
     this.buttons[1].hidden = timed;
     this.label(this.buttons[1], shootout ? 'Back to the start' : 'Reset to track',
-      shootout ? `Back to the start: restarts the warm-up ${shootout.grid ? 'on the grid' : 'before Forrest’s Elbow'}. No attempt is used.` : RESET_ARIA);
+      shootout ? `Back to the start: restarts the warm-up ${shootout.grid ? 'on the grid' : 'after Forrest’s Elbow'}. No attempt is used.` : RESET_ARIA);
     this.confirmEnd = competition && timed;
     this.armedAt = null;
     this.clearDisarm();

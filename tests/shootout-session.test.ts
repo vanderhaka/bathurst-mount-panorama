@@ -273,19 +273,39 @@ describe('Shootout controls stay the player\'s own', () => {
 });
 
 describe('rolling warm-up from Forrest\'s Elbow', () => {
-  it('starts rolling on the racing line before the Elbow, on warm tyres, with no start lights', () => {
+  it('starts on the straight after the Elbow, held for a 3, 2, 1 countdown with no start lights', () => {
+    const { vehicle } = fixture();
+    const session = new RaceSession('camaro', track, line, { vehicle, reset: (s: number) => { vehicle.tp.s = s; vehicle.vx = vehicle.vz = 0; }, repair() {} } as unknown as CarEntity, 'soft', competitionSettings(DEFAULT_SETTINGS), 'shootoutArcade');
+    session.warmupStart = 'rolling';
+    session.placeOnGrid();
+    const corner = track.corners.find((c) => c.name === "Forrest's Elbow")!;
+    expect(WARMUP_START_S - corner.s).toBeGreaterThan(100); // past the exit (the bend ends about 4045 m)
+    const i = Math.round(WARMUP_START_S / track.spacing);
+    expect(Math.abs(track.curvature[i])).toBeLessThan(0.002); // a straight
+    expect(session.lights).toBe(-1);
+    const seen: number[] = [], said: string[] = [];
+    while (!session.racing) {
+      if (seen.at(-1) !== session.countdown) { seen.push(session.countdown); said.push(session.currentMessage()?.text ?? ''); }
+      expect(Math.hypot(vehicle.vx, vehicle.vz)).toBe(0);
+      session.updateLights(0.05);
+    }
+    expect(seen).toEqual([3, 2, 1]);
+    expect(said).toEqual(['ROLLING START — 3', 'ROLLING START — 2', 'ROLLING START — 1']);
+    expect(session.countdown).toBe(0);
+    expect(session.currentMessage()?.text).toContain('GO');
+    expect(Math.hypot(vehicle.vx, vehicle.vz)).toBeCloseTo(WARMUP_SPEED, 6);
+  });
+
+  it('launches on the racing line at speed, on warm tyres', () => {
     const { session, vehicle } = fixture();
     expect(vehicle.tp.s).toBe(WARMUP_START_S);
-    const corner = track.corners.find((c) => c.name === "Forrest's Elbow")!;
-    expect(corner.s - WARMUP_START_S).toBeGreaterThan(0);
-    expect(corner.s - WARMUP_START_S).toBeLessThan(60);
     expect(session.racing).toBe(true);
     expect(Math.hypot(vehicle.vx, vehicle.vz)).toBeCloseTo(WARMUP_SPEED, 6);
     expect(Math.atan2(vehicle.vx, vehicle.vz)).toBeCloseTo(vehicle.heading, 6);
     expect(vehicle.pt.gear).toBe(2);
     expect(vehicle.stint.start).toEqual({ compound: 'soft', tempC: TYRE_COMPOUNDS.soft.minC + WARMUP_TYRE_MARGIN_C });
     expect(TYRE_COMPOUNDS.soft.minC + WARMUP_TYRE_MARGIN_C).toBeLessThan(TYRE_COMPOUNDS.soft.maxC);
-    expect(session.currentMessage()?.text).toContain('ROLLING WARM-UP');
+    expect(session.currentMessage()?.text).toContain('YOUR ATTEMPT STARTS AT THE LINE');
   });
 
   it('returns to the Elbow on a restart or a warm-up reset, and keeps time trial on the grid', () => {
@@ -302,13 +322,13 @@ describe('rolling warm-up from Forrest\'s Elbow', () => {
     expect(trial.vehicle.tp.s).not.toBe(WARMUP_START_S);
   });
 
-  it('is about 2.4 km of driving, and the timed lap that follows is still a full lap from the line', () => {
+  it('is about 2.2 km of driving, and the timed lap that follows is still a full lap from the line', () => {
     const { session, until } = fixture();
     const start = session.timer.lapTime;
     until('ready');
     const warmupM = (session.timer.lapTime - start) * speed;
-    expect(session.timer.lineCovered).toBeGreaterThan(2300);
-    expect(session.timer.lineCovered).toBeLessThan(2450);
+    expect(session.timer.lineCovered).toBeGreaterThan(2150);
+    expect(session.timer.lineCovered).toBeLessThan(2250);
     expect(warmupM).toBeLessThan(track.length);
     session.beginShootoutTimedLap(attempt);
     until('finished');

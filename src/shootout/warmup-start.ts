@@ -1,5 +1,5 @@
 // Shootout warm-up start, per mode (this browser only, best effort). Every mode starts on the grid; the player may
-// choose the rolling start before Forrest's Elbow instead.
+// choose the rolling start just after Forrest's Elbow instead.
 import type { ShootoutMode } from '@/types/session';
 
 export type WarmupStart = 'rolling' | 'grid';

@@ -19,6 +19,11 @@ describe('rolling warm-up on the real car physics', () => {
     const session = new RaceSession(car, track, line, entity, 'soft', competitionSettings(DEFAULT_SETTINGS), 'shootoutArcade');
     session.warmupStart = 'rolling';
     session.placeOnGrid();
+    // The countdown, as the race controller runs it: brakes held on the downhill, the car stays put.
+    const held: VehicleInput = { throttle: 0, brake: 1, steer: 0, shiftUp: false, shiftDown: false, hold: true };
+    const s0 = vehicle.tp.s;
+    while (!session.racing) { session.updateLights(1 / 60); if (!session.racing) vehicle.step(held, 1 / 60); }
+    expect(Math.abs(vehicle.tp.s - s0)).toBeLessThan(0.3);
     expect(vehicle.speed).toBeCloseTo(WARMUP_SPEED, 3);
     expect(vehicle.tp.s).toBeCloseTo(WARMUP_START_S, -1);
     for (const tyre of vehicle.stint.tyres) expect(tyre.grip).toBeCloseTo(1, 2);

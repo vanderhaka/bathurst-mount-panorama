@@ -184,3 +184,20 @@
   }
 }
 @media (max-height: 540px) and (pointer: coarse) { .hud-shootout { bottom: auto; top: 0.4em; max-width: 65%; font-size: 0.8em; } }
+
+/* ---- rolling-start countdown: a large 3, 2, 1 in the middle of the screen while the car is held */
+.hud-countdown {
+  position: absolute;
+  top: 38%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 7em;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--hud-text);
+  text-shadow: 0 0.04em 0.12em rgb(0 0 0 / 0.75);
+  opacity: 0;
+}
+.hud-countdown[data-on='true'] {
+  opacity: 1;
+}

@@ -125,11 +125,11 @@ export class ShootoutScreen implements Screen {
     this.title.textContent = top10 ? 'Shootout Top 10' : 'Shootout Arcade';
     this.subtitle.textContent = top10 ? 'One flying lap. Three chances a week to make your mark.' : 'Learn the mountain. Chase the fastest lap whenever you like.';
     const steps = top10 ? [
-      ['Warm up', "Start on the grid or rolling at Forrest's Elbow; you choose after picking your car. Quitting or restarting here uses no attempt."],
+      ['Warm up', "Start on the grid or rolling just after Forrest's Elbow; you choose after picking your car. Quitting or restarting here uses no attempt."],
       ['Set your time', 'Cross the line to start one full timed lap. That uses one of your three attempts this week, even if you quit or invalidate it.'],
       ['Claim your lap', 'Add a nickname to submit a valid score. Skipping means no recognised leaderboard score; the attempt stays used.'],
     ] : [
-      ['Warm up', "Start on the grid or rolling at Forrest's Elbow; you choose before every run."],
+      ['Warm up', "Start on the grid or rolling just after Forrest's Elbow; you choose before every run."],
       ['Chase the ghost', 'One flying lap against the current #1 for your car, or your own best when there is none.'],
       ['Try again', 'Unlimited runs. Arcade never uses a Top 10 attempt or posts an official score.'],
     ];
