@@ -29,6 +29,7 @@ export interface Settings {
   touchAnalogBrake: boolean;
   touchAutoThrottle: boolean;
   touchLeftHanded: boolean;
+  touchSplitPedals: boolean;
   /** The touch player has been asked how to steer (or already changed the mode): ask only once. Not an option row. */
   steerOnboarded: boolean;
   /** The player has seen the first race setup (driving level, damage, camera, graphics): show it only once. Not an option row. */
@@ -72,6 +73,7 @@ export const DEFAULT_SETTINGS: Settings = {
   touchAnalogBrake: false,
   touchAutoThrottle: false,
   touchLeftHanded: false,
+  touchSplitPedals: true,
   steerOnboarded: false,
   onboarded: false,
   damage: 'full',

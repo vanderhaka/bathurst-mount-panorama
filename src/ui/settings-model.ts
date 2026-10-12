@@ -97,6 +97,7 @@ export const SETTING_GROUPS: ReadonlyArray<{ title: string; fields: SettingField
       { key: 'touchAnalogThrottle', kind: 'choice', label: 'Analog throttle', help: 'Bottom of the pedal = no throttle; top = full throttle.', options: ON_OFF },
       { key: 'touchAnalogBrake', kind: 'choice', label: 'Analog brake', help: 'Bottom of the pedal = light braking; top = full braking. Off: any touch brakes fully.', options: ON_OFF },
       { key: 'touchAutoThrottle', kind: 'choice', label: 'Auto-throttle', help: 'Accelerates for you. Touch Brake to cut power and slow down.', options: ON_OFF },
+      { key: 'touchSplitPedals', kind: 'choice', label: 'Tilt: brake on left', help: 'With tilt steering, Brake goes under the left thumb and Throttle stays on the right.', options: ON_OFF },
       { key: 'touchLeftHanded', kind: 'choice', label: 'Left-handed layout', help: 'Moves pedals left and steering right.', options: ON_OFF },
     ],
   },

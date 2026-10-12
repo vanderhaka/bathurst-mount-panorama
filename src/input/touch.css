@@ -153,6 +153,19 @@
 .bx-touch[data-auto-throttle='true'] .tc-pedal--throttle { display: none; }
 .bx-touch[data-auto-throttle='true'] .tc-pedal--brake { width: 28cqh; }
 
+/* Tilt ready frees the left thumb: Brake bottom-left, Throttle bottom-right (row-reverse above mirrors it).
+   The row spans the screen, so only the pedals take taps. */
+.bx-touch[data-mode='tilt'][data-tilt-ready='true'][data-split-pedals='true'] .tc-pedals {
+  left: max(3cqh, calc(env(safe-area-inset-left) + 1cqh));
+  right: max(3cqh, calc(env(safe-area-inset-right) + 1cqh));
+  justify-content: space-between;
+  pointer-events: none;
+}
+.bx-touch[data-mode='tilt'][data-tilt-ready='true'][data-split-pedals='true'] .tc-pedal { pointer-events: auto; }
+.bx-touch[data-mode='tilt'][data-tilt-ready='true'][data-split-pedals='true'] .tc-pedal--brake { height: 38cqh; }
+.bx-touch[data-mode='tilt'][data-tilt-ready='true'][data-split-pedals='true'][data-auto-throttle='true'] .tc-pedals { justify-content: flex-start; }
+.bx-touch[data-mode='tilt'][data-tilt-ready='true'][data-split-pedals='true'][data-auto-throttle='true'][data-left-handed='true'] .tc-pedals { justify-content: flex-end; }
+
 .tc-arrows,
 .tc-sensor { display: none; }
 .bx-touch[data-mode='buttons'] .tc-wheel,

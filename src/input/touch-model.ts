@@ -7,9 +7,11 @@ export interface TouchOptions {
   analogBrake: boolean;
   autoThrottle: boolean;
   leftHanded: boolean;
+  /** Tilt steering with tilt ready: Brake under the left thumb, Throttle stays right (mirrored when left-handed). */
+  splitPedals: boolean;
 }
 export const DEFAULT_TOUCH_OPTIONS: Readonly<TouchOptions> = {
-  mode: 'drag', analogThrottle: false, analogBrake: false, autoThrottle: false, leftHanded: false,
+  mode: 'drag', analogThrottle: false, analogBrake: false, autoThrottle: false, leftHanded: false, splitPedals: true,
 };
 
 /** An analog brake touch always brakes at least this much: a touch at the very bottom still slows the car. */
@@ -17,7 +19,7 @@ export const MIN_ANALOG_BRAKE = 0.2;
 
 /** Old saves omit these fields; malformed values retain the original touch defaults. */
 export function touchOptions(s: {
-  touchMode?: unknown; touchAnalogThrottle?: unknown; touchAnalogBrake?: unknown; touchAutoThrottle?: unknown; touchLeftHanded?: unknown;
+  touchMode?: unknown; touchAnalogThrottle?: unknown; touchAnalogBrake?: unknown; touchAutoThrottle?: unknown; touchLeftHanded?: unknown; touchSplitPedals?: unknown;
 }): TouchOptions {
   return {
     mode: s.touchMode === 'tilt' || s.touchMode === 'buttons' ? s.touchMode : 'drag',
@@ -25,6 +27,7 @@ export function touchOptions(s: {
     analogBrake: s.touchAnalogBrake === true,
     autoThrottle: s.touchAutoThrottle === true,
     leftHanded: s.touchLeftHanded === true,
+    splitPedals: s.touchSplitPedals !== false,
   };
 }
 
@@ -73,7 +76,8 @@ export class TouchInputModel {
   configure(options: TouchOptions): void {
     const old = this.options;
     if (old.mode === options.mode && old.analogThrottle === options.analogThrottle && old.analogBrake === options.analogBrake
-      && old.autoThrottle === options.autoThrottle && old.leftHanded === options.leftHanded) return;
+      && old.autoThrottle === options.autoThrottle && old.leftHanded === options.leftHanded
+      && old.splitPedals === options.splitPedals) return;
     this.options = { ...options };
     this.reset();
   }

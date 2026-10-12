@@ -71,6 +71,7 @@ export class TouchControls {
     this.model.configure(options);
     this.el.dataset.mode = options.mode;
     this.el.dataset.leftHanded = String(options.leftHanded);
+    this.el.dataset.splitPedals = String(options.splitPedals);
     this.el.dataset.autoThrottle = String(options.autoThrottle);
     this.el.dataset.manualGears = String(manualGears);
     this.tilt.setActive(this.visible && !this.suspended && options.mode === 'tilt');

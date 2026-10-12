@@ -53,6 +53,17 @@ describe('touch overlay event wiring', () => {
     expect(touch.update(1, true).steer).toBe(-1);
   });
 
+  it('exposes splitPedals as a dataset flag and still routes taps with the brake on the far left', () => {
+    configure({ mode: 'tilt', splitPedals: true });
+    expect(root.dataset.splitPedals).toBe('true');
+    const brake = root.find('tc-pedal--brake');
+    brake.rect.left = 20;
+    pointer('pointerdown', 1, brake, 50);
+    expect(touch.update(1, true).brake).toBe(1);
+    configure({ mode: 'tilt', splitPedals: false });
+    expect(root.dataset.splitPedals).toBe('false');
+  });
+
   it('samples analog throttle on down/move and slides to brake in a mirrored layout', () => {
     configure({ analogThrottle: true, leftHanded: true });
     const throttle = root.find('tc-pedal--throttle'), brake = root.find('tc-pedal--brake');

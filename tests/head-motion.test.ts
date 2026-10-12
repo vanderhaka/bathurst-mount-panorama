@@ -105,9 +105,9 @@ describe('head movement setting', () => {
     vi.stubGlobal('localStorage', { getItem: (key: string) => values.get(key) ?? null,
       setItem: (key: string, value: string) => values.set(key, value) });
     saveSettings({ ...DEFAULT_SETTINGS, headMotion: 0, phoneVibration: false, touchMode: 'buttons',
-      touchAnalogThrottle: true, touchAutoThrottle: true, touchLeftHanded: true });
+      touchAnalogThrottle: true, touchAutoThrottle: true, touchLeftHanded: true, touchSplitPedals: false });
     expect(loadSettings()).toMatchObject({ headMotion: 0, phoneVibration: false, touchMode: 'buttons',
-      touchAnalogThrottle: true, touchAutoThrottle: true, touchLeftHanded: true });
+      touchAnalogThrottle: true, touchAutoThrottle: true, touchLeftHanded: true, touchSplitPedals: false });
     values.set('bathurst.settings.v1', JSON.stringify({ quality: 'low' }));
     expect(loadSettings().headMotion).toBe(DEFAULT_SETTINGS.headMotion);
     expect(loadSettings().quality).toBe(DEFAULT_SETTINGS.quality);

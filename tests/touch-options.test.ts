@@ -6,7 +6,7 @@ import { SETTING_GROUPS, adjustSetting, valueLabel } from '@/ui/settings-model';
 import { InputManager } from '@/input/input-manager';
 import type { TouchControls } from '@/input/touch-controls';
 
-const defaults: TouchOptions = { mode: 'drag', analogThrottle: false, analogBrake: false, autoThrottle: false, leftHanded: false };
+const defaults: TouchOptions = { mode: 'drag', analogThrottle: false, analogBrake: false, autoThrottle: false, leftHanded: false, splitPedals: true };
 const step = (m: TouchInputModel) => m.update(1, true);
 afterEach(() => vi.unstubAllGlobals());
 
@@ -135,7 +135,7 @@ describe('touch driving modes', () => {
 describe('touch settings', () => {
   it('offers the four options in Steering and leaves existing steering/handling defaults', () => {
     const fields = SETTING_GROUPS.find((g) => g.title === 'Steering')!.fields;
-    for (const key of ['touchMode', 'touchAnalogThrottle', 'touchAnalogBrake', 'touchAutoThrottle', 'touchLeftHanded']) {
+    for (const key of ['touchMode', 'touchAnalogThrottle', 'touchAnalogBrake', 'touchAutoThrottle', 'touchLeftHanded', 'touchSplitPedals']) {
       expect(fields.some((f) => f.key === key)).toBe(true);
     }
     const mode = fields.find((f) => f.key === 'touchMode')!;
@@ -159,10 +159,27 @@ describe('touch settings', () => {
     expect(old.units).toBe('mph');
     expect(old.steerTouch).toBe(1.3);
     expect(old.touchAnalogBrake).toBe(false);
-    saveSettings({ ...old, touchMode: 'tilt', touchAnalogThrottle: true, touchAnalogBrake: true, touchAutoThrottle: true, touchLeftHanded: true });
-    expect(touchOptions(loadSettings())).toEqual({ mode: 'tilt', analogThrottle: true, analogBrake: true, autoThrottle: true, leftHanded: true });
-    raw = JSON.stringify({ touchMode: 'broken', touchAnalogThrottle: 'yes', touchAnalogBrake: 'yes', touchAutoThrottle: null, touchLeftHanded: 1 });
+    saveSettings({ ...old, touchMode: 'tilt', touchAnalogThrottle: true, touchAnalogBrake: true, touchAutoThrottle: true, touchLeftHanded: true, touchSplitPedals: false });
+    expect(touchOptions(loadSettings())).toEqual({ mode: 'tilt', analogThrottle: true, analogBrake: true, autoThrottle: true, leftHanded: true, splitPedals: false });
+    raw = JSON.stringify({ touchMode: 'broken', touchAnalogThrottle: 'yes', touchAnalogBrake: 'yes', touchAutoThrottle: null, touchLeftHanded: 1, touchSplitPedals: 'yes' });
     expect(touchOptions(loadSettings())).toEqual(defaults);
+  });
+});
+
+describe('split pedals option', () => {
+  it('defaults to on; only false turns it off', () => {
+    expect(touchOptions({}).splitPedals).toBe(true);
+    expect(touchOptions({ touchSplitPedals: false }).splitPedals).toBe(false);
+    for (const bad of ['yes', 1, null]) expect(touchOptions({ touchSplitPedals: bad }).splitPedals).toBe(true);
+    expect(DEFAULT_SETTINGS.touchSplitPedals).toBe(true);
+  });
+  it('applies a change to only splitPedals and clears held input', () => {
+    const m = new TouchInputModel();
+    m.configure(defaults);
+    m.pedal(1, 'throttle', 1);
+    m.configure({ ...defaults, splitPedals: false });
+    expect(m.options.splitPedals).toBe(false);
+    expect(step(m).throttle).toBe(0);
   });
 });
 
