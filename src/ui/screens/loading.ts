@@ -2,7 +2,7 @@
 import { h, s, TextSlot } from '@/hud/dom';
 import { type Screen, screenEl } from '@/ui/screen';
 import { OUTLINE_VIEWBOX, trackOutlinePath } from '@/ui/track-outline';
-import { ACTIVE_CIRCUIT, CIRCUITS } from '@/track/circuits';
+import { activeCircuit, CIRCUITS } from '@/track/circuits';
 
 export class LoadingScreen implements Screen {
   readonly id = 'loading' as const;
@@ -12,12 +12,18 @@ export class LoadingScreen implements Screen {
   private readonly bar = h('div', 'mn-progress', { role: 'progressbar', 'aria-valuemin': 0, 'aria-valuemax': 100, 'aria-valuenow': 0, 'aria-label': 'Loading' }, [
     h('i', 'mn-progress__fill'),
   ]);
-  private readonly draw: SVGPathElement;
-  private readonly head: SVGCircleElement;
+  private draw!: SVGPathElement;
+  private head!: SVGCircleElement;
   private last = -1;
 
   constructor() {
-    const d = trackOutlinePath();
+    this.render();
+  }
+
+  /** (Re)builds the artwork and title for the active circuit: the circuit can change without a reload. */
+  render(): void {
+    const circuit = activeCircuit();
+    const d = trackOutlinePath(circuit);
     this.draw = s('path', { class: 'mn-loading__draw', d, pathLength: 1 });
     const [sx, sy] = (d.match(/-?[\d.]+/g) ?? ['0', '0']).slice(0, 2).map(Number);
     this.head = s('circle', { class: 'mn-loading__head', cx: sx, cy: sy, r: 7 });
@@ -30,11 +36,12 @@ export class LoadingScreen implements Screen {
       ]),
       this.head,
     ]);
-    this.el.append(
+    this.last = -1;
+    this.el.replaceChildren(
       art,
       h('div', 'mn-loading__body', undefined, [
-        h('p', 'mn-kicker', undefined, [h('i', 'mn-kicker__bar', { 'aria-hidden': 'true' }), CIRCUITS[ACTIVE_CIRCUIT].location]),
-        h('h1', 'mn-loading__title', undefined, [CIRCUITS[ACTIVE_CIRCUIT].name]),
+        h('p', 'mn-kicker', undefined, [h('i', 'mn-kicker__bar', { 'aria-hidden': 'true' }), CIRCUITS[circuit].location]),
+        h('h1', 'mn-loading__title', undefined, [CIRCUITS[circuit].name]),
         this.bar,
         h('div', 'mn-loading__meta', undefined, [this.label.el, this.pct.el]),
       ]),

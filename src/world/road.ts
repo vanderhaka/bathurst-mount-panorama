@@ -12,16 +12,22 @@ import { fbm } from '@/world/dem';
 import { buildGridBar } from '@/world/grid-bars';
 import { buildKerbGeometry } from '@/world/kerb-surface';
 import { buildBrakingSkids, buildWallScuffs } from '@/world/road-marks';
-import { createRoadMaterials, roadOptions, type RoadOptions } from '@/world/road-materials';
+import { runSync, type Steps } from '@/world/cooperative';
+import { createRoadMaterialsSteps, roadOptions, type RoadOptions } from '@/world/road-materials';
 import { buildStrip } from '@/world/strip';
 
 export type { RoadOptions } from '@/world/road-materials';
 
 export function buildRoad(track: Track, line: RacingLine, kerbs: KerbLayout, renderer: THREE.WebGLRenderer, options: RoadOptions = {}): THREE.Group {
+  return runSync(buildRoadSteps(track, line, kerbs, renderer, options));
+}
+
+/** The same road, handing the thread back between its textures, strips and kerbs (see cooperative.ts). */
+export function* buildRoadSteps(track: Track, line: RacingLine, kerbs: KerbLayout, renderer: THREE.WebGLRenderer, options: RoadOptions = {}): Steps<THREE.Group> {
   const group = new THREE.Group();
   group.name = 'road';
   const settings = roadOptions(options, getGraphics().rubberGroove);
-  const materials = createRoadMaterials(renderer, track.length, settings);
+  const materials = yield* createRoadMaterialsSteps(renderer, track.length, settings);
   const rubber: number[] = [];
   const asphalt = linearColour(ROAD.asphalt);
   const worn = linearColour(ROAD.asphaltWorn);
@@ -56,6 +62,7 @@ export function buildRoad(track: Track, line: RacingLine, kerbs: KerbLayout, ren
   road.name = 'road-surface';
   group.add(road);
 
+  yield;
   // White edge lines, lifted a few millimetres, drawn over the road.
   const white = linearColour(ROAD.lineWhite);
   const edgeLine = (sign: 1 | -1) =>
@@ -76,6 +83,7 @@ export function buildRoad(track: Track, line: RacingLine, kerbs: KerbLayout, ren
   // Start/finish line and grid slots on Pit Straight.
   group.add(buildStartMarkings(track, materials.paint));
 
+  yield;
   // Kerb texture defines metre-scale stripes; geometry keeps the bevel and lowered outer edge.
   for (const [arr, types, sign] of [[kerbs.left, kerbs.leftType, 1], [kerbs.right, kerbs.rightType, -1]] as const) {
     const geo = buildKerbGeometry(track, line, arr, sign, settings.kerbWear, types);
@@ -84,6 +92,7 @@ export function buildRoad(track: Track, line: RacingLine, kerbs: KerbLayout, ren
     mesh.name = 'kerbs';
     group.add(mesh);
   }
+  yield;
   if (settings.skids) {
     if (track.id === 'bathurst') {
       const scuffs = new THREE.Mesh(buildWallScuffs(track), materials.skid);

@@ -8,6 +8,7 @@ import type { SessionTelemetry } from '@/types/telemetry';
 import type { BrakeReading } from '@/physics/brake-heat';
 import type { PracticeSummary } from '@/game/arcade-best';
 import type { RaceHud, RaceResult } from '@/types/race';
+import type { CircuitId } from '@/track/circuits';
 
 export type SectorState = 'none' | 'personalBest' | 'overallBest' | 'slower';
 
@@ -136,6 +137,8 @@ export interface MenuCallbacks {
   onPreviewCar(car: CarKind, liveryIndex: number): void;
   /** The steering question's Tilt tap: asks the phone for motion access. Runs synchronously inside the tap. */
   onEnableTilt?(): Promise<TiltStatus>;
+  /** The title screen's Circuit row chose another circuit: the game builds it in place (newest choice wins). */
+  onSwitchCircuit?(circuit: CircuitId): void;
 }
 
 /** DOM menus: title, car select, settings, pause, controls help, results, loading. */
@@ -145,6 +148,12 @@ export interface Menus {
   /** Closes a loading screen shown after start-up: the screen that was open before it returns, else the menus close. */
   endLoading(): void;
   showTitle(): void;
+  /** Title screen: a small progress block under the Circuit row while `target` is built in place. */
+  showCircuitSwitch(target: CircuitId, progress: number, label: string): void;
+  /** The switch was cancelled or failed (`message`): the row returns to the active circuit. */
+  endCircuitSwitch(message?: string): void;
+  /** The active circuit changed: the title and loading screens are rebuilt for it. */
+  circuitChanged(): void;
   showCarSelect(): void;
   showShootout(mode: ShootoutMode): void;
   /** `practice`: an Arcade lap against the player's Arcade best for the car. */

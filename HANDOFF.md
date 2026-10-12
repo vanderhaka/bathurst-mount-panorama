@@ -1,5 +1,16 @@
 # Bathurst handoff — 8 October 2026
 
+## Circuit switch in place, no reload — released 12 October 2026
+
+- The title Circuit row swaps the world in place (`Game.switchCircuit`, `src/game/circuit-switch.ts`:
+  newest request wins, 300 ms settle). No page reload and no full loading screen.
+- World builds yield (`src/world/cooperative.ts`, 12 ms slices): road, terrain, scenery and the AO bake.
+  Longest task 252 ms. `tests/world-determinism.test.ts` guards the output; regenerate the fixture with
+  `WRITE_WORLD_FINGERPRINT=1`.
+- The right column shows the map of the circuit being built, above the Top 10 board on Bathurst.
+  The header (location, name, facts) names the target circuit during a switch, so it agrees with the map.
+- **Open:** `computeRacingLine` at Bathurst is still one ~200 ms block; the map panel has no fade-out.
+
 ## Auto graphics: no mid-race rebuilds — released 12 October 2026
 
 - An automatic quality step never applies during a race: `GameGraphics` queues it as `pending` and

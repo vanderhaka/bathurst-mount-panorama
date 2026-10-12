@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { CIRCUIT_IDS, circuitFromSearch, circuitUrl, nextCircuit, loadSavedCircuit, saveCircuit, switchCircuit, type CircuitStorage } from '@/track/circuits';
+import { CIRCUIT_IDS, activeCircuit, circuitFromSearch, circuitUrl, commitCircuit, nextCircuit, loadSavedCircuit, saveCircuit, setActiveCircuit, type CircuitStorage } from '@/track/circuits';
 
 /** In-memory stand-in for localStorage. */
 function memoryStorage(initial: Record<string, string> = {}): CircuitStorage & { data: Record<string, string> } {
@@ -58,8 +58,8 @@ describe('which circuit opens', () => {
     vi.stubGlobal('location', { search });
     vi.stubGlobal('localStorage', memoryStorage({ 'bathurst.circuit.v1': saved }));
     vi.resetModules();
-    const { ACTIVE_CIRCUIT } = await import('@/track/circuits');
-    expect(ACTIVE_CIRCUIT).toBe('bathurst');
+    const { activeCircuit } = await import('@/track/circuits');
+    expect(activeCircuit()).toBe('bathurst');
   });
 
   it('opens Bathurst on first launch', () => {
@@ -74,42 +74,59 @@ describe('which circuit opens', () => {
     vi.stubGlobal('location', { search });
     vi.stubGlobal('localStorage', memoryStorage({ 'bathurst.circuit.v1': saved }));
     vi.resetModules();
-    const { ACTIVE_CIRCUIT } = await import('@/track/circuits');
-    expect(ACTIVE_CIRCUIT).toBe(expected);
+    const { activeCircuit } = await import('@/track/circuits');
+    expect(activeCircuit()).toBe(expected);
   });
 });
 
-describe('switching circuit', () => {
-  const page = (href: string) => ({ href, replace: vi.fn<(url: string) => void>(), assign: vi.fn<(url: string) => void>() });
+describe('switching circuit in place', () => {
+  const env = (href: string, storage: CircuitStorage | null, title = 'Gen3 time trial — Mount Panorama') => {
+    const doc = { title };
+    return { doc, replaceState: vi.fn<(data: unknown, unused: string, url: string) => void>(), location: { href }, storage };
+  };
+  const commit = (circuit: Parameters<typeof commitCircuit>[0], e: ReturnType<typeof env>) =>
+    commitCircuit(circuit, { location: e.location, history: { replaceState: e.replaceState }, storage: e.storage, doc: e.doc });
 
-  it('replaces the history entry, so Back does not switch circuits again, and saves the choice', () => {
-    const nav = page('https://example.com/?quality=low'), storage = memoryStorage();
-    switchCircuit('adelaide', nav, storage);
-    expect(nav.replace).toHaveBeenCalledExactlyOnceWith('https://example.com/?quality=low&track=adelaide');
-    expect(nav.assign).not.toHaveBeenCalled();
-    expect(loadSavedCircuit(storage)).toBe('adelaide');
+  afterEach(() => setActiveCircuit('bathurst'));
+
+  it('changes the live circuit without touching the address of the page by itself', () => {
+    expect(activeCircuit()).toBe('bathurst');
+    setActiveCircuit('gold-coast');
+    expect(activeCircuit()).toBe('gold-coast');
+  });
+
+  it('commits a circuit: live value, saved choice and address (replaceState, so Back does not switch circuits again)', () => {
+    const e = env('https://example.com/?quality=low', memoryStorage());
+    commit('adelaide', e);
+    expect(activeCircuit()).toBe('adelaide');
+    expect(e.replaceState).toHaveBeenCalledExactlyOnceWith(null, '', 'https://example.com/?quality=low&track=adelaide');
+    expect(loadSavedCircuit(e.storage)).toBe('adelaide');
+    expect(e.doc.title).toBe('Adelaide Parklands — Gen3 time trial');
   });
 
   it('returns to Bathurst without ?track= once Bathurst is the saved choice', () => {
-    const nav = page('https://example.com/?track=adelaide&quality=low'), storage = memoryStorage({ 'bathurst.circuit.v1': 'adelaide' });
-    switchCircuit('bathurst', nav, storage);
-    const target = nav.replace.mock.calls[0][0];
+    const e = env('https://example.com/?track=adelaide&quality=low', memoryStorage({ 'bathurst.circuit.v1': 'adelaide' }));
+    commit('bathurst', e);
+    const target = e.replaceState.mock.calls[0][2];
     expect(target).toBe('https://example.com/?quality=low');
     expect(circuitFromSearch(new URL(target).search)).toBe('bathurst');
+    expect(activeCircuit()).toBe('bathurst');
   });
 
   it('names Bathurst in the address when the choice can not be saved, so it still wins', () => {
-    const nav = page('https://example.com/?track=adelaide');
-    switchCircuit('bathurst', nav, full('adelaide'));
-    const target = nav.replace.mock.calls[0][0];
+    const e = env('https://example.com/?track=adelaide', full('adelaide'));
+    commit('bathurst', e);
+    const target = e.replaceState.mock.calls[0][2];
     expect(target).toBe('https://example.com/?track=bathurst');
     expect(circuitFromSearch(new URL(target).search)).toBe('bathurst');
   });
 
-  it('still switches when storage is blocked', () => {
-    const nav = page('https://example.com/');
-    switchCircuit('adelaide', nav, blocked);
-    expect(nav.replace).toHaveBeenCalledExactlyOnceWith('https://example.com/?track=adelaide');
+  it('still commits when storage is blocked or missing', () => {
+    commit('gold-coast', env('https://example.com/', blocked));
+    expect(activeCircuit()).toBe('gold-coast');
+    const e = env('https://example.com/', null);
+    commit('adelaide', e);
+    expect(e.replaceState).toHaveBeenCalledExactlyOnceWith(null, '', 'https://example.com/?track=adelaide');
   });
 
   it('keeps circuitUrl behaviour: other options survive, Bathurst drops the parameter unless asked to keep it', () => {

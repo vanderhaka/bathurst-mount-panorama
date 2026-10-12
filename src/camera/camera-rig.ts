@@ -51,7 +51,14 @@ export class CameraRig {
   private readonly tvPos = new THREE.Vector3();
   private readonly tmp: [number, number, number] = [0, 0, 0];
 
-  constructor(readonly camera: THREE.PerspectiveCamera, private readonly track: Track) {}
+  constructor(readonly camera: THREE.PerspectiveCamera, private track: Track) {}
+
+  /** The circuit changed (title screen switch): the trackside cameras follow the new track. */
+  setTrack(track: Track): void {
+    this.track = track;
+    this.tvIndex = -1;
+    this.initialised = false;
+  }
 
   cycle(): CameraMode {
     this.mode = CAMERA_ORDER[(CAMERA_ORDER.indexOf(this.mode) + 1) % CAMERA_ORDER.length];

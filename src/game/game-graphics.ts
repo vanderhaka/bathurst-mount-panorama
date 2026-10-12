@@ -60,6 +60,11 @@ export class GameGraphics {
 
   hasPending(): boolean { return this.pending !== null; }
 
+  /** Resolves once no world rebuild is in flight (a circuit swap must not interleave with one). */
+  async idle(): Promise<void> {
+    while (this.building) await this.building;
+  }
+
   /** True while the loading screen covers a rebuild: drawing the scene underneath would only compile shaders for the old world. */
   get covered(): boolean { return this.label !== null; }
 

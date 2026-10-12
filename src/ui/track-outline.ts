@@ -3,7 +3,7 @@ import { bestFitRotation, fitTransform, project } from '@/hud/map-geometry';
 import trackData from '@/track/data/mount-panorama.json';
 import adelaideData from '@/track/data/adelaide.json';
 import goldCoastData from '@/track/data/gold-coast.json';
-import { ACTIVE_CIRCUIT, type CircuitId } from '@/track/circuits';
+import { activeCircuit, type CircuitId } from '@/track/circuits';
 
 export const OUTLINE_VIEWBOX = { w: 1000, h: 640 } as const;
 
@@ -13,12 +13,13 @@ const OUTLINES: Record<CircuitId, () => Array<[number, number]>> = {
   'gold-coast': () => goldCoastData.points.map((p) => [p[0], p[1]] as [number, number]),
 };
 
-let cached: string | null = null;
+const cached = new Map<CircuitId, string>();
 
-/** Closed path "M x y L ..." in a 1000 x 640 box, every 2nd point. */
-export function trackOutlinePath(): string {
-  if (cached) return cached;
-  const outline = OUTLINES[ACTIVE_CIRCUIT]();
+/** Closed path "M x y L ..." in a 1000 x 640 box, every 2nd point, for `circuit` (the active one by default). */
+export function trackOutlinePath(circuit: CircuitId = activeCircuit()): string {
+  const known = cached.get(circuit);
+  if (known) return known;
+  const outline = OUTLINES[circuit]();
   const t = fitTransform(outline, bestFitRotation(outline, 1.5), OUTLINE_VIEWBOX.w, OUTLINE_VIEWBOX.h, 24);
   const out: [number, number] = [0, 0];
   const parts: string[] = [];
@@ -26,6 +27,7 @@ export function trackOutlinePath(): string {
     project(t, outline[i][0], outline[i][1], out);
     parts.push(`${i === 0 ? 'M' : 'L'}${out[0].toFixed(1)} ${out[1].toFixed(1)}`);
   }
-  cached = `${parts.join(' ')} Z`;
-  return cached;
+  const path = `${parts.join(' ')} Z`;
+  cached.set(circuit, path);
+  return path;
 }

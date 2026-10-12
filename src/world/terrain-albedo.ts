@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { runSync, type Steps } from '@/world/cooperative';
 
 const hash = (x: number, y: number, seed: number) => {
   let n = Math.imul(x, 374761393) ^ Math.imul(y, 668265263) ^ seed;
@@ -25,10 +26,15 @@ const clamp01 = (n: number) => Math.max(0, Math.min(1, n));
  * green/straw hue drift. The shader multiplies by 2.0 per layer so the average brightness is preserved.
  */
 export function createTerrainAlbedoData(size: number): Uint8Array {
+  return runSync(createTerrainAlbedoDataSteps(size));
+}
+
+export function* createTerrainAlbedoDataSteps(size: number): Steps<Uint8Array> {
   if (!Number.isInteger(size) || size < 16 || size > 1024 || (size & (size - 1)) !== 0) throw new Error('Terrain albedo size must be a power of two from 16 to 1024');
   const out = new Uint8Array(size * size * 4);
   const cells = (n: number) => Math.min(n, size);
   for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) {
+    if (x === 0 && (y & 7) === 7) yield;
     const u = (x + 0.5) / size, v = (y + 0.5) / size, i = (y * size + x) * 4;
     const clump = periodic(u, v, cells(6), cells(6), 11) * 0.5 + periodic(u, v, cells(16), cells(16), 13) * 0.5;
     const blade = periodic(u, v, cells(96), cells(24), 17) * 0.55 + periodic(u, v, cells(48), cells(128), 19) * 0.45;
@@ -53,7 +59,11 @@ export function createTerrainAlbedoData(size: number): Uint8Array {
 }
 
 export function createTerrainAlbedoTexture(size: number): THREE.DataTexture {
-  const map = new THREE.DataTexture(createTerrainAlbedoData(size), size, size, THREE.RGBAFormat, THREE.UnsignedByteType);
+  return runSync(createTerrainAlbedoTextureSteps(size));
+}
+
+export function* createTerrainAlbedoTextureSteps(size: number): Steps<THREE.DataTexture> {
+  const map = new THREE.DataTexture(yield* createTerrainAlbedoDataSteps(size), size, size, THREE.RGBAFormat, THREE.UnsignedByteType);
   map.wrapS = map.wrapT = THREE.RepeatWrapping;
   map.magFilter = THREE.LinearFilter;
   map.minFilter = THREE.LinearMipmapLinearFilter;

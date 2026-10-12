@@ -3,6 +3,7 @@ import { linearColour } from '@/art/materials';
 import { GROUND } from '@/art/palette';
 import type { Track } from '@/track/track-model';
 import { createTrackPoint, projectToTrack, sampleArray } from '@/track/track-query';
+import { runSync, type Steps } from '@/world/cooperative';
 import { fbm } from '@/world/dem';
 
 export interface TerrainSurfaceSample {
@@ -82,12 +83,19 @@ export function terrainNormal(x: number, z: number, height: (x: number, z: numbe
 /** Adds world-scaled UVs and smooth normals; positions, indices and AO colours remain untouched. */
 export function prepareTerrainGeometry(geometry: THREE.BufferGeometry, height: (x: number, z: number) => number,
   surface?: (x: number, z: number) => TerrainSurfaceSample): void {
+  runSync(prepareTerrainGeometrySteps(geometry, height, surface));
+}
+
+/** The same preparation, handing the thread back every few hundred vertices (see cooperative.ts). */
+export function* prepareTerrainGeometrySteps(geometry: THREE.BufferGeometry, height: (x: number, z: number) => number,
+  surface?: (x: number, z: number) => TerrainSurfaceSample): Steps<void> {
   const pos = geometry.getAttribute('position');
   const normal = new THREE.Float32BufferAttribute(new Float32Array(pos.count * 3), 3);
   const uv = new THREE.Float32BufferAttribute(new Float32Array(pos.count * 2), 2);
   const cover = new THREE.Float32BufferAttribute(new Float32Array(pos.count * 3), 3);
   const n = new THREE.Vector3();
   for (let i = 0; i < pos.count; i++) {
+    if ((i & 127) === 127) yield;
     const x = pos.getX(i), z = pos.getZ(i);
     terrainNormal(x, z, height, n);
     normal.setXYZ(i, n.x, n.y, n.z);

@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { TERRAIN_MOWN } from '@/world/terrain-surface';
-import { TERRAIN_COLOUR_GLSL, createTerrainAlbedoTexture } from '@/world/terrain-albedo';
+import { runSync, type Steps } from '@/world/cooperative';
+import { TERRAIN_COLOUR_GLSL, createTerrainAlbedoTextureSteps } from '@/world/terrain-albedo';
 
 /** Detail tile sizes in metres (UV on the mesh is world / 8) and the shader's colour-variation strength. */
 export const TERRAIN_LOOK = { normalStrength: 0.5, contrast: 0.65, colourVariation: 0.85, fineTile: 1.5, coarseTile: 9, normalTile: 2, normalFineTile: 0.5 };
@@ -28,10 +29,15 @@ export function terrainDetailHeight(u: number, v: number): number {
 }
 
 export function createTerrainDetailData(size: number): { normal: Uint8Array; detail: Uint8Array } {
+  return runSync(createTerrainDetailDataSteps(size));
+}
+
+export function* createTerrainDetailDataSteps(size: number): Steps<{ normal: Uint8Array; detail: Uint8Array }> {
   if (!Number.isInteger(size) || size < 16 || size > 1024 || (size & (size - 1)) !== 0) throw new Error('Terrain detail size must be a power of two from 16 to 1024');
   const normal = new Uint8Array(size * size * 4), detail = new Uint8Array(size * size * 4);
   const d = 1 / size;
   for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) {
+    if (x === 0 && (y & 7) === 7) yield;
     const u = (x + 0.5) / size, v = (y + 0.5) / size, i = (y * size + x) * 4;
     const h = terrainDetailHeight(u, v);
     const nx = -(terrainDetailHeight(u + d, v) - terrainDetailHeight(u - d, v)) * 2;
@@ -67,16 +73,21 @@ function texture(data: Uint8Array, size: number): THREE.DataTexture {
 
 /** White vertex-colour base retains the terrain's existing baked AO and palette. */
 export function createTerrainMaterial(options: TerrainDetailOptions): THREE.MeshStandardMaterial {
+  return runSync(createTerrainMaterialSteps(options));
+}
+
+/** The same material, handing the thread back while its detail and albedo tiles are generated. */
+export function* createTerrainMaterialSteps(options: TerrainDetailOptions): Steps<THREE.MeshStandardMaterial> {
   let albedo: THREE.DataTexture | null = null;
   const material = new THREE.MeshStandardMaterial({ color: 0xffffff, vertexColors: true, roughness: 0.97, flatShading: false });
   material.name = 'terrain-smooth-detail';
   if (options.enabled) {
-    const data = createTerrainDetailData(options.size);
+    const data = yield* createTerrainDetailDataSteps(options.size);
     material.normalMap = texture(data.normal, options.size);
     material.roughnessMap = texture(data.detail, options.size);
     material.normalScale.setScalar(Math.max(0, options.normalStrength ?? TERRAIN_LOOK.normalStrength));
     material.normalMap.repeat.setScalar(8 / TERRAIN_LOOK.normalTile);
-    albedo = createTerrainAlbedoTexture(options.size);
+    albedo = yield* createTerrainAlbedoTextureSteps(options.size);
     material.userData.terrainAlbedo = albedo;
   }
   const contrast = { value: Math.max(0, Math.min(1, options.contrast ?? TERRAIN_LOOK.contrast)) };

@@ -1,3 +1,4 @@
+import { runSync, type Steps } from '@/world/cooperative';
 import { clamp01, sealTextureEdges, smoothStep, surfaceHash, surfaceNoise } from '@/world/surface-noise';
 
 export interface AsphaltMaps {
@@ -10,12 +11,18 @@ export interface AsphaltMaps {
 
 /** Four metre aggregate tile. Height is millimetre-scale; dry roughness is 0.72–0.86. */
 export function generateAsphaltMaps(size: number): AsphaltMaps {
+  return runSync(generateAsphaltMapsSteps(size));
+}
+
+/** The same maps, handing the thread back every few rows (see cooperative.ts). */
+export function* generateAsphaltMapsSteps(size: number): Steps<AsphaltMaps> {
   const albedo = new Uint8Array(size * size * 4);
   const normal = new Uint8Array(albedo.length), roughness = new Uint8Array(albedo.length);
   const height = new Float32Array(size * size);
   const cells = Math.max(32, Math.min(512, size / 2));
   let linearSum = 0;
   for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) {
+    if (x === 0 && (y & 7) === 7) yield;
     const u = x / (size - 1), v = y / (size - 1), i = y * size + x, p = i * 4;
     const fine = surfaceNoise(u, v, cells, 3), mid = surfaceNoise(u, v, 32, 7);
     const broad = surfaceNoise(u, v, 8, 13);
@@ -29,6 +36,7 @@ export function generateAsphaltMaps(size: number): AsphaltMaps {
   }
   const h = (x: number, y: number) => height[((y + size - 1) % (size - 1)) * size + (x + size - 1) % (size - 1)];
   for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) {
+    if (x === 0 && (y & 7) === 7) yield;
     const dx = (h(x + 1, y) - h(x - 1, y)) * 0.27;
     const dy = (h(x, y + 1) - h(x, y - 1)) * 0.27;
     const length = Math.hypot(dx, dy, 1);
@@ -61,9 +69,14 @@ function periodicDistanceSquared(u: number, v: number, s: Segment): number {
 
 /** 64 metre macro tile: R = repairs, G = crack sealing, B = broad (~30 m) wear, A = longitudinal wheel-track streaks. */
 export function generateWeatherMap(size: number): Uint8Array {
+  return runSync(generateWeatherMapSteps(size));
+}
+
+export function* generateWeatherMapSteps(size: number): Steps<Uint8Array> {
   const data = new Uint8Array(size * size * 4);
   const halfTexel = 0.5 / (size - 1), sealWidth = 0.0013; // about 8 cm at the core
   for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) {
+    if (x === 0 && (y & 3) === 3) yield;
     const u = x / (size - 1), v = y / (size - 1);
     const patch = smoothStep(0.68, 0.76, surfaceNoise(u, v, 4, 71));
     let distance = Infinity;

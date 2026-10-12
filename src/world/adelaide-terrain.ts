@@ -7,14 +7,20 @@ import type { Track } from '@/track/track-model';
 import { createTrackPoint, heightAt, pointAt, projectToTrack, sampleArray } from '@/track/track-query';
 import { createNearGrass } from '@/world/near-grass';
 import type { Terrain } from '@/world/terrain';
-import { createTerrainMaterial, disposeTerrainMaterial } from '@/world/terrain-detail';
-import { prepareTerrainGeometry, type TerrainSurfaceSample } from '@/world/terrain-surface';
+import { runSync, type Steps } from '@/world/cooperative';
+import { createTerrainMaterialSteps, disposeTerrainMaterial } from '@/world/terrain-detail';
+import { prepareTerrainGeometrySteps, type TerrainSurfaceSample } from '@/world/terrain-surface';
 
 const smooth = (v: number) => { const t = Math.max(0, Math.min(1, v)); return t * t * (3 - 2 * t); };
 const green = linearColour(0x708245), dry = linearColour(GROUND.grassDry), paving = linearColour(0x97958d);
 
 /** Flat Adelaide estimate; no Mount Panorama elevation or mountain geometry is used. */
 export function buildAdelaideTerrain(track: Track, quality: QualityPreset): Terrain {
+  return runSync(buildAdelaideTerrainSteps(track, quality));
+}
+
+/** The same terrain, handing the thread back inside each ground chunk (see world/cooperative.ts). */
+export function* buildAdelaideTerrainSteps(track: Track, quality: QualityPreset): Steps<Terrain> {
   const cfg = getGraphics(), tier = QUALITY[quality], cell = quality === 'low' ? 16 : quality === 'medium' ? 10 : 8;
   const tp = createTrackPoint();
   const corridor = (x: number, z: number) => {
@@ -39,24 +45,27 @@ export function buildAdelaideTerrain(track: Track, quality: QualityPreset): Terr
   const box = { x0: snap(Math.min(Math.min(...track.px) - margin, -1650)), x1: snap(Math.max(...track.px) + margin + cell),
     z0: snap(Math.min(Math.min(...track.pz) - margin, -1120)), z1: snap(Math.max(...track.pz) + margin + cell) };
   const group = new THREE.Group(); group.name = 'adelaide-terrain';
-  const material = createTerrainMaterial({ enabled: cfg.terrainDetail && tier.terrainDetail, size: tier.terrainMapSize,
+  const material = yield* createTerrainMaterialSteps({ enabled: cfg.terrainDetail && tier.terrainDetail, size: tier.terrainMapSize,
     normalStrength: cfg.terrainNormalStrength, mownStrength: cfg.mownStrength });
   const geometries: THREE.BufferGeometry[] = [];
-  const addGround = (name: string, x0: number, z0: number, w: number, h: number, step: number, height: (x: number, z: number) => number) => {
-    const geo = groundGrid(x0, z0, w, h, step, height, (x, z) => corridor(x, z).clearance, cfg.terrainColourNoise,
+  const addGround = function* (name: string, x0: number, z0: number, w: number, h: number, step: number, height: (x: number, z: number) => number): Steps<void> {
+    const geo = yield* groundGrid(x0, z0, w, h, step, height, (x, z) => corridor(x, z).clearance, cfg.terrainColourNoise,
       name === 'adelaide-flat-horizon' ? undefined : surface);
     const mesh = new THREE.Mesh(geo, material); mesh.name = name; mesh.receiveShadow = true;
     group.add(mesh); geometries.push(geo);
   };
   const nx = Math.round((box.x1 - box.x0) / cell), nz = Math.round((box.z1 - box.z0) / cell), chunk = 48;
+  const chunks = Math.ceil(nx / chunk) * Math.ceil(nz / chunk);
+  let done = 0;
   for (let x = 0; x < nx; x += chunk) for (let z = 0; z < nz; z += chunk) {
-    addGround(`adelaide-parkland-${x}-${z}`, box.x0 + x * cell, box.z0 + z * cell,
+    yield 0.1 + 0.8 * (done++ / chunks);
+    yield* addGround(`adelaide-parkland-${x}-${z}`, box.x0 + x * cell, box.z0 + z * cell,
       Math.min(chunk, nx - x), Math.min(chunk, nz - z), cell, heightFn);
   }
-  addGround('adelaide-flat-horizon', -6000, -6000, 12, 12, 1000, () => -1.8);
+  yield* addGround('adelaide-flat-horizon', -6000, -6000, 12, 12, 1000, () => -1.8);
   const pavingMaterial = new THREE.MeshStandardMaterial({ color: 0xffffff, vertexColors: true, roughness: 0.94 });
-  const sidewalks = pavingRibbon(track, 635, 2240, 1, 1, 6, heightFn, (x, z) => corridor(x, z).clearance);
-  const apron = pavingRibbon(track, -150, 154, -1, 2, 30, () => -0.075, (x, z) => corridor(x, z).clearance);
+  const sidewalks = yield* pavingRibbon(track, 635, 2240, 1, 1, 6, heightFn, (x, z) => corridor(x, z).clearance);
+  const apron = yield* pavingRibbon(track, -150, 154, -1, 2, 30, () => -0.075, (x, z) => corridor(x, z).clearance);
   for (const [name, geo] of [['adelaide-street-paving', sidewalks], ['adelaide-pit-apron', apron]] as const) {
     group.add(Object.assign(new THREE.Mesh(geo, pavingMaterial), { name, receiveShadow: true })); geometries.push(geo);
   }
@@ -69,10 +78,11 @@ export function buildAdelaideTerrain(track: Track, quality: QualityPreset): Terr
   } };
 }
 
-function groundGrid(x0: number, z0: number, w: number, h: number, cell: number, height: (x: number, z: number) => number,
-  clearance: (x: number, z: number) => number, noise: number, surface?: (x: number, z: number) => TerrainSurfaceSample): THREE.BufferGeometry {
+function* groundGrid(x0: number, z0: number, w: number, h: number, cell: number, height: (x: number, z: number) => number,
+  clearance: (x: number, z: number) => number, noise: number, surface?: (x: number, z: number) => TerrainSurfaceSample): Steps<THREE.BufferGeometry> {
   const positions: number[] = [], colours: number[] = [], indices: number[] = [], c = new THREE.Color();
   for (let z = 0; z <= h; z++) for (let x = 0; x <= w; x++) {
+    if (x === 0 && (z & 1) === 1) yield;
     const px = x0 + x * cell, pz = z0 + z * cell;
     positions.push(px, height(px, pz), pz);
     const wave = Math.sin(px * 0.026 + Math.sin(pz * 0.013)) * Math.cos(pz * 0.021);
@@ -87,16 +97,17 @@ function groundGrid(x0: number, z0: number, w: number, h: number, cell: number, 
   }
   const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
   geo.setAttribute('color', new THREE.Float32BufferAttribute(colours, 3)); geo.setIndex(indices);
-  prepareTerrainGeometry(geo, height, surface); geo.computeBoundingSphere();
+  yield* prepareTerrainGeometrySteps(geo, height, surface); geo.computeBoundingSphere();
   return geo;
 }
 
 /** Generated paving follows the survey frame and omits pieces crossing any other track segment. */
-function pavingRibbon(track: Track, from: number, to: number, sign: number, inner: number, outer: number,
-  height: (x: number, z: number) => number, clearance: (x: number, z: number) => number): THREE.BufferGeometry {
+function* pavingRibbon(track: Track, from: number, to: number, sign: number, inner: number, outer: number,
+  height: (x: number, z: number) => number, clearance: (x: number, z: number) => number): Steps<THREE.BufferGeometry> {
   const pos: number[] = [], col: number[] = [], at: [number, number, number] = [0, 0, 0];
   const colour = new THREE.Color(sign > 0 ? 0xb6b0a1 : 0x555b5b);
   for (let s = from; s < to; s += 4) {
+    if (((s - from) / 4 & 31) === 31) yield;
     const corners: THREE.Vector3[] = [];
     for (const [distance, offset] of [[s, inner], [s, outer], [Math.min(to, s + 4), outer], [Math.min(to, s + 4), inner]]) {
       const i = Math.floor(track.wrapS(distance) / track.spacing), side = sign > 0 ? track.left : track.right;

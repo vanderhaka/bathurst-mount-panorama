@@ -154,6 +154,74 @@
 .mn-title-options .mn-btn {
   font-size: 1.15em;
 }
+/* Right column: the map of the circuit being built (title switch) above the Top 10 board (Bathurst). */
+.mn-title-right {
+  position: absolute;
+  top: 50%;
+  right: max(3.5em, 5.5vw);
+  display: flex;
+  flex-direction: column;
+  gap: 0.8em;
+  width: min(26em, 32vw);
+  max-height: calc(100% - 9em);
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+.mn-title-right:not(:has(.mn-title-board)) {
+  width: min(40em, 42vw);
+}
+.mn-switch {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+  padding: 1.2em 1.4em 1em;
+  background: var(--menu-panel-bg);
+  border: 1px solid var(--hud-panel-border);
+  border-top: 0.2em solid var(--hud-accent);
+  border-radius: var(--hud-radius);
+  animation: mn-in 0.34s ease-out both;
+}
+.mn-switch[hidden] {
+  display: none;
+}
+.mn-switch__art {
+  flex: 1 1 26em;
+  min-height: 5em;
+  margin-bottom: 0.9em;
+}
+.mn-title-right:has(.mn-title-board) .mn-switch__art {
+  flex-basis: 16em;
+}
+.mn-switch__art svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+.mn-switch__body {
+  flex: none;
+}
+.mn-switch__name {
+  margin: 0 0 0.6em;
+  font-size: 1.1em;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.mn-switch[data-failed='true'] .mn-switch__art {
+  display: none;
+}
+.mn-switch[data-failed='true'] .mn-switch__name {
+  margin: 0;
+  color: var(--hud-accent);
+}
+/* Race buttons wait while a circuit loads; they stay focusable so the arrow keys keep moving through the menu. */
+.mn-title-options .mn-btn[aria-disabled='true'],
+.mn-screen--title .mn-shootout-feature[aria-disabled='true'] {
+  opacity: 0.4;
+  cursor: default;
+}
 .mn-screen--title .mn-shootout-feature {
   justify-content: space-between;
   gap: 1em;
@@ -211,18 +279,15 @@
 }
 /* live Top 10 on the right of the title screen (display only) */
 .mn-title-board {
-  position: absolute;
-  top: 50%;
-  right: max(3.5em, 5.5vw);
-  width: min(26em, 32vw);
-  max-height: calc(100% - 9em);
+  flex: none;
+  min-height: 0;
   overflow-y: auto;
   padding: 1.2em 1.4em 1em;
   background: var(--menu-panel-bg);
   border: 1px solid var(--hud-panel-border);
   border-top: 0.2em solid var(--hud-accent);
   border-radius: var(--hud-radius);
-  transform: translateY(-50%);
+  pointer-events: auto;
   animation: mn-in 0.34s ease-out both;
 }
 .mn-title-board__head {
@@ -297,14 +362,20 @@
    column, with larger text. `left` repeats the .mn-side margin + width; the board's
    own font size stays the menu's, so these em values match .mn-side. */
 @media (max-width: 960px), (pointer: coarse) and (max-height: 540px) {
-  .mn-title-board {
+  .mn-title-right,
+  .mn-title-right:not(:has(.mn-title-board)) {
     left: calc(max(3.5em, 5.5vw) + min(34em, 44vw) + 2.4em);
     right: 1.4em;
     width: auto;
     max-width: 36em;
     margin-left: auto;
     max-height: calc(100% - 2em);
+  }
+  .mn-title-board {
     padding: 0.9em 1.1em 0.7em;
+  }
+  .mn-switch {
+    padding: 0.9em 1.1em 0.8em;
   }
   .mn-title-board__head {
     margin-bottom: 0.4em;
@@ -331,7 +402,8 @@
 }
 /* No room beside the menu; the Shootout screen still has the full board. */
 @media (max-width: 640px) {
-  .mn-title-board {
+  .mn-title-board,
+  .mn-switch {
     display: none;
   }
 }

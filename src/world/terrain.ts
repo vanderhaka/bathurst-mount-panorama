@@ -7,10 +7,11 @@ import type { Track } from '@/track/track-model';
 import { createTrackPoint, heightAt, projectToTrack, sampleArray } from '@/track/track-query';
 import { DEM_EXTENT, demHeight, fbm } from '@/world/dem';
 import { bakeHeightFieldAo } from '@/art/ambient-occlusion';
-import { createTerrainMaterial, disposeTerrainMaterial } from '@/world/terrain-detail';
-import { createTerrainSurfaceSampler, prepareTerrainGeometry, terrainSplat, terrainSurfaceColour } from '@/world/terrain-surface';
+import { createTerrainMaterialSteps, disposeTerrainMaterial } from '@/world/terrain-detail';
+import { createTerrainSurfaceSampler, prepareTerrainGeometrySteps, terrainSplat, terrainSurfaceColour } from '@/world/terrain-surface';
 import { createNearGrass, type NearGrass } from '@/world/near-grass';
 import { createCorridorMask } from '@/world/corridor-mask';
+import { runSync, type Steps } from '@/world/cooperative';
 
 const FINE_CELL = 6;
 const COARSE_CELL = 60;
@@ -49,6 +50,11 @@ export interface Terrain {
 
 /** Builds the carved fine terrain around the circuit and the coarse landscape to the horizon. */
 export function buildTerrain(track: Track, material?: THREE.Material, quality: QualityPreset = 'high'): Terrain {
+  return runSync(buildTerrainSteps(track, material, quality));
+}
+
+/** The same terrain, handing the thread back inside each chunk and the coarse landscape (see cooperative.ts). */
+export function* buildTerrainSteps(track: Track, material?: THREE.Material, quality: QualityPreset = 'high'): Steps<Terrain> {
   const tp = createTrackPoint();
   const noiseAmp = 1.2;
   const box = fineBox(track);
@@ -84,17 +90,20 @@ export function buildTerrain(track: Track, material?: THREE.Material, quality: Q
   const queryCorridor = (x: number, z: number) => { const c = corridorAt(x, z, hint); hint = c.index; return c; };
 
   const cfg = getGraphics(), tier = QUALITY[quality];
-  const owned = material ? null : createTerrainMaterial({ enabled: cfg.terrainDetail && tier.terrainDetail,
+  const owned = material ? null : yield* createTerrainMaterialSteps({ enabled: cfg.terrainDetail && tier.terrainDetail,
     size: tier.terrainMapSize, normalStrength: cfg.terrainNormalStrength, mownStrength: cfg.mownStrength });
   const mat = material ?? owned!;
   const group = new THREE.Group();
   group.name = 'terrain';
   const nx = Math.round((box.x1 - box.x0) / FINE_CELL);
   const nz = Math.round((box.z1 - box.z0) / FINE_CELL);
+  const chunks = Math.ceil(nx / CHUNK_CELLS) * Math.ceil(nz / CHUNK_CELLS);
+  let done = 0;
   for (let cz = 0; cz < nz; cz += CHUNK_CELLS) {
     for (let cx = 0; cx < nx; cx += CHUNK_CELLS) {
+      yield 0.1 + 0.6 * (done++ / chunks);
       const w = Math.min(CHUNK_CELLS, nx - cx), h = Math.min(CHUNK_CELLS, nz - cz);
-      const geo = gridGeometry(box.x0 + cx * FINE_CELL, box.z0 + cz * FINE_CELL, w, h, FINE_CELL, heightFn, (x, z) => corridor(x, z), fineEdgeFade, tier.bakedAo ? cfg.bakedAo : 0);
+      const geo = yield* gridGeometrySteps(box.x0 + cx * FINE_CELL, box.z0 + cz * FINE_CELL, w, h, FINE_CELL, heightFn, (x, z) => corridor(x, z), fineEdgeFade, tier.bakedAo ? cfg.bakedAo : 0);
       const mesh = new THREE.Mesh(geo, mat);
       mesh.receiveShadow = true;
       mesh.name = `terrain-fine-${cx}-${cz}`;
@@ -113,10 +122,12 @@ export function buildTerrain(track: Track, material?: THREE.Material, quality: Q
     const skirt = edge > 0.97 ? (edge - 0.97) * 4000 : 0;
     return demHeight(x, z) - (inside ? 60 : 0) - skirt; // well under the detailed terrain, which covers the box
   };
-  const coarse = new THREE.Mesh(gridGeometry(ox, oz, cn, cn, COARSE_CELL, coarseH, null, undefined, tier.bakedAo ? cfg.bakedAo : 0), mat);
+  yield 0.7;
+  const coarse = new THREE.Mesh(yield* gridGeometrySteps(ox, oz, cn, cn, COARSE_CELL, coarseH, null, undefined, tier.bakedAo ? cfg.bakedAo : 0), mat);
   coarse.receiveShadow = true;
   coarse.name = 'terrain-coarse';
   group.add(coarse);
+  yield 0.97;
   const grass = createNearGrass(createTerrainSurfaceSampler(track, heightFn), {
     enabled: cfg.nearGrass && tier.nearGrass, capacity: tier.grassCapacity, radius: tier.grassRadius,
     density: cfg.grassTuftDensity, wind: cfg.grassWind,
@@ -207,19 +218,20 @@ function landCover(x: number, z: number, c: THREE.Color, treeTint = true): void 
   }
 }
 
-function gridGeometry(
+function* gridGeometrySteps(
   x0: number, z0: number, w: number, h: number, cell: number,
   height: (x: number, z: number) => number,
   corridor: ((x: number, z: number) => { dist: number; wall: number; edge: number; cut: number }) | null,
   /** 0 at the edge of the detailed terrain, 1 inside: blends in the far landscape colours (no seam). */
   edgeFade?: (x: number, z: number) => number,
   aoStrength = getGraphics().bakedAo,
-): THREE.BufferGeometry {
+): Steps<THREE.BufferGeometry> {
   const vx = w + 1, vz = h + 1;
   const pos = new Float32Array(vx * vz * 3);
   const col = new Float32Array(vx * vz * 3);
   const noiseK = getGraphics().terrainColourNoise;
   for (let j = 0; j < vz; j++) for (let i = 0; i < vx; i++) {
+    if (i === 0 && (j & 7) === 7) yield;
     const x = x0 + i * cell, z = z0 + j * cell;
     const k = (j * vx + i) * 3;
     pos[k] = x; pos[k + 1] = height(x, z); pos[k + 2] = z;
@@ -233,11 +245,12 @@ function gridGeometry(
   const geo = new THREE.BufferGeometry();
   geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
   geo.setIndex(idx);
-  prepareTerrainGeometry(geo, height);
+  yield* prepareTerrainGeometrySteps(geo, height);
   const nrm = geo.getAttribute('normal');
   const cover = geo.getAttribute('terrainCover') as THREE.BufferAttribute;
   const tmp = new THREE.Color(), far = new THREE.Color();
   for (let v = 0; v < vx * vz; v++) {
+    if ((v & 255) === 255) yield;
     const x = pos[v * 3], z = pos[v * 3 + 2];
     const n1 = fbm(x / 140, z / 140, 4, 3) * noiseK;
     const n2 = fbm(x / 22, z / 22, 2, 7) * noiseK;

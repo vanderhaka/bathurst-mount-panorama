@@ -45,7 +45,9 @@ import { isShootoutMode, type SessionConfig, type Settings } from '@/types/sessi
 import { createMenus } from '@/ui';
 import { debugRaceConfig, teleport, type DebugRaceStart } from '@/game/debug-tools';
 import { RacingLineMesh } from '@/world/racing-line-mesh';
-import { buildWorld, type World } from '@/world/world';
+import { buildWorld, disposeWorld, type World } from '@/world/world';
+import { CircuitSwitch } from '@/game/circuit-switch';
+import { commitCircuit, type CircuitId } from '@/track/circuits';
 import { carEnvMaterials } from '@/world/car-env';
 
 type GameState = 'title' | 'carSelect' | 'race' | 'paused';
@@ -66,7 +68,7 @@ export class Game {
   private readonly input = new InputManager();
   private readonly timer = new THREE.Timer();
   private readonly rig: CameraRig;
-  private readonly lineMesh: RacingLineMesh;
+  private lineMesh: RacingLineMesh;
   private readonly tuner: GraphicsTuner;
   private readonly attract: AttractMode;
   private race: RaceController | null = null;
@@ -76,6 +78,7 @@ export class Game {
   private readonly focus = new THREE.Vector3();
   private readonly particles: Particles; private readonly effects: RaceEffects;
   private readonly graphics: GameGraphics;
+  private readonly circuits: CircuitSwitch;
   private readonly shootoutStore = new ShootoutStore();
   private shootoutPreferences: Settings | null = null;
   private claimingShootout = false;
@@ -84,7 +87,7 @@ export class Game {
   /** Real time of the running Shootout timed lap, paused with the game (the slow-motion check at the line). */
   private readonly lapClock = new RealLapClock();
 
-  private constructor(private readonly stage: Stage, private world: World, private readonly hud: Hud, private readonly menus: Menus) {
+  private constructor(private readonly stage: Stage, private world: World, private readonly hud: Hud, private readonly menus: Menus, private readonly root: HTMLElement) {
     this.rig = new CameraRig(stage.camera, world.track);
     this.lineMesh = new RacingLineMesh(world.track, world.line, world.profile);
     stage.scene.add(this.lineMesh.mesh);
@@ -103,6 +106,17 @@ export class Game {
       notify: (text) => this.race?.session.say(text, 'info', 4),
       progress: (fraction, label) => this.menus.showLoading(fraction, label),
       endProgress: () => this.menus.endLoading(),
+    });
+    this.circuits = new CircuitSwitch({
+      active: () => this.world.track.id,
+      allowed: () => this.state === 'title' && !this.halted,
+      quality: () => this.settings.quality,
+      build: (circuit, quality, progress) => buildWorld(stage.renderer, progress, quality, undefined, circuit),
+      precompile: (next) => stage.precompile(next.root),
+      idle: () => this.graphics.idle(),
+      install: (next, pause) => this.installCircuit(next, pause),
+      discard: (next) => disposeWorld(next),
+      ui: menus,
     });
     this.tuner = new GraphicsTuner(() => { void this.graphics.rebuildWorld(); }, { setScale: setHudScale, setOpacity: setHudOpacity }, this.effects);
     this.timer.connect(document);
@@ -125,6 +139,7 @@ export class Game {
       onSettingsChange: (s) => game?.applySettings(s),
       onPreviewCar: (car, livery) => game?.preview(car, livery),
       onEnableTilt: () => game?.input.enableTilt() ?? Promise.resolve('unavailable'),
+      onSwitchCircuit: (circuit) => game?.switchCircuit(circuit),
     }), settings);
     await loadHudFonts();
     menus.showLoading(0.02, 'Starting');
@@ -141,7 +156,7 @@ export class Game {
     const hud = createHud();
     hud.mount(root, hudTrackInfo(world.track));
     hud.setVisible(false);
-    game = new Game(stage, world, hud, menus);
+    game = new Game(stage, world, hud, menus, root);
     installDeviceHooks(root, game.input, settings, () => { if (game?.state === 'race') game.pause(); });
     menus.showLoading(1, 'Ready');
     game.enterTitle();
@@ -168,13 +183,46 @@ export class Game {
   private enterTitle(): void {
     this.state = 'title'; this.hud.setVisible(false);
     this.graphics.endRace();
+    this.placeDemo();
+    this.rig.mode = 'tv';
+    this.menus.showTitle();
+  }
+
+  /** The AI car that laps behind the title screen, on the current circuit. */
+  private placeDemo(): void {
     this.attract.drop();
     const entity = this.makeEntity('camaro', 0);
     const s = 900;
     entity.reset(s, this.world.line.offset[Math.round(s / this.world.track.spacing)]);
     this.attract.set(entity, this.world.line);
-    this.rig.mode = 'tv';
-    this.menus.showTitle();
+  }
+
+  /** Title screen: builds another circuit in the background and swaps it in without a page reload (newest request wins). */
+  switchCircuit(circuit: CircuitId): void { this.circuits.request(circuit); }
+
+  /** Everything built from the old track at start-up follows the new world, then the old one is released. */
+  private async installCircuit(next: World, pause: (done: number, total: number) => Promise<void>): Promise<void> {
+    const old = this.world;
+    this.stage.scene.remove(old.root);
+    this.stage.scene.add(next.root);
+    this.world = next;
+    this.rig.setTrack(next.track);
+    const line = this.lineMesh.mesh;
+    this.stage.scene.remove(line);
+    line.geometry.dispose();
+    (line.material as THREE.MeshBasicMaterial).map?.dispose();
+    (line.material as THREE.MeshBasicMaterial).dispose();
+    this.lineMesh = new RacingLineMesh(next.track, next.line, next.profile);
+    this.lineMesh.mesh.visible = false;
+    this.stage.scene.add(this.lineMesh.mesh);
+    this.effects.setWorld(next, this.settings.quality);
+    this.placeDemo();
+    this.hud.mount(this.root, hudTrackInfo(next.track));
+    this.hud.setVisible(false);
+    commitCircuit(next.track.id);
+    this.menus.circuitChanged();
+    await this.bakeCarEnv(pause);
+    disposeWorld(old, next);
   }
 
   private preview(car: CarKind, liveryIndex: number): void {
@@ -199,7 +247,7 @@ export class Game {
 
   /** The menus pass a SessionConfig; a browser check may pass a DebugRaceStart (a race with default options). */
   startRace(request: SessionConfig | DebugRaceStart): void {
-    if (this.halted || this.switching) return;
+    if (this.halted || this.switching || this.circuits.busy) return;
     if (!('settings' in request)) this.menus.hide(); // the menus close themselves when they start a race
     this.runAtBoundary(() => this.beginRace(request));
   }

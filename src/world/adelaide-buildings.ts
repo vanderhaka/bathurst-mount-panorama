@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { runSync, type Steps } from '@/world/cooperative';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { getGraphics, QUALITY } from '@/config/graphics';
 import { extrude, quad } from '@/props/core/shapes';
@@ -73,11 +74,17 @@ function office(p: StructureParts, building: AdelaideBuilding, detailed: boolean
 
 /** Merged by district and shared material: dozens of façades cost at most six draws. */
 export function buildAdelaideCity(track: Track, terrain: Terrain, quality: QualityPreset): THREE.Group {
+  return runSync(buildAdelaideCitySteps(track, terrain, quality));
+}
+
+/** The same city, handing the thread back between buildings (see world/cooperative.ts). */
+export function* buildAdelaideCitySteps(track: Track, terrain: Terrain, quality: QualityPreset): Steps<THREE.Group> {
   const group = new THREE.Group(); group.name = 'adelaide-city';
   const tier = QUALITY[quality], cfg = getGraphics(), placements = adelaideCityPlacements(track, terrain, quality);
   for (const district of ['street', 'skyline'] as const) {
     const parts = new Map<THREE.Material, THREE.BufferGeometry[]>();
     for (const building of placements.filter(p => p.district === district)) {
+      yield;
       const p = new StructureParts(), detailed = quality !== 'low' && (district === 'street' || cfg.distantLandmarks && tier.distantLandmarks);
       if (building.heritage) heritage(p, building, detailed); else office(p, building, detailed);
       const object = p.toGroup(`adelaide-building-${building.seed}`);

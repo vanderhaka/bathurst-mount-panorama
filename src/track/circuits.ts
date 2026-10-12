@@ -72,13 +72,41 @@ export function nextCircuit(current: CircuitId, dir: -1 | 1): CircuitId {
   return CIRCUIT_IDS[(CIRCUIT_IDS.indexOf(current) + dir + CIRCUIT_IDS.length) % CIRCUIT_IDS.length];
 }
 
-/**
- * Reloads on another circuit and remembers it. `replace` swaps the history entry, so Back leaves the
- * game instead of toggling circuits. If the choice can not be saved, the address names the circuit.
- */
-export function switchCircuit(circuit: CircuitId, nav: Pick<Location, 'href' | 'replace'> = location, storage: CircuitStorage | null = browserStorage()): void {
-  const saved = saveCircuit(circuit, storage);
-  nav.replace(circuitUrl(nav.href, circuit, !saved));
+/** The page title before any circuit renames it (index.html); Bathurst keeps it. */
+const BASE_TITLE = typeof document === 'undefined' ? '' : document.title;
+
+export function circuitTitle(circuit: CircuitId): string {
+  return circuit === 'bathurst' ? BASE_TITLE : `${CIRCUITS[circuit].name} — Gen3 time trial`;
 }
 
-export const ACTIVE_CIRCUIT: CircuitId = typeof location === 'undefined' ? 'bathurst' : circuitFromSearch(location.search);
+/**
+ * The circuit the game is on. It starts from ?track= (the saved choice only names it in the address) and
+ * changes in place with setActiveCircuit when the title screen swaps the world. src/world reads the live
+ * binding as its default circuit.
+ */
+export let ACTIVE_CIRCUIT: CircuitId = typeof location === 'undefined' ? 'bathurst' : circuitFromSearch(location.search);
+
+export function activeCircuit(): CircuitId { return ACTIVE_CIRCUIT; }
+
+export function setActiveCircuit(circuit: CircuitId): void { ACTIVE_CIRCUIT = circuit; }
+
+interface CircuitEnv {
+  location: Pick<Location, 'href'>;
+  history: Pick<History, 'replaceState'>;
+  storage: CircuitStorage | null;
+  doc: { title: string } | null;
+}
+
+/**
+ * The game is now on `circuit` without a reload: remembers it, names it in the address (replaceState, so Back
+ * leaves the game instead of toggling circuits; if the choice can not be saved the address names it even for
+ * Bathurst) and renames the page.
+ */
+export function commitCircuit(circuit: CircuitId, env: CircuitEnv = {
+  location, history, storage: browserStorage(), doc: typeof document === 'undefined' ? null : document,
+}): void {
+  setActiveCircuit(circuit);
+  const saved = saveCircuit(circuit, env.storage);
+  env.history.replaceState(null, '', circuitUrl(env.location.href, circuit, !saved));
+  if (env.doc) env.doc.title = circuitTitle(circuit);
+}

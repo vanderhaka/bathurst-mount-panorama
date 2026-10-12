@@ -1,7 +1,8 @@
 import * as THREE from 'three';
 import { ROAD } from '@/art/palette';
 import type { SpeedProfile } from '@/track/speed-profile';
-import { generateAsphaltMaps, generateWeatherMap } from '@/world/asphalt-maps';
+import { generateAsphaltMapsSteps, generateWeatherMapSteps } from '@/world/asphalt-maps';
+import { runSync, type Steps } from '@/world/cooperative';
 import { clamp01, sealTextureEdges, smoothStep, surfaceNoise } from '@/world/surface-noise';
 
 /** Look constants for the road shader and kerb texture; strengths the graphics config does not own. */
@@ -58,6 +59,11 @@ export interface RoadMaterials {
 }
 
 export function createRoadMaterials(renderer: THREE.WebGLRenderer, length: number, options: ReturnType<typeof roadOptions>): RoadMaterials {
+  return runSync(createRoadMaterialsSteps(renderer, length, options));
+}
+
+/** The same materials, handing the thread back while the asphalt and weather maps are generated. */
+export function* createRoadMaterialsSteps(renderer: THREE.WebGLRenderer, length: number, options: ReturnType<typeof roadOptions>): Steps<RoadMaterials> {
   const textures: THREE.Texture[] = [];
   const make = (data: Uint8Array, size: number, colour = false): THREE.DataTexture => {
     const texture = new THREE.DataTexture(data, size, size);
@@ -71,13 +77,13 @@ export function createRoadMaterials(renderer: THREE.WebGLRenderer, length: numbe
     textures.push(texture);
     return texture;
   };
-  const maps = generateAsphaltMaps(options.detailSize);
+  const maps = yield* generateAsphaltMapsSteps(options.detailSize);
   const albedo = make(maps.albedo, maps.size, true);
   albedo.repeat.y = Math.round(length / 4) * 4 / length;
   const normal = options.surfaceDetail ? make(maps.normal, maps.size) : null;
   const roughness = options.surfaceDetail ? make(maps.roughness, maps.size) : null;
   for (const texture of [normal, roughness]) if (texture) texture.repeat.copy(albedo.repeat);
-  const weather = options.repairStrength > 0 ? make(generateWeatherMap(maps.size), maps.size) : null;
+  const weather = options.repairStrength > 0 ? make(yield* generateWeatherMapSteps(maps.size), maps.size) : null;
   const road = new THREE.MeshStandardMaterial({
     color: 0xffffff, map: albedo, normalMap: normal, roughnessMap: roughness,
     normalScale: new THREE.Vector2(options.normalStrength, options.normalStrength),
@@ -120,7 +126,9 @@ export function createRoadMaterials(renderer: THREE.WebGLRenderer, length: numbe
   road.customProgramCacheKey = () => `road-surface-v2:${weather ? 1 : 0}:${options.surfaceDetail ? 1 : 0}`;
 
   const paintSize = Math.min(256, options.detailSize);
+  yield;
   const paintMap = make(paintData(paintSize, options.lineWear, false), paintSize, true);
+  yield;
   // 0.25 m across, 12 m along; close the lap seam with a whole number of periods.
   paintMap.repeat.set(4, Math.round(length / 12) / length);
   const paint = new THREE.MeshStandardMaterial({

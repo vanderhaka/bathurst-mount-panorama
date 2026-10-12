@@ -9,17 +9,23 @@ import type { Track } from '@/track/track-model';
 import { pointAt } from '@/track/track-query';
 import type { SpeedProfile } from '@/track/speed-profile';
 import { adelaideFootprintFits, adelaideOpenLawn, adelaideTreePlacements } from '@/world/adelaide-layout';
-import { buildAdelaideCity, buildAdelaidePitPavilion } from '@/world/adelaide-buildings';
+import { buildAdelaideCitySteps, buildAdelaidePitPavilion } from '@/world/adelaide-buildings';
 import type { Scenery } from '@/world/scenery';
 import { rng, SpatialMask, yawFacingTrack } from '@/world/scenery/geo';
-import { createGumLayer } from '@/world/scenery/gum-layer';
+import { createGumLayerSteps } from '@/world/scenery/gum-layer';
+import { runSync, scaled, type Steps } from '@/world/cooperative';
 import { PropInstancer } from '@/world/scenery/instancer';
 import type { Terrain } from '@/world/terrain';
 
 /** Generated city/parkland scenery only: no Mount Panorama structures, forest or camps. */
 export function buildAdelaideScenery(track: Track, terrain: Terrain, profile: SpeedProfile, quality: QualityPreset): Scenery {
+  return runSync(buildAdelaideScenerySteps(track, terrain, profile, quality));
+}
+
+/** The same scenery, handing the thread back between its categories (see world/cooperative.ts). */
+export function* buildAdelaideScenerySteps(track: Track, terrain: Terrain, profile: SpeedProfile, quality: QualityPreset): Steps<Scenery> {
   const group = new THREE.Group(); group.name = 'adelaide-scenery';
-  const tier = QUALITY[quality], gums = createGumLayer(quality), inst = new PropInstancer(gums.getPropAsset), mask = new SpatialMask(20);
+  const tier = QUALITY[quality], gums = yield* scaled(createGumLayerSteps(quality), 0, 0.3), inst = new PropInstancer(gums.getPropAsset), mask = new SpatialMask(20);
   const p: [number, number, number] = [0, 0, 0], random = rng(3219);
   const yawAlong = (s: number) => { const i = Math.floor(track.wrapS(s) / track.spacing); return Math.atan2(track.tx[i], track.tz[i]); };
   const place = (object: THREE.Group, s: number, d: number, yaw: number, width: number, depth: number): boolean => {
@@ -29,7 +35,7 @@ export function buildAdelaideScenery(track: Track, terrain: Terrain, profile: Sp
     group.add(object); mask.add(p[0], p[2], Math.min(width, depth) / 2 + 4);
     inst.contactAo.add(p[0], p[2], Math.min(width, depth) / 2); return true;
   };
-  group.add(buildAdelaideCity(track, terrain, quality));
+  group.add(yield* scaled(buildAdelaideCitySteps(track, terrain, quality), 0.3, 0.6));
   const finish = track.startLineS, gi = Math.floor(track.wrapS(track.gridLineS) / track.spacing);
   const gantry = buildStartGantry({ span: track.left.wall[gi] + track.right.wall[gi] + 2, height: 6.5 });
   pointAt(track, track.gridLineS, (track.left.wall[gi] - track.right.wall[gi]) / 2, p);
@@ -49,12 +55,14 @@ export function buildAdelaideScenery(track: Track, terrain: Terrain, profile: Sp
   const screen = buildVideoScreen({ width: 9 });
   const screenS = finish + 175, si = Math.floor(track.wrapS(screenS) / track.spacing);
   place(screen, screenS, track.left.wall[si] + 21, yawAlong(screenS) - Math.PI / 2, 10, 5);
+  yield 0.6;
   let trees = 0;
   for (const tree of adelaideTreePlacements(track, terrain, quality)) {
     if (mask.blocked(tree.x, tree.z, tree.radius)) continue;
     inst.add('eucalyptus', tree.variant, tree.x, terrain.heightAt(tree.x, tree.z), tree.z, tree.yaw, tree.scale);
     mask.add(tree.x, tree.z, tree.radius * 0.5); trees++;
   }
+  yield 0.7;
   // Street furniture is sparse and anchored behind the barriers, with no signs in the racing line.
   for (let s = 470; s < 2390; s += 49) {
     const i = Math.floor(s / track.spacing);
@@ -81,6 +89,7 @@ export function buildAdelaideScenery(track: Track, terrain: Terrain, profile: Sp
       inst.add('distanceBoard', variant, p[0], terrain.heightAt(p[0], p[2]), p[2], yawAlong(s) + Math.PI, 0.75);
     }
   }
+  yield 0.8;
   const fence = parkRail(track, terrain); group.add(fence);
   if (quality !== 'low') for (let i = 0; i < 65; i++) {
     const s = finish - 135 + random() * 280, j = Math.floor(track.wrapS(s) / track.spacing);
@@ -89,7 +98,8 @@ export function buildAdelaideScenery(track: Track, terrain: Terrain, profile: Sp
     inst.add('spectator', i % PROP_VARIANTS.spectator, p[0], terrain.heightAt(p[0], p[2]), p[2], yawAlong(s) - Math.PI / 2, 1,
       [0x6f7b71, 0x344c65, 0x913f36, 0xcec9b5][i % 4]);
   }
-  const stats = inst.build(); group.add(inst.group);
+  yield 0.85;
+  const stats = yield* scaled(inst.buildSteps(), 0.85, 1); group.add(inst.group);
   let first = true, disposed = false;
   const startMaterials = gantry.getObjectByName('start-lights')?.children.map(o => (o as THREE.Mesh).material as THREE.Material) ?? [];
   return { group, stats: { ...stats, trees }, contactAo: inst.contactAo, update(camera) {

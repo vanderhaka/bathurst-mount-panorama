@@ -1,7 +1,8 @@
 import * as THREE from 'three';
 import { installGumDither } from '@/props/trees/gum-lod';
 import { treeMaterial } from '@/props/core/materials';
-import { createGumAtlas, GUM_ATLAS_GRID } from '@/props/trees/gum-atlas';
+import { runSync } from '@/world/cooperative';
+import { createGumAtlasSteps, GUM_ATLAS_GRID } from '@/props/trees/gum-atlas';
 import { GUM_SHADING } from '@/props/look';
 import { installGumWind, type GumWindUniforms } from '@/props/trees/gum-wind';
 
@@ -9,7 +10,12 @@ export interface GumMaterialOptions { atlasSize: number; barkDetail: boolean; an
 
 /** One atlas/material batch for bark, leaves and far crowns, including undergrowth. */
 export function createGumMaterials(options: GumMaterialOptions) {
-  const atlas = createGumAtlas(options.atlasSize, options.barkDetail);
+  return runSync(createGumMaterialsSteps(options));
+}
+
+/** The same materials, handing the thread back while the atlas is drawn (see world/cooperative.ts). */
+export function* createGumMaterialsSteps(options: GumMaterialOptions) {
+  const atlas = yield* createGumAtlasSteps(options.atlasSize, options.barkDetail);
   for (const t of [atlas.map, atlas.normal, atlas.roughness]) if (t) t.anisotropy = Math.max(1, Math.min(8, options.anisotropy ?? 4));
   const base = treeMaterial(), material = base.clone();
   // Material.clone does not copy callback functions. Retain the existing leaf-only tint.

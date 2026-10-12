@@ -8,8 +8,9 @@ import { createTrackPoint, heightAt, pointAt, projectToTrack, sampleArray } from
 import { GOLD_COAST_ENV, coastXAt, inSea, inWater, shoreDistance, transitDistance } from '@/world/gold-coast-geo';
 import { createNearGrass } from '@/world/near-grass';
 import type { Terrain } from '@/world/terrain';
-import { createTerrainMaterial, disposeTerrainMaterial } from '@/world/terrain-detail';
-import { prepareTerrainGeometry, type TerrainSurfaceSample } from '@/world/terrain-surface';
+import { runSync, type Steps } from '@/world/cooperative';
+import { createTerrainMaterialSteps, disposeTerrainMaterial } from '@/world/terrain-detail';
+import { prepareTerrainGeometrySteps, type TerrainSurfaceSample } from '@/world/terrain-surface';
 
 const smooth = (v: number) => { const t = Math.max(0, Math.min(1, v)); return t * t * (3 - 2 * t); };
 const green = linearColour(0x708245), dry = linearColour(GROUND.grassDry), sand = linearColour(GROUND.sand), bed = linearColour(0x7d765f);
@@ -17,6 +18,11 @@ const BEACH = 55, SEA_FLOOR = -2, WATER_FLOOR = -1.2, SEA_Y = -0.35, WATER_Y = -
 
 /** Flat Surfers Paradise estimate: street-circuit ground with a beach, the Pacific to the east and the Broadwater to the west. */
 export function buildGoldCoastTerrain(track: Track, quality: QualityPreset): Terrain {
+  return runSync(buildGoldCoastTerrainSteps(track, quality));
+}
+
+/** The same terrain, handing the thread back inside each ground chunk (see world/cooperative.ts). */
+export function* buildGoldCoastTerrainSteps(track: Track, quality: QualityPreset): Steps<Terrain> {
   const cfg = getGraphics(), tier = QUALITY[quality], cell = quality === 'low' ? 16 : quality === 'medium' ? 10 : 8;
   const tp = createTrackPoint();
   const corridor = (x: number, z: number) => {
@@ -54,24 +60,27 @@ export function buildGoldCoastTerrain(track: Track, quality: QualityPreset): Ter
   for (let z = z0; z <= z1; z += 20) east = Math.max(east, coastXAt(z) + 150);
   const box = { x0: snap(Math.min(...track.px) - margin), x1: snap(east + cell), z0, z1 };
   const group = new THREE.Group(); group.name = 'gold-coast-terrain';
-  const material = createTerrainMaterial({ enabled: cfg.terrainDetail && tier.terrainDetail, size: tier.terrainMapSize,
+  const material = yield* createTerrainMaterialSteps({ enabled: cfg.terrainDetail && tier.terrainDetail, size: tier.terrainMapSize,
     normalStrength: cfg.terrainNormalStrength, mownStrength: cfg.mownStrength });
   const geometries: THREE.BufferGeometry[] = [], seaBox = { x1: box.x1 + 3000, z0: box.z0 - 3000, z1: box.z1 + 3000 };
-  const addGround = (name: string, x0: number, z0: number, w: number, h: number, step: number, height: (x: number, z: number) => number) => {
+  const addGround = function* (name: string, x0: number, z0: number, w: number, h: number, step: number, height: (x: number, z: number) => number): Steps<void> {
     // Horizon tiles are skipped where the sea plane already covers them.
     const covered = (cx: number, cz: number) => cx + step / 2 < seaBox.x1 && cz - step / 2 > seaBox.z0 && cz + step / 2 < seaBox.z1
       && [-1, 1].every(a => [-1, 1].every(b => inSea(cx + a * step / 2, cz + b * step / 2)));
-    const geo = groundGrid(x0, z0, w, h, step, height, (x, z) => corridor(x, z).clearance, cfg.terrainColourNoise,
+    const geo = yield* groundGrid(x0, z0, w, h, step, height, (x, z) => corridor(x, z).clearance, cfg.terrainColourNoise,
       name === 'gold-coast-flat-horizon' ? undefined : surface, name === 'gold-coast-flat-horizon' ? covered : undefined);
     const mesh = new THREE.Mesh(geo, material); mesh.name = name; mesh.receiveShadow = true;
     group.add(mesh); geometries.push(geo);
   };
   const nx = Math.round((box.x1 - box.x0) / cell), nz = Math.round((box.z1 - box.z0) / cell), chunk = 48;
+  const chunks = Math.ceil(nx / chunk) * Math.ceil(nz / chunk);
+  let done = 0;
   for (let x = 0; x < nx; x += chunk) for (let z = 0; z < nz; z += chunk) {
-    addGround(`gold-coast-ground-${x}-${z}`, box.x0 + x * cell, box.z0 + z * cell,
+    yield 0.1 + 0.7 * (done++ / chunks);
+    yield* addGround(`gold-coast-ground-${x}-${z}`, box.x0 + x * cell, box.z0 + z * cell,
       Math.min(chunk, nx - x), Math.min(chunk, nz - z), cell, heightFn);
   }
-  addGround('gold-coast-flat-horizon', -6000, -6000, 12, 12, 1000, () => -1.8);
+  yield* addGround('gold-coast-flat-horizon', -6000, -6000, 12, 12, 1000, () => -1.8);
   const seaMaterial = new THREE.MeshStandardMaterial({ color: '#1d6a86', roughness: 0.18, metalness: 0 });
   const waterMaterial = new THREE.MeshStandardMaterial({ color: '#2a6f7a', roughness: 0.22, metalness: 0 });
   const sea = seaGeometry(seaBox);
@@ -90,9 +99,9 @@ export function buildGoldCoastTerrain(track: Track, quality: QualityPreset): Ter
     return [wall + 0.65, wall + 3.65];
   };
   const paving: [string, THREE.BufferGeometry][] = [
-    ['gold-coast-footpath-left', pavingRibbon(track, 0, track.length, 1, foot(1), 0xb6b0a1, heightFn, footClear)],
-    ['gold-coast-footpath-right', pavingRibbon(track, 0, track.length, -1, foot(-1), 0xb6b0a1, heightFn, footClear)],
-    ['gold-coast-pit-lane', pavingRibbon(track, -298, 294, 1, () => [15, 23], 0x555b5b, heightFn, clearance)],
+    ['gold-coast-footpath-left', yield* pavingRibbon(track, 0, track.length, 1, foot(1), 0xb6b0a1, heightFn, footClear)],
+    ['gold-coast-footpath-right', yield* pavingRibbon(track, 0, track.length, -1, foot(-1), 0xb6b0a1, heightFn, footClear)],
+    ['gold-coast-pit-lane', yield* pavingRibbon(track, -298, 294, 1, () => [15, 23], 0x555b5b, heightFn, clearance)],
   ];
   for (const [name, geo] of paving) { group.add(Object.assign(new THREE.Mesh(geo, pavingMaterial), { name, receiveShadow: true })); geometries.push(geo); }
   const grass = createNearGrass(grassSurface, { enabled: cfg.nearGrass && tier.nearGrass, capacity: tier.grassCapacity,
@@ -122,11 +131,12 @@ function waterGeometry(): THREE.BufferGeometry {
   return new THREE.ShapeGeometry(shapes).rotateX(-Math.PI / 2);
 }
 
-function groundGrid(x0: number, z0: number, w: number, h: number, cell: number, height: (x: number, z: number) => number,
+function* groundGrid(x0: number, z0: number, w: number, h: number, cell: number, height: (x: number, z: number) => number,
   clearance: (x: number, z: number) => number, noise: number, surface?: (x: number, z: number) => TerrainSurfaceSample,
-  skip?: (cx: number, cz: number) => boolean): THREE.BufferGeometry {
+  skip?: (cx: number, cz: number) => boolean): Steps<THREE.BufferGeometry> {
   const positions: number[] = [], colours: number[] = [], indices: number[] = [], c = new THREE.Color();
   for (let z = 0; z <= h; z++) for (let x = 0; x <= w; x++) {
+    if (x === 0 && (z & 1) === 1) yield;
     const px = x0 + x * cell, pz = z0 + z * cell, y = height(px, pz);
     positions.push(px, y, pz);
     const wave = Math.sin(px * 0.026 + Math.sin(pz * 0.013)) * Math.cos(pz * 0.021);
@@ -143,16 +153,17 @@ function groundGrid(x0: number, z0: number, w: number, h: number, cell: number, 
   }
   const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
   geo.setAttribute('color', new THREE.Float32BufferAttribute(colours, 3)); geo.setIndex(indices);
-  prepareTerrainGeometry(geo, height, surface); geo.computeBoundingSphere();
+  yield* prepareTerrainGeometrySteps(geo, height, surface); geo.computeBoundingSphere();
   return geo;
 }
 
 /** Generated paving follows the survey frame and omits pieces crossing any other track segment. */
-function pavingRibbon(track: Track, from: number, to: number, sign: number, band: (i: number) => [number, number], colourHex: number,
-  height: (x: number, z: number) => number, clearance: (x: number, z: number) => number): THREE.BufferGeometry {
+function* pavingRibbon(track: Track, from: number, to: number, sign: number, band: (i: number) => [number, number], colourHex: number,
+  height: (x: number, z: number) => number, clearance: (x: number, z: number) => number): Steps<THREE.BufferGeometry> {
   const pos: number[] = [], col: number[] = [], at: [number, number, number] = [0, 0, 0];
   const colour = new THREE.Color(colourHex);
   for (let s = from; s < to; s += 4) {
+    if (((s - from) / 4 & 31) === 31) yield;
     const corners: THREE.Vector3[] = [];
     for (const [distance, end] of [[s, 0], [s, 1], [Math.min(to, s + 4), 1], [Math.min(to, s + 4), 0]]) {
       pointAt(track, distance, sign * band(Math.floor(track.wrapS(distance) / track.spacing))[end], at);

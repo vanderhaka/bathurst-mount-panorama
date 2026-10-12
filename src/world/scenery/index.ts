@@ -16,9 +16,10 @@ import { placeCutRocks } from '@/world/scenery/cut-rocks';
 import { buildTown } from '@/world/scenery/town';
 import { buildPaddock } from '@/world/scenery/paddock';
 import { buildVineyards } from '@/world/scenery/vineyards';
-import { placeVegetation } from '@/world/scenery/vegetation';
+import { placeVegetationSteps } from '@/world/scenery/vegetation';
 import type { ContactAo } from '@/art/ambient-occlusion';
-import { createGumLayer } from '@/world/scenery/gum-layer';
+import { createGumLayerSteps } from '@/world/scenery/gum-layer';
+import { runSync, scaled, type Steps } from '@/world/cooperative';
 
 const F = featuresJson as unknown as { parking: XZ[][]; water: XZ[][]; pitLane: XZ[][]; serviceRoads: XZ[][]; stoneSign: XZ[][] };
 
@@ -33,6 +34,11 @@ export interface Scenery {
 
 /** Everything that stands around the circuit, placed from real OpenStreetMap data where it exists. */
 export function buildScenery(track: Track, terrain: Terrain, profile: SpeedProfile, quality: QualityPreset): Scenery {
+  return runSync(buildScenerySteps(track, terrain, profile, quality));
+}
+
+/** The same scenery, handing the thread back between its categories and inside the big loops (see cooperative.ts). */
+export function* buildScenerySteps(track: Track, terrain: Terrain, profile: SpeedProfile, quality: QualityPreset): Steps<Scenery> {
   const group = new THREE.Group();
   group.name = 'scenery';
   const mask = new SpatialMask(20);
@@ -44,23 +50,33 @@ export function buildScenery(track: Track, terrain: Terrain, profile: SpeedProfi
   for (const ring of F.stoneSign) for (const [x, z] of densify(ring, 4)) mask.add(x, z, 8);
   maskTvSightlines(track, terrain, mask);
 
-  const gums = createGumLayer(quality), inst = new PropInstancer(gums.getPropAsset);
+  yield 0.02;
+  const gums = yield* scaled(createGumLayerSteps(quality), 0.02, 0.2), inst = new PropInstancer(gums.getPropAsset);
   const detail = createTracksideLayer(track, terrain, mask, quality);
+  yield 0.2;
   group.add(placeBuildings(track, terrain, inst, mask, detail));
+  yield 0.25;
   group.add(placeFacilities(track, terrain, profile, inst, mask, detail.mappedTowers));
+  yield 0.3;
   const paddock = buildPaddock(track, terrain, inst, mask);
   if (paddock) group.add(paddock);
+  yield;
   const vines = buildVineyards(terrain, mask);
   if (vines) group.add(vines);
+  yield;
   group.add(detail.groundDetails());
-  const trees = placeVegetation(terrain, inst, mask, QUALITY[quality].treeDensityScale, quality);
+  yield 0.4;
+  const trees = yield* scaled(placeVegetationSteps(terrain, inst, mask, QUALITY[quality].treeDensityScale, quality), 0.4, 0.8);
   placeCutRocks(track, terrain, inst);
+  yield 0.8;
   group.add(detail.distanceDetails() ?? buildTown(terrain));
+  yield;
   const stone = buildStoneSign(terrain);
   if (stone) group.add(stone);
   const pit = buildPitLane(track, terrain);
   if (pit) group.add(pit);
-  const { instances, batches } = inst.build();
+  yield 0.85;
+  const { instances, batches } = yield* scaled(inst.buildSteps(), 0.85, 1);
   group.add(inst.group);
   let first = true;
   return {

@@ -4,6 +4,7 @@ import type { GetPropAsset, InstancedPropKind, PropAsset } from '@/types/props';
 import { ContactAo } from '@/art/ambient-occlusion';
 import { gumLodWeights } from '@/props/trees/gum-lod';
 import { padGumBounds } from '@/props/trees/gum-wind';
+import { runSync, type Steps } from '@/world/cooperative';
 
 interface Placement {
   asset: PropAsset;
@@ -78,6 +79,11 @@ export class PropInstancer {
   }
 
   build(): { instances: number; batches: number } {
+    return runSync(this.buildSteps());
+  }
+
+  /** The same batches, handing the thread back between materials and every few hundred instances. */
+  *buildSteps(): Steps<{ instances: number; batches: number }> {
     const byMaterial = new Map<THREE.Material, Placement[]>();
     for (const p of this.placements) {
       const list = byMaterial.get(p.asset.material);
@@ -87,6 +93,7 @@ export class PropInstancer {
     const m = new THREE.Matrix4(), q = new THREE.Quaternion(), s = new THREE.Vector3(), t = new THREE.Vector3();
     const up = new THREE.Vector3(0, 1, 0), tilt = new THREE.Quaternion();
     for (const [material, list] of byMaterial) {
+      yield;
       const geoIds = new Map<THREE.BufferGeometry, number>();
       const normalised = new Map<THREE.BufferGeometry, THREE.BufferGeometry>();
       let verts = 0;
@@ -96,7 +103,11 @@ export class PropInstancer {
         normalised.set(g, n);
         verts += n.getAttribute('position').count;
       };
-      for (const p of list) { need(p.asset.geometry); need(p.asset.lodGeometry); }
+      for (const p of list) {
+        for (const g of [p.asset.geometry, p.asset.lodGeometry]) {
+          if (g && !normalised.has(g)) { yield; need(g); }
+        }
+      }
       // All geometries of one batch need the same attributes: where some carry a tint
       // mask, the others get a full one (tinted all over, as before).
       if ([...normalised.values()].some((n) => n.getAttribute('tintMask'))) {
@@ -118,7 +129,9 @@ export class PropInstancer {
         dual: new Int32Array(list.length).fill(-1), colours: new Float32Array(list.length * 3), blend: new Float32Array(list.length).fill(-1),
         lodScale2: Float32Array.from(list, (p) => (p.asset.lodDistanceScale ?? 1) ** 2),
       };
-      list.forEach((p, k) => {
+      for (let k = 0; k < list.length; k++) {
+        if ((k & 255) === 255) yield;
+        const p = list[k];
         const id = mesh.addInstance(geoIds.get(p.asset.geometry)!);
         b.near[k] = geoIds.get(p.asset.geometry)!;
         b.far[k] = p.asset.lodGeometry ? geoIds.get(p.asset.lodGeometry)! : -1;
@@ -129,14 +142,16 @@ export class PropInstancer {
         mesh.setMatrixAt(id, m);
         const colour = p.colour ?? WHITE;
         mesh.setColorAt(id, colour); b.colours.set([colour.r, colour.g, colour.b], k * 3);
-      });
-      list.forEach((p, k) => {
-        if (!p.asset.lodGeometry || !p.asset.geometry.getAttribute('treeSurface')) return;
+      }
+      for (let k = 0; k < list.length; k++) {
+        if ((k & 255) === 255) yield;
+        const p = list[k];
+        if (!p.asset.lodGeometry || !p.asset.geometry.getAttribute('treeSurface')) continue;
         const id = mesh.addInstance(b.far[k]); b.dual[k] = id;
         mesh.getMatrixAt(k, m); mesh.setMatrixAt(id, m);
         const colour = p.colour ?? WHITE; mesh.setColorAt(id, new THREE.Vector4(colour.r, colour.g, colour.b, -1));
         mesh.setVisibleAt(id, false);
-      });
+      }
       mesh.castShadow = list.some((p) => p.asset.castShadow);
       mesh.receiveShadow = true;
       mesh.computeBoundingSphere();

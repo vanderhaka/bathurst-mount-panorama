@@ -4,6 +4,7 @@ import type { QualityPreset } from '@/render/renderer';
 import { FOLIAGE, GROUND } from '@/art/palette';
 import { PROP_VARIANTS } from '@/props';
 
+import { runSync, scaled, type Steps } from '@/world/cooperative';
 import { DEM_EXTENT, demHeight, fbm } from '@/world/dem';
 import type { Terrain } from '@/world/terrain';
 import { pointInPolygon, rng, type SpatialMask, type XZ } from '@/world/scenery/geo';
@@ -70,6 +71,11 @@ function bbox(poly: XZ[]): number[] {
 
 /** Places eucalypts, pines, shrubs, rocks and grass tufts. `mask` holds buildings, camp pitches, roads. */
 export function placeVegetation(terrain: Terrain, inst: PropInstancer, mask: SpatialMask, densityScale: number, quality: QualityPreset = 'high'): number {
+  return runSync(placeVegetationSteps(terrain, inst, mask, densityScale, quality));
+}
+
+/** The same placement, handing the thread back between columns of the planting grid (see cooperative.ts). */
+export function* placeVegetationSteps(terrain: Terrain, inst: PropInstancer, mask: SpatialMask, densityScale: number, quality: QualityPreset = 'high'): Steps<number> {
   const g = getGraphics();
   const tier = QUALITY[quality];
   let undergrowth = 0;
@@ -93,6 +99,7 @@ export function placeVegetation(terrain: Terrain, inst: PropInstancer, mask: Spa
     return Math.hypot(terrain.heightAt(x + 4, z) - h, terrain.heightAt(x, z + 4) - h) / 4;
   };
   for (let x = x0; x < x1; x += step) {
+    yield 0.85 * (x - x0) / (x1 - x0);
     for (let z = z0; z < z1; z += step) {
       const px = x + (r() - 0.5) * step * 0.9, pz = z + (r() - 0.5) * step * 0.9;
       const clear = terrain.clearance(px, pz);
@@ -148,17 +155,19 @@ export function placeVegetation(terrain: Terrain, inst: PropInstancer, mask: Spa
       }
     }
   }
-  count += placeFarTrees(inst, terrain, densityScale);
+  yield 0.85;
+  count += yield* scaled(placeFarTrees(inst, terrain, densityScale), 0.85, 1);
   return count;
 }
 
 /** Sparse paddock trees and windbreaks on the landscape beyond the detailed area (low detail at range). */
-function placeFarTrees(inst: PropInstancer, terrain: Terrain, densityScale: number): number {
+function* placeFarTrees(inst: PropInstancer, terrain: Terrain, densityScale: number): Steps<number> {
   const r = rng(99);
   const far = DEM_EXTENT.near; // stay within the 4.8 km detailed DEM
   const half = far.size / 2;
   let count = 0;
   for (let x = far.cx - half; x < far.cx + half; x += 32) {
+    yield (x - (far.cx - half)) / far.size;
     for (let z = far.cz - half; z < far.cz + half; z += 32) {
       const px = x + (r() - 0.5) * 28, pz = z + (r() - 0.5) * 28;
       const { x0, z0, x1, z1 } = terrain.box;

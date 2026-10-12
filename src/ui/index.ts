@@ -40,7 +40,7 @@ import { TelemetryScreen } from '@/ui/screens/telemetry';
 import { ShootoutScreen } from '@/ui/screens/shootout';
 import { ShootoutResultScreen } from '@/ui/screens/shootout-result';
 import { WarmupStartScreen } from '@/ui/screens/warmup-start';
-import { ACTIVE_CIRCUIT, CIRCUITS } from '@/track/circuits';
+import { activeCircuit, CIRCUITS, type CircuitId } from '@/track/circuits';
 import type { RaceOptions, RaceResult } from '@/types/race';
 import { loadRaceOptions } from '@/ui/race-options-store';
 import { RaceResultsScreen } from '@/ui/screens/race-results';
@@ -114,7 +114,7 @@ class MenuController implements Menus {
     const backFromSub = (): void => (this.returnTo ? this.show(this.returnTo) : this.showTitle());
     const screens: ScreenSet = {
       loading: new LoadingScreen(),
-      title: new TitleScreen({ raceSetup: () => this.showRaceSetup(), race: () => { this.mode = 'timeTrial'; this.showCarSelect(); }, shootout: mode => this.showShootout(mode), settings: () => sub(screens.settings), controls: () => sub(screens.controls) },
+      title: new TitleScreen({ raceSetup: () => this.showRaceSetup(), race: () => { this.mode = 'timeTrial'; this.showCarSelect(); }, shootout: mode => this.showShootout(mode), settings: () => sub(screens.settings), controls: () => sub(screens.controls), switchCircuit: (circuit) => this.cb.onSwitchCircuit?.(circuit) },
         () => new Set(this.shootoutStore.snapshot().attempts.map(a => a.attempt.id))),
       car: new CarSelectScreen({ preview: (c, l) => this.cb.onPreviewCar(c, l), start: (c, l, t) => this.start(c, l, t), back: () => (isShootoutMode(this.mode) ? this.showShootout(this.mode) : this.mode === 'race' ? this.showRaceSetup() : this.showTitle()) }),
       onboarding: new OnboardingScreen({ get: () => this.settings, set: (s) => this.applySettings(s), back: () => this.showCarSelect() }),
@@ -202,7 +202,7 @@ class MenuController implements Menus {
   }
 
   private sessionLine(): string {
-    if (!this.lastConfig) return `${CIRCUITS[ACTIVE_CIRCUIT].name} · Practice`;
+    if (!this.lastConfig) return `${CIRCUITS[activeCircuit()].name} · Practice`;
     const preset = LIVERY_PRESETS[this.lastConfig.car][this.lastConfig.liveryIndex];
     return `${CAR_SPECS[this.lastConfig.car].shortName} · #${preset ? liveryNumber(preset.livery) : ''} ${preset?.name ?? ''}`.trim();
   }
@@ -308,6 +308,28 @@ class MenuController implements Menus {
     if (this.screens) this.show(this.screens.title);
   }
 
+  showCircuitSwitch(target: CircuitId, progress: number, label: string): void {
+    this.screens?.title.showSwitch(target, progress, label);
+  }
+
+  endCircuitSwitch(message?: string): void {
+    this.screens?.title.endSwitch(message);
+  }
+
+  circuitChanged(): void {
+    if (!this.screens) return;
+    const { title, loading } = this.screens;
+    loading.render();
+    const onTitle = this.current === title;
+    // The rebuilt buttons are new elements: focus goes back to the same row (by its label), else to the Circuit row.
+    const focused = document.activeElement;
+    const label = focused instanceof HTMLElement && title.el.contains(focused) ? focused.textContent : null;
+    title.render();
+    if (!onTitle) return;
+    const items = title.items();
+    this.focus(label ? items.find((el) => el.textContent === label) ?? title.circuitItem() : title.circuitItem());
+  }
+
   showCarSelect(): void {
     if (!this.screens) return;
     this.screens.car.setMode(this.mode, this.mode === 'shootoutTop10' ? this.shootoutStore.snapshot().remaining : 3);
@@ -327,7 +349,7 @@ class MenuController implements Menus {
   }
 
   showShootout(mode: ShootoutMode): void {
-    if (!this.screens || ACTIVE_CIRCUIT !== 'bathurst') return;
+    if (!this.screens || activeCircuit() !== 'bathurst') return;
     this.mode = mode;
     this.screens.shootout.setMode(mode);
     this.show(this.screens.shootout);

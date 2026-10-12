@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { runSync, type Steps } from '@/world/cooperative';
 
 /** Horizon sampling approximates the blocked upper hemisphere, baked once. */
 export function horizonVisibility(height: number, samples: number[], radius: number): number {
@@ -42,11 +43,18 @@ export class ContactAo {
     this.cells.get(key)!.push(p);
   }
   bake(root: THREE.Object3D, strength: number): void {
-    root.traverse(object => {
-      if (!(object instanceof THREE.Mesh)) return;
+    runSync(this.bakeSteps(root, strength));
+  }
+
+  /** The same bake, handing the thread back every few thousand vertices (see world/cooperative.ts). */
+  *bakeSteps(root: THREE.Object3D, strength: number): Steps<void> {
+    const meshes: THREE.Mesh[] = [];
+    root.traverse(object => { if (object instanceof THREE.Mesh) meshes.push(object); });
+    for (const object of meshes) {
       const pos = object.geometry.getAttribute('position'), colour = object.geometry.getAttribute('color');
-      if (!colour) return;
+      if (!colour) continue;
       for (let i = 0; i < pos.count; i++) {
+        if ((i & 1023) === 1023) yield;
         const x = pos.getX(i), z = pos.getZ(i), bx = Math.floor(x / 24), bz = Math.floor(z / 24);
         let k = 1;
         for (let dx = -1; dx <= 1; dx++) for (let dz = -1; dz <= 1; dz++) {
@@ -56,6 +64,6 @@ export class ContactAo {
         colour.setXYZ(i, colour.getX(i) * k, colour.getY(i) * k, colour.getZ(i) * k);
       }
       colour.needsUpdate = true;
-    });
+    }
   }
 }

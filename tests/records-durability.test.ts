@@ -146,9 +146,8 @@ describe('queued record saves', () => {
     vi.useFakeTimers();
     stubMenuDom();
     let savedBeforeLeaving: boolean | null = null;
-    // The circuit switch leaves with location.replace (no history entry).
-    vi.stubGlobal('location', { href: 'http://127.0.0.1/', replace: () => { savedBeforeLeaving = store.has(KEY); } });
-    const title = new TitleScreen({ raceSetup() {}, race() {}, shootout() {}, settings() {}, controls() {} });
+    // The circuit is built in place now: the screen asks the game for it, and the records are already written by then.
+    const title = new TitleScreen({ raceSetup() {}, race() {}, shootout() {}, settings() {}, controls() {}, switchCircuit: () => { savedBeforeLeaving = store.has(KEY); } });
     queueRecordsSave('camaro', record(), 'bathurst');
     adjust(title.items()[1], 1);
     expect(savedBeforeLeaving).toBe(true);

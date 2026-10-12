@@ -4,7 +4,7 @@ import { formatLapTime } from '@/hud/format';
 import { fetchBoard } from '@/shootout/leaderboard';
 import { type BoardCar, currentSeason, type LeaderboardResult, type SavedShootoutAttempt, type ShootoutSeason } from '@/shootout/model';
 import type { ShootoutStore } from '@/shootout/store';
-import { ACTIVE_CIRCUIT } from '@/track/circuits';
+import { activeCircuit } from '@/track/circuits';
 import type { ShootoutMode } from '@/types/session';
 import { hintBar, kicker, menuButton, screenEl, STD_HINTS, type Screen } from '@/ui/screen';
 
@@ -163,7 +163,7 @@ export class ShootoutScreen implements Screen {
       this.quota.textContent = 'Unlimited practice · Pro rules · Your best and the #1 ghost per car';
       this.start.disabled = false;
     }
-    const label = ACTIVE_CIRCUIT === 'bathurst' ? 'Choose car' : 'Switch to Bathurst';
+    const label = activeCircuit() === 'bathurst' ? 'Choose car' : 'Switch to Bathurst';
     const text = this.start.querySelector('.mn-btn__label');
     if (text) text.textContent = label;
   }

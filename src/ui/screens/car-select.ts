@@ -3,7 +3,7 @@ import type { CarKind } from '@/car/car-specs';
 import type { TyreCompound } from '@/physics/tyre-state';
 import { LIVERY_PRESETS, liveryNumber } from '@/car/liveries';
 import { h } from '@/hud/dom';
-import { ACTIVE_CIRCUIT } from '@/track/circuits';
+import { activeCircuit } from '@/track/circuits';
 import { CAR_ORDER, carSheet, hexColour, LIVERY_COUNT } from '@/ui/car-data';
 import { SHOOTOUT_CARS } from '@/shootout/model';
 import { isShootoutMode, type RaceMode } from '@/types/session';
@@ -99,7 +99,7 @@ export class CarSelectScreen implements Screen {
   }
 
   private render(): void {
-    const sheet = carSheet(this.car, ACTIVE_CIRCUIT);
+    const sheet = carSheet(this.car, activeCircuit());
     this.carRow.value.replaceChildren(
       h('span', 'mn-car__maker', undefined, [sheet.maker]),
       h('span', 'mn-car__name', undefined, [sheet.name]),

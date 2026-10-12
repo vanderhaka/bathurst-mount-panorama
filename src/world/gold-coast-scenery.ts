@@ -16,6 +16,7 @@ import { buildGoldCoastTransit } from '@/world/gold-coast-transit';
 import type { Scenery } from '@/world/scenery';
 import { SpatialMask, yawFacingTrack } from '@/world/scenery/geo';
 import { PropInstancer } from '@/world/scenery/instancer';
+import { runSync, scaled, type Steps } from '@/world/cooperative';
 import type { Terrain } from '@/world/terrain';
 
 // 2025 map stands: [name, s, side (+1 left, -1 right), grandstand?, offset off the line (m)].
@@ -30,6 +31,11 @@ const TYRE_CORNERS = [1, 6, 7, 8, 9, 10, 13, 15];
 
 /** Generated Surfers Paradise scenery: OSM skyline, street infill, palms, stands, pit garages and trackside furniture. */
 export function buildGoldCoastScenery(track: Track, terrain: Terrain, profile: SpeedProfile, quality: QualityPreset): Scenery {
+  return runSync(buildGoldCoastScenerySteps(track, terrain, profile, quality));
+}
+
+/** The same scenery, handing the thread back between its categories (see world/cooperative.ts). */
+export function* buildGoldCoastScenerySteps(track: Track, terrain: Terrain, profile: SpeedProfile, quality: QualityPreset): Steps<Scenery> {
   const group = new THREE.Group(); group.name = 'gold-coast-scenery';
   const tier = QUALITY[quality], inst = new PropInstancer(), mask = new SpatialMask(20);
   const p: [number, number, number] = [0, 0, 0];
@@ -50,12 +56,16 @@ export function buildGoldCoastScenery(track: Track, terrain: Terrain, profile: S
     }
     return true;
   };
+  yield 0.02;
   const transit = buildGoldCoastTransit(track, terrain, quality);
+  yield 0.1;
   group.add(transit.group);
   for (const c of transit.cars) inst.add('roadCar', c.variant, c.x, c.y, c.z, c.yaw, 1, c.tint);
   const towers = goldCoastTowerSpecs(track, terrain, quality), specs = [...towers, ...goldCoastInfillSpecs(track, terrain, quality, towers)];
   for (const t of specs) mask.add(t.x, t.z, Math.max(t.width, t.depth) / 2);
+  yield 0.2;
   const towerGroup = buildTowers(specs, quality);
+  yield 0.4;
   group.add(towerGroup);
   const gi = Math.floor(track.wrapS(track.gridLineS) / track.spacing);
   const gantry = buildStartGantry({ span: track.left.wall[gi] + track.right.wall[gi] + 2, height: 6.5 });
@@ -82,6 +92,7 @@ export function buildGoldCoastScenery(track: Track, terrain: Terrain, profile: S
     for (let u = -L / 2 - reach; u <= L / 2 + reach; u += 4) at(u, 0, 4);
     if (along) for (const s of [-1, 1]) for (let v = 3; v <= 11; v += 4) at(s * (L / 2 - 1.1), -s * v, 3);
   }
+  yield 0.5;
   const stands: { placed: string[]; skipped: string[] } = { placed: [], skipped: [] };
   for (const [name, s, side, big, offset] of STANDS) {
     const median = MEDIAN.includes(name), rows = median ? 5 : big ? 9 : 5, length = median ? (big ? 40 : 28) : big ? 50 : 28;
@@ -93,6 +104,7 @@ export function buildGoldCoastScenery(track: Track, terrain: Terrain, profile: S
       : place(stand, s, side * Math.max(offset, wallAt(s, side) + 11 + rows * 0.4), yaw, length + 15, rows * 0.8 + 5);
     (ok ? stands.placed : stands.skipped).push(name);
   }
+  yield 0.7;
   const screen = buildVideoScreen({ width: 9 });
   place(screen, 200, -(wallAt(200, -1) + 18), yawAlong(200) + Math.PI / 2, 10, 5);
   let trees = 0;
@@ -101,6 +113,7 @@ export function buildGoldCoastScenery(track: Track, terrain: Terrain, profile: S
     inst.add(palm.kind, palm.variant, palm.x, terrain.heightAt(palm.x, palm.z), palm.z, palm.yaw, palm.scale);
     mask.add(palm.x, palm.z, palm.radius * 0.5); trees++;
   }
+  yield 0.8;
   // Light poles stand on the footpaths, both sides, all the way round.
   for (let s = 0; s < track.length; s += 45) for (const side of [1, -1] as const) {
     pointAt(track, s, side * (wallAt(s, side) + 2.2), p);
@@ -143,7 +156,8 @@ export function buildGoldCoastScenery(track: Track, terrain: Terrain, profile: S
     inst.add('spectator', i % PROP_VARIANTS.spectator, p[0], terrain.heightAt(p[0], p[2]), p[2], yawFacingTrack(track, p[0], p[2]), 1,
       [0x6f7b71, 0x344c65, 0x913f36, 0xcec9b5][i % 4]);
   }
-  const stats = inst.build(); group.add(inst.group);
+  yield 0.85;
+  const stats = yield* scaled(inst.buildSteps(), 0.85, 1); group.add(inst.group);
   group.userData.layout = { garages, stands, footBridges: bridges.length, transit: { cars: transit.cars.length } };
   let first = true, disposed = false;
   const startMaterials = gantry.getObjectByName('start-lights')?.children.map(o => (o as THREE.Mesh).material as THREE.Material) ?? [];

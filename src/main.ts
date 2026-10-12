@@ -2,10 +2,10 @@ import { Game } from '@/game/game';
 import { installAndroidPresentation } from '@/phone/android-presentation';
 import { installTouchGuards } from '@/input/touch-guards';
 import { initUsageAnalytics } from '@/game/usage-analytics';
-import { ACTIVE_CIRCUIT, CIRCUITS } from '@/track/circuits';
+import { activeCircuit, circuitTitle } from '@/track/circuits';
 import { DEV_TOOLS } from '@/config/build-flags';
 
-if (ACTIVE_CIRCUIT !== 'bathurst') document.title = `${CIRCUITS[ACTIVE_CIRCUIT].name} — Gen3 time trial`;
+document.title = circuitTitle(activeCircuit());
 
 declare global {
   interface Window { __game?: Game; __shotReady?: boolean }
