@@ -25,12 +25,12 @@ function setup() {
   const stage = { scene: new THREE.Scene(), renderer: {}, setQuality: vi.fn(), refreshEnvironment: vi.fn(), precompile: vi.fn(async () => {}), scalable: false, setRenderScale: vi.fn(), takeGpuSeconds: () => null };
   stage.scene.add(current.root);
   const models = [0, 1, 2].map(() => ({ setQuality: vi.fn() }));
-  const changed = vi.fn(), notify = vi.fn();
+  const changed = vi.fn(), notify = vi.fn(), progress = vi.fn(), endProgress = vi.fn();
   const graphics = new GameGraphics(stage as unknown as Stage, { ...DEFAULT_SETTINGS }, {
-    world: () => current, replaceWorld: (next) => { current = next; },
-    models: () => models as unknown as CarModel[], changed, notify,
+    world: () => current, replaceWorld: async (next) => { current = next; },
+    models: () => models as unknown as CarModel[], changed, notify, progress, endProgress,
   });
-  return { graphics, stage, models, changed, notify, original, current: () => current };
+  return { graphics, stage, models, changed, notify, progress, endProgress, original, current: () => current };
 }
 
 beforeEach(() => vi.clearAllMocks());
@@ -54,12 +54,25 @@ describe('tier changes rebuild live visual resources', () => {
     let finish: (w: World) => void = () => {};
     mocks.build.mockImplementationOnce(() => new Promise<World>((r) => { finish = r; })).mockResolvedValueOnce(latest);
     const first = s.graphics.applySettings({ ...DEFAULT_SETTINGS, quality: 'medium', autoQuality: false });
+    await vi.waitFor(() => expect(mocks.build).toHaveBeenCalledTimes(1));
     const second = s.graphics.applySettings({ ...DEFAULT_SETTINGS, quality: 'low', autoQuality: false });
     finish(stale);
     await Promise.all([first, second]);
+    await vi.waitFor(() => expect(s.current()).toBe(latest));
     expect(mocks.dispose).toHaveBeenCalledWith(stale, s.original);
     expect(mocks.build.mock.calls.map((c) => c[2])).toEqual(['medium', 'low']);
-    expect(s.current()).toBe(latest);
+  });
+
+  it('builds once for two requests that arrive before the loading screen has painted', async () => {
+    const s = setup(), latest = world('low');
+    mocks.build.mockResolvedValueOnce(latest);
+    await Promise.all([
+      s.graphics.applySettings({ ...DEFAULT_SETTINGS, quality: 'medium', autoQuality: false }),
+      s.graphics.applySettings({ ...DEFAULT_SETTINGS, quality: 'low', autoQuality: false }),
+    ]);
+    await vi.waitFor(() => expect(s.current()).toBe(latest));
+    expect(mocks.build.mock.calls.map((c) => c[2])).toEqual(['low']);
+    expect(s.stage.setQuality).toHaveBeenLastCalledWith('low', 1);
   });
 
   it('retains the current world after a failed rebuild and allows a later retry', async () => {
@@ -74,13 +87,111 @@ describe('tier changes rebuild live visual resources', () => {
     expect(s.current()).toBe(next);
   });
 
-  it('persists an automatic result, synchronizes Settings and shows the player a note', async () => {
+  it('shows the loading screen with the label while a tier rebuild runs, then returns to the screen before it', async () => {
+    const s = setup(); mocks.build.mockResolvedValueOnce(world('medium'));
+    await s.graphics.applySettings({ ...DEFAULT_SETTINGS, quality: 'medium', autoQuality: false });
+    expect(s.progress).toHaveBeenCalledWith(expect.any(Number), 'Applying Medium graphics');
+    expect(s.endProgress).toHaveBeenCalledTimes(1);
+    const shown = mocks.build.mock.calls[0][1] as (f: number, label: string) => Promise<void>;
+    s.progress.mockClear();
+    await shown(0.5, 'x'); // outside a rebuild nothing is shown
+    expect(s.progress).not.toHaveBeenCalled();
+  });
+
+  it('hands the thread back to the browser between build steps', async () => {
+    const s = setup();
+    let steps = 0;
+    mocks.build.mockImplementationOnce(async (_r: unknown, progress: (f: number, l: string) => Promise<void>) => {
+      await progress(0.3, 'a'); steps++;
+      await progress(0.6, 'b'); steps++;
+      return world('medium');
+    });
+    const order: string[] = [];
+    const done = s.graphics.applySettings({ ...DEFAULT_SETTINGS, quality: 'medium', autoQuality: false }).then(() => order.push('done'));
+    setTimeout(() => order.push('timer'), 0);
+    await done;
+    expect(steps).toBe(2);
+    expect(order[0]).toBe('timer');
+    expect(s.progress.mock.calls.map((c) => c[0] as number).some((f) => f > 0.2 && f < 0.3)).toBe(true);
+  });
+});
+
+describe('automatic verdicts wait for a race boundary', () => {
+  const medium = { quality: 'medium', pixelRatio: 1.5, automatic: true };
+
+  it('queues a verdict during a race without touching the tier, the pixel density, the models or the world', () => {
+    const s = setup();
+    s.graphics.startRace();
+    feed(s.graphics, 5, 0.1);
+    expect(s.graphics.hasPending()).toBe(true);
+    expect(s.stage.setQuality).not.toHaveBeenCalled();
+    for (const model of s.models) expect(model.setQuality).not.toHaveBeenCalled();
+    expect(mocks.build).not.toHaveBeenCalled();
+    expect(mocks.save).not.toHaveBeenCalled();
+    expect(s.changed).not.toHaveBeenCalled();
+    expect(s.notify).not.toHaveBeenCalled();
+    expect(s.progress).not.toHaveBeenCalled();
+  });
+
+  it('applies the queued step once at the boundary: saves it, syncs Settings, rebuilds behind the loading screen', async () => {
     const s = setup(); mocks.build.mockResolvedValueOnce(world('medium'));
     s.graphics.startRace();
     feed(s.graphics, 5, 0.1);
-    await vi.waitFor(() => expect(mocks.save).toHaveBeenCalledWith({ quality: 'medium', pixelRatio: 1.5, automatic: true }));
+    expect(await s.graphics.applyPending()).toEqual(medium);
+    expect(mocks.save).toHaveBeenCalledTimes(1);
+    expect(mocks.save).toHaveBeenCalledWith(medium);
     expect(s.changed).toHaveBeenCalledWith(expect.objectContaining({ quality: 'medium', autoQuality: true }));
-    expect(s.notify).toHaveBeenCalledWith(expect.stringContaining('Settings'));
+    expect(s.stage.setQuality).toHaveBeenCalledWith('medium', 1.5);
+    for (const model of s.models) expect(model.setQuality).toHaveBeenCalledWith('medium');
+    expect(s.progress).toHaveBeenCalledWith(expect.any(Number), 'Switching to Medium graphics for smoother racing');
+    expect(s.endProgress).toHaveBeenCalledTimes(1);
+    expect(s.notify).not.toHaveBeenCalled();
+    expect(s.current().root.name).toBe('medium');
+    expect(s.graphics.hasPending()).toBe(false);
+    expect(await s.graphics.applyPending()).toBeNull();
+    expect(mocks.build).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps only the latest verdict', async () => {
+    const s = setup(); mocks.build.mockResolvedValueOnce(world('low'));
+    expect(s.graphics.debugForceStep()).toMatchObject({ quality: 'medium' });
+    expect(s.graphics.debugForceStep()).toMatchObject({ quality: 'low' });
+    expect(await s.graphics.applyPending()).toMatchObject({ quality: 'low' });
+    expect(mocks.build).toHaveBeenCalledTimes(1);
+    expect(mocks.build.mock.calls[0][2]).toBe('low');
+    expect(mocks.save).toHaveBeenCalledTimes(1);
+  });
+
+  it('queues one verdict per race: more slow frames at the unchanged tier add nothing', async () => {
+    const s = setup(); mocks.build.mockResolvedValueOnce(world('medium'));
+    s.graphics.startRace();
+    feed(s.graphics, 5, 0.1);
+    feed(s.graphics, 10, 0.1);
+    s.graphics.settle();
+    feed(s.graphics, 10, 0.1);
+    expect(s.graphics.hasPending()).toBe(true);
+    expect(mocks.build).not.toHaveBeenCalled();
+    expect(await s.graphics.applyPending()).toMatchObject({ quality: 'medium' });
+  });
+
+  it('lets a tier the player picks replace a queued step', async () => {
+    const s = setup(); mocks.build.mockResolvedValueOnce(world('high'));
+    s.graphics.debugForceStep();
+    await s.graphics.applySettings({ ...DEFAULT_SETTINGS, quality: 'high', autoQuality: false });
+    expect(s.graphics.hasPending()).toBe(false);
+    expect(await s.graphics.applyPending()).toBeNull();
+    expect(mocks.build).not.toHaveBeenCalled();
+  });
+
+  it('applies a resolution-only step without a rebuild or a loading screen', async () => {
+    const s = setup(); mocks.build.mockResolvedValue(world('low'));
+    await s.graphics.applySettings({ ...DEFAULT_SETTINGS, quality: 'low', autoQuality: true });
+    vi.clearAllMocks();
+    s.graphics.debugForceStep();
+    expect(await s.graphics.applyPending()).toMatchObject({ quality: 'low', pixelRatio: 0.75 });
+    expect(s.stage.setQuality).toHaveBeenCalledWith('low', 0.75);
+    expect(mocks.build).not.toHaveBeenCalled();
+    expect(s.progress).not.toHaveBeenCalled();
   });
 });
 
@@ -105,17 +216,18 @@ describe('automatic quality evidence around rebuilds', () => {
     const s = setup();
     let finish: (w: World) => void = () => {};
     mocks.build.mockImplementationOnce(() => new Promise<World>((r) => { finish = r; }));
+    s.graphics.debugForceStep();
+    const applied = s.graphics.applyPending();
+    await vi.waitFor(() => expect(mocks.build).toHaveBeenCalled());
     s.graphics.startRace();
-    feed(s.graphics, 5, 1 / 40);
-    expect(mocks.save.mock.calls).toEqual([[{ quality: 'medium', pixelRatio: 1.5, automatic: true }]]);
     feed(s.graphics, 60, 1 / 40);
-    expect(mocks.save).toHaveBeenCalledTimes(1);
+    expect(s.graphics.hasPending()).toBe(false);
     finish(world('medium'));
-    await vi.waitFor(() => expect(s.current().root.name).toBe('medium'));
+    await applied;
     s.graphics.sample(3.5, 0);
     feed(s.graphics, 20, 1 / 50);
+    expect(s.graphics.hasPending()).toBe(false);
     expect(mocks.save).toHaveBeenCalledTimes(1);
-    expect(s.changed).toHaveBeenCalledTimes(1);
   });
 
   it('starts a fresh verdict once a rebuild lands', async () => {
@@ -125,9 +237,9 @@ describe('automatic quality evidence around rebuilds', () => {
     mocks.build.mockResolvedValueOnce(world('tuned'));
     await s.graphics.rebuildWorld();
     feed(s.graphics, 3, 1 / 40);
-    expect(mocks.save).not.toHaveBeenCalled();
+    expect(s.graphics.hasPending()).toBe(false);
     feed(s.graphics, 2, 1 / 40);
-    expect(mocks.save).toHaveBeenCalledWith({ quality: 'medium', pixelRatio: 1.5, automatic: true });
+    expect(s.graphics.hasPending()).toBe(true);
   });
 
   it('ignores the first second after the race resumes', () => {
@@ -166,13 +278,13 @@ describe('dynamic resolution on automatic tiers', () => {
     expect(s.stage.setQuality).not.toHaveBeenCalled();
   });
 
-  it('still steps the tier within the observation when the lowest scale cannot keep up', () => {
+  it('still queues a tier step within the observation when the lowest scale cannot keep up', () => {
     const s = scalable(setup());
-    mocks.build.mockResolvedValueOnce(world('medium'));
     s.graphics.startRace();
     feed(s.graphics, 10, 1 / 52);
     expect(s.stage.setRenderScale).toHaveBeenCalledWith(0.7);
-    expect(s.stage.setQuality).toHaveBeenCalledWith('medium', 1.5);
+    expect(s.graphics.hasPending()).toBe(true);
+    expect(s.stage.setQuality).not.toHaveBeenCalled();
   });
 
   it('restores full resolution for the menus', () => {

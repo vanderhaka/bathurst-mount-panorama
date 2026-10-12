@@ -81,6 +81,12 @@ export class AdaptiveQuality {
     return this.verdict(observed > budget * 1.03 && (resolutionExhausted || observed > budget * LARGE_DEFICIT));
   }
 
+  /** Verification hook: the verdict a sustained over-budget race would reach, now. */
+  debugStep(): QualityChoice | null {
+    this.strikes = STRIKES - 1;
+    return this.verdict(true);
+  }
+
   private verdict(overBudget: boolean): QualityChoice | null {
     if (!overBudget) { this.strikes = 0; return null; }
     if (++this.strikes < STRIKES) return null;

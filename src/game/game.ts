@@ -15,7 +15,7 @@ import { AttractMode } from '@/game/attract-mode';
 import { CarEntity } from '@/game/car-entity';
 import { FrameLimiter } from '@/game/frame-limiter';
 import { GameGraphics } from '@/game/game-graphics';
-import { loadQualityChoice } from '@/game/quality-store';
+import { loadQualityChoice, type QualityChoice } from '@/game/quality-store';
 import { hudTrackInfo } from '@/game/hud-bridge';
 import { RaceController } from '@/game/race-controller';
 import { RaceEffects } from '@/game/race-effects';
@@ -79,6 +79,8 @@ export class Game {
   private readonly shootoutStore = new ShootoutStore();
   private shootoutPreferences: Settings | null = null;
   private claimingShootout = false;
+  /** A queued graphics step is being applied behind the loading screen. */
+  private switching = false;
   /** Real time of the running Shootout timed lap, paused with the game (the slow-motion check at the line). */
   private readonly lapClock = new RealLapClock();
 
@@ -90,15 +92,17 @@ export class Game {
     this.attract = new AttractMode(stage.scene, stage.camera);
     this.graphics = new GameGraphics(stage, this.settings, {
       world: () => this.world,
-      replaceWorld: (next) => {
+      replaceWorld: (next, pause) => {
         this.world = next;
         this.effects.setWorld(next, this.settings.quality);
-        this.bakeCarEnv();
+        return this.bakeCarEnv(pause);
       },
       models: () => [this.race?.player.model ?? null, this.ghostModel, this.attract.model, ...(this.race?.field?.models ?? [])],
       // Only the tier changes: graphics holds an older copy of the settings (in-race toggles never reach it).
       changed: (s) => { this.settings = { ...this.settings, quality: s.quality, autoQuality: s.autoQuality }; this.rememberSettings(); this.menus.syncSettings(this.settings); },
       notify: (text) => this.race?.session.say(text, 'info', 4),
+      progress: (fraction, label) => this.menus.showLoading(fraction, label),
+      endProgress: () => this.menus.endLoading(),
     });
     this.tuner = new GraphicsTuner(() => { void this.graphics.rebuildWorld(); }, { setScale: setHudScale, setOpacity: setHudOpacity }, this.effects);
     this.timer.connect(document);
@@ -181,12 +185,29 @@ export class Game {
     this.attract.set(entity, this.world.line);
   }
 
+  /** A graphics step queued during a race is applied here, at a boundary, behind the loading screen; `next` then
+   * continues. Anything that would start, resume or end a race is ignored until it is done (`switching`). */
+  private runAtBoundary(next: () => void): void {
+    if (!this.graphics.hasPending()) return next();
+    this.switching = true;
+    void this.graphics.applyPending().catch(() => {}).finally(() => {
+      this.switching = false;
+      this.menus.endLoading();
+      if (!this.halted) next();
+    });
+  }
+
   /** The menus pass a SessionConfig; a browser check may pass a DebugRaceStart (a race with default options). */
   startRace(request: SessionConfig | DebugRaceStart): void {
-    if (this.halted) return;
+    if (this.halted || this.switching) return;
+    if (!('settings' in request)) this.menus.hide(); // the menus close themselves when they start a race
+    this.runAtBoundary(() => this.beginRace(request));
+  }
+
+  private beginRace(request: SessionConfig | DebugRaceStart): void {
     const fromMenus = 'settings' in request;
-    const cfg = fromMenus ? request : debugRaceConfig(request, this.settings);
-    if (!fromMenus) this.menus.hide(); // the menus close themselves when they start a race
+    // The menus built this config before a queued graphics step was applied: the applied tier wins.
+    const cfg = fromMenus ? { ...request, settings: { ...request.settings, quality: this.settings.quality, autoQuality: this.settings.autoQuality } } : debugRaceConfig(request, this.settings);
     this.endRace();
     this.applySettings(cfg.settings);
     const mode = cfg.mode ?? 'timeTrial';
@@ -301,7 +322,7 @@ export class Game {
   halt(): void { this.halted = true; this.wakeLock.setRunning(false); this.guardUnload(false); if (this.state === 'race') this.pause(); }
 
   private resume(): void {
-    if (this.state !== 'paused' || this.halted || this.claimingShootout || this.race?.session.waitingForShootout) return;
+    if (this.state !== 'paused' || this.halted || this.switching || this.claimingShootout || this.race?.session.waitingForShootout) return;
     this.state = 'race';
     this.lapClock.resume(performance.now());
     this.audio?.resume();
@@ -309,7 +330,12 @@ export class Game {
   }
 
   private restart(): void {
-    if (!this.race || this.halted) return;
+    if (!this.race || this.halted || this.switching) return;
+    this.runAtBoundary(() => this.restartRace());
+  }
+
+  private restartRace(): void {
+    if (!this.race) return;
     if (this.race.session.shootout?.phase === 'timed') {
       this.race.session.abortShootout('The timed lap was ended. This attempt is used.');
       this.finishShootout(this.race.session);
@@ -327,6 +353,7 @@ export class Game {
 
   /** Pause menu: back on the racing line here, repaired (the lap becomes invalid). */
   private resetCar(): void {
+    if (this.switching) return;
     this.race?.resetToTrack();
     if (this.race?.session.shootout?.phase === 'finished') { this.finishShootout(this.race.session); return; }
     this.rig.snap();
@@ -334,9 +361,12 @@ export class Game {
   }
 
   private quitToTitle(): void {
+    if (this.switching) return;
     flushRecords();
     this.endRace();
     this.enterTitle();
+    // The menus open their next screen right after this call; the loading screen covers it and then gives it back.
+    if (this.graphics.hasPending()) queueMicrotask(() => this.runAtBoundary(() => {}));
   }
 
   private applySettings(s: Settings): void {
@@ -441,18 +471,21 @@ export class Game {
     else {
       this.input.update(dt);
       // Options / Menu toggles the pause, like a console game.
-      if (this.input.consume('pause') && !this.claimingShootout && !this.race?.session.waitingForShootout) { this.menus.hide(); this.resume(); }
+      if (this.input.consume('pause') && !this.switching && !this.claimingShootout && !this.race?.session.waitingForShootout) { this.menus.hide(); this.resume(); }
     }
     this.world.scenery.update(this.stage.camera.position);
     this.particles.update(this.state === 'paused' ? 0 : dt);
     this.updateCarEnv();
-    this.stage.render(this.focus, this.state === 'race' ? this.race?.player.vehicle.speed ?? 0 : 0, this.settings.motionBlur);
+    if (!this.graphics.covered) this.stage.render(this.focus, this.state === 'race' ? this.race?.player.vehicle.speed ?? 0 : 0, this.settings.motionBlur);
   }
 
-  private bakeCarEnv(): void {
+  private bakeCarEnv(pause: (done: number, total: number) => Promise<void>): Promise<void> {
     const hide = [this.race?.player.model.root, this.ghostModel?.root, this.attract.model?.root, ...(this.race?.field?.models.map((m) => m.root) ?? [])].filter(Boolean) as THREE.Object3D[];
-    this.stage.carEnv.bakeProbes(this.world.track, hide);
+    return this.stage.carEnv.bakeProbesAsync(this.world.track, hide, pause);
   }
+
+  /** Verification hook: queues the graphics step a race that cannot keep up would reach (applied at the next boundary). */
+  debugForceQualityStep(): QualityChoice | null { return this.graphics.debugForceStep(); }
 
   private updateCarEnv(): void {
     const s = this.race?.player.vehicle.tp.s ?? this.attract.trackS ?? this.world.track.gridLineS;

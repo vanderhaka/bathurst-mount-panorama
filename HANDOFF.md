@@ -1,5 +1,15 @@
 # Bathurst handoff — 8 October 2026
 
+## Auto graphics: no mid-race rebuilds — released 12 October 2026
+
+- An automatic quality step never applies during a race: `GameGraphics` queues it as `pending` and
+  `applyPending()` runs at the next boundary (restart, new race, quit to title) behind the loading screen,
+  with yields between build stages and probe bakes. Old mid-race step: 6.9 s frame gap on an M3 Max.
+- First visit only: phones/tablets start on Medium, weak Android (deviceMemory <= 3 or <= 4 cores) on Low,
+  desktops on High (`src/game/device-tier.ts`). Apple devices are never judged by core count.
+- **Open:** `buildScenery` (~1.2 s on the Mac) and `buildTerrain` (~0.5 s) are single blocks, so the
+  loading bar stalls; split them into yielding stages next. Medium on iPhone is untested on a real device.
+
 ## Player-vs-AI races + tilt brake on the left — released 12 October 2026
 
 - **Race mode** (`RaceMode` 'race', every circuit): title > Race > opponents 3/5/7, laps 3/5/10,

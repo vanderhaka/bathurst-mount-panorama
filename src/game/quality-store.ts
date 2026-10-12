@@ -12,8 +12,8 @@ export interface QualityChoice {
  * ignores the user agent and pixel ratio, so browser updates and desktop zoom keep it.
  * Version 1 automatic results came from a monitor that ratcheted healthy hardware down.
  * Version 2 results came from automatic quality being on by default; version 3 forced High with
- * automatic quality off, which left slower devices stuck on High. Version 4 starts on High with
- * automatic quality on; a tier the player chose by hand is never changed. */
+ * automatic quality off, which left slower devices stuck on High. Version 4 starts on the device's own tier
+ * (device-tier.ts) with automatic quality on; a tier the player chose by hand is never changed. */
 const KEY = 'bathurst.quality.v4';
 /** Version 3 saved High (manual) for everyone, so only Low, Medium or automatic were real choices. */
 const V3_KEY = 'bathurst.quality.v3';

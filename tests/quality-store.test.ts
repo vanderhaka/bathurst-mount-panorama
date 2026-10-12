@@ -76,10 +76,26 @@ describe('saved graphics result', () => {
     expect(loadSettings()).toMatchObject({ quality: 'high', autoQuality: false });
   });
 
-  it('starts a phone on High with automatic quality on, like a desktop', () => {
-    vi.stubGlobal('matchMedia', () => ({ matches: true }));
+  it('starts a desktop on High with automatic quality on', () => {
+    vi.stubGlobal('matchMedia', (q: string) => ({ matches: q === '(any-pointer: fine)' }));
     expect(loadSettings()).toMatchObject({ quality: 'high', autoQuality: true });
     expect(loadQualityChoice(loadSettings())).toEqual({ quality: 'high', pixelRatio: 2, automatic: true });
+  });
+
+  it('starts a phone on Medium and a weak phone on Low, both with automatic quality on', () => {
+    vi.stubGlobal('matchMedia', (q: string) => ({ matches: q === '(pointer: coarse)' }));
+    vi.stubGlobal('navigator', { userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X)', hardwareConcurrency: 6 });
+    expect(loadSettings()).toMatchObject({ quality: 'medium', autoQuality: true });
+    expect(loadQualityChoice(loadSettings())).toEqual({ quality: 'medium', pixelRatio: 1.5, automatic: true });
+    vi.stubGlobal('navigator', { userAgent: 'Mozilla/5.0 (Linux; Android 12)', deviceMemory: 2, hardwareConcurrency: 8 });
+    expect(loadSettings()).toMatchObject({ quality: 'low', autoQuality: true });
+  });
+
+  it('never overrides a stored choice with the device default', () => {
+    vi.stubGlobal('matchMedia', (q: string) => ({ matches: q === '(pointer: coarse)' }));
+    vi.stubGlobal('navigator', { userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X)' });
+    saveQualityChoice({ quality: 'high', pixelRatio: 2, automatic: false });
+    expect(loadSettings()).toMatchObject({ quality: 'high', autoQuality: false });
   });
 
   it('recovers from malformed saved data and unavailable storage', () => {

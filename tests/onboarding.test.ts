@@ -131,7 +131,7 @@ describe('graphics row', () => {
   it('keeps a learned automatic tier until the player moves the row', () => {
     const learned = { ...DEFAULT_SETTINGS, quality: 'medium' as const, autoQuality: true };
     expect(rowValue(row('graphics'), learned)).toBe('auto');
-    expect(rowHelp(row('graphics'), learned)).toContain('Starts on High');
+    expect(rowHelp(row('graphics'), learned)).toContain('suits your device');
   });
 
   it('turns automatic quality off for a tier, and restarts Auto from High', () => {
@@ -143,6 +143,13 @@ describe('graphics row', () => {
     expect(high).toMatchObject({ quality: 'high', autoQuality: false });
     expect(stepRow(DEFAULT_SETTINGS, row('graphics'), -1)).toMatchObject({ quality: 'high', autoQuality: false });
     expect(rowValue(row('graphics'), stepRow({ ...DEFAULT_SETTINGS, autoQuality: false }, row('graphics'), 1))).toBe('auto');
+  });
+
+  it('Auto means automatic quality starting at the device default, not High', () => {
+    const low = { ...DEFAULT_SETTINGS, quality: 'low' as const, autoQuality: false };
+    expect(stepRow(low, row('graphics'), -1, 'medium')).toMatchObject({ quality: 'medium', autoQuality: true });
+    expect(stepRow(low, row('graphics'), -1, 'low')).toMatchObject({ quality: 'low', autoQuality: true });
+    expect(stepRow(low, row('graphics'), 1, 'medium')).toMatchObject({ quality: 'medium', autoQuality: false });
   });
 });
 

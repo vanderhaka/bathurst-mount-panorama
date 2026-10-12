@@ -90,6 +90,8 @@ class MenuController implements Menus {
   private screens: ScreenSet | null = null;
   private current: Screen | null = null;
   private returnTo: Screen | null = null;
+  /** The screen a loading screen shown after start-up covers (null: the menus were closed). */
+  private beforeLoading: Screen | null = null;
   private openedAt = 0;
   private settings!: Settings;
   private cb!: MenuCallbacks;
@@ -290,7 +292,16 @@ class MenuController implements Menus {
   showLoading(progress: number, label: string): void {
     if (!this.screens) return;
     this.screens.loading.set(progress, label);
-    if (this.current !== this.screens.loading) this.show(this.screens.loading);
+    if (this.current === this.screens.loading) return;
+    this.beforeLoading = this.current;
+    this.show(this.screens.loading);
+  }
+
+  endLoading(): void {
+    if (!this.screens || this.current !== this.screens.loading) return;
+    const back = this.beforeLoading;
+    this.beforeLoading = null;
+    if (back) this.show(back); else this.hide();
   }
 
   showTitle(): void {

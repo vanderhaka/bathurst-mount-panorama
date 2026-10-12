@@ -247,3 +247,20 @@ describe('the setup on a touch device', () => {
     expect(started[0].settings.onboarded).toBe(true);
   });
 });
+
+describe('loading screen after start-up', () => {
+  it('returns to the screen it covered, or closes the menus when none was open', () => {
+    const { menus, screen } = open({ touch: false, settings: { onboarded: true } });
+    menus.showLoading(0.3, 'Switching to Medium graphics for smoother racing');
+    expect(screen()).toBe('loading');
+    menus.showLoading(0.6, 'Switching to Medium graphics for smoother racing');
+    menus.endLoading();
+    expect(screen()).toBe('car');
+    menus.hide();
+    menus.showLoading(0.1, 'x');
+    menus.endLoading();
+    expect(menus.isOpen()).toBe(false);
+    menus.endLoading(); // nothing to end
+    expect(menus.isOpen()).toBe(false);
+  });
+});

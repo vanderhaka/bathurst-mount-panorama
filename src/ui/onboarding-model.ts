@@ -2,6 +2,7 @@
 // the rule rows that card shows. Step 2: camera and graphics, plus pedals and auto-throttle on a touch screen.
 // Pure (no DOM) so it can be unit-tested.
 // Every answer is an ordinary Settings value; the Settings screen stays the one place to change it later.
+import { deviceDefaultQuality } from '@/game/device-tier';
 import { applyLevel, EXPERIENCED_CHOICES, LEVEL_NAMES, lapLevel, type LevelChoice, type RULE_KEYS } from '@/race/driving-levels';
 import type { Settings } from '@/types/session';
 import { SETTING_GROUPS, type SettingField } from '@/ui/settings-model';
@@ -41,7 +42,7 @@ export const ONBOARDING_ROWS: readonly OnboardingRow[] = [
     label: 'Graphics',
     settingsTab: 'Graphics and audio',
     options: [
-      { value: 'auto', label: 'Auto', help: 'Starts on High. In the first ten seconds of a race, it lowers the detail if the frame rate is too low.' },
+      { value: 'auto', label: 'Auto', help: 'Starts at the level that suits your device. If the frame rate is too low in the first ten seconds of a race, the next race uses lower detail.' },
       { value: 'low', label: 'Low', help: 'Fastest, with less detail and a lower resolution. Saves battery on a phone.' },
       { value: 'medium', label: 'Medium', help: 'Good detail at a steady frame rate on most devices.' },
       { value: 'high', label: 'High', help: 'Most detail and the highest resolution. Needs a fast device.' },
@@ -161,15 +162,15 @@ export function rowWhere(row: OnboardingRow): string {
 }
 
 /**
- * One step through the row's options (wraps). Auto graphics restarts from High (automatic quality
- * only steps down); a tier turns automatic quality off.
+ * One step through the row's options (wraps). Auto graphics restarts from the device's own tier (automatic
+ * quality only steps down); a tier turns automatic quality off.
  */
-export function stepRow(settings: Settings, row: OnboardingRow, dir: -1 | 1): Settings {
+export function stepRow(settings: Settings, row: OnboardingRow, dir: -1 | 1, autoStart: Settings['quality'] = deviceDefaultQuality()): Settings {
   const n = row.options.length;
   const i = rowIndex(row, settings);
   const next = row.options[i < 0 ? (dir > 0 ? 0 : n - 1) : (i + dir + n) % n];
   if (row.key === 'graphics') {
-    return next.value === 'auto' ? { ...settings, quality: 'high', autoQuality: true }
+    return next.value === 'auto' ? { ...settings, quality: autoStart, autoQuality: true }
       : { ...settings, quality: next.value as Settings['quality'], autoQuality: false };
   }
   if (row.key === 'pedals') return { ...settings, touchAnalogThrottle: next.value === 'analog', touchAnalogBrake: next.value === 'analog' };

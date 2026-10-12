@@ -141,7 +141,7 @@ export const SETTING_GROUPS: ReadonlyArray<{ title: string; fields: SettingField
   {
     title: 'Graphics and audio',
     fields: [
-      { key: 'autoQuality', kind: 'choice', label: 'Automatic quality', help: 'Adjusts graphics during the first ten seconds of a race for smoother driving.', options: ON_OFF },
+      { key: 'autoQuality', kind: 'choice', label: 'Automatic quality', help: 'If the first ten seconds of a race run too slowly, lowers the graphics before the next race.', options: ON_OFF },
       {
         key: 'quality',
         kind: 'choice',

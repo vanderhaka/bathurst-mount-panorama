@@ -142,6 +142,8 @@ export interface MenuCallbacks {
 export interface Menus {
   mount(container: HTMLElement, callbacks: MenuCallbacks, initial: Settings): void;
   showLoading(progress: number, label: string): void;
+  /** Closes a loading screen shown after start-up: the screen that was open before it returns, else the menus close. */
+  endLoading(): void;
   showTitle(): void;
   showCarSelect(): void;
   showShootout(mode: ShootoutMode): void;

@@ -26,22 +26,20 @@ export function probeCountFor(quality: QualityPreset): number {
 }
 
 /**
- * Bakes `count` cube PMREMs along the track. Hides `hide` while capturing.
- * Returns null when count is 0 or the world has nothing to reflect yet.
+ * Bakes `count` cube PMREMs along the track, one per step. Hides `hide` only while each capture runs, so
+ * cars stay visible if the caller renders between steps. Returns null when count is 0 or nothing was baked.
  */
-export function bakeReflectionProbes(
+function* bakeSteps(
   renderer: THREE.WebGLRenderer,
   scene: THREE.Scene,
   track: Track,
   count: number,
-  hide: THREE.Object3D[] = [],
-): ProbeRig | null {
+  hide: THREE.Object3D[],
+): Generator<void, ProbeRig | null> {
   if (count <= 0) return null;
   const pmrem = new THREE.PMREMGenerator(renderer);
   const cube = new THREE.WebGLCubeRenderTarget(64, { type: THREE.HalfFloatType, colorSpace: THREE.LinearSRGBColorSpace });
   const cam = new THREE.CubeCamera(0.4, 400, cube);
-  const previous: boolean[] = hide.map((o) => o.visible);
-  for (const o of hide) o.visible = false;
 
   const probes: ReflectionProbe[] = [];
   try {
@@ -49,17 +47,28 @@ export function bakeReflectionProbes(
       const s = (i + 0.5) * (track.length / count);
       pointAt(track, s, 0, SCRATCH);
       cam.position.set(SCRATCH[0], SCRATCH[1] + 1.1, SCRATCH[2]);
-      cam.update(renderer, scene);
-      const target = pmrem.fromCubemap(cube.texture);
-      probes.push({ s, target });
+      const previous: boolean[] = hide.map((o) => o.visible);
+      for (const o of hide) o.visible = false;
+      try {
+        cam.update(renderer, scene);
+        probes.push({ s, target: pmrem.fromCubemap(cube.texture) });
+      } finally {
+        hide.forEach((o, k) => { o.visible = previous[k]!; });
+      }
+      yield;
     }
+  } catch (error) {
+    for (const p of probes) p.target.dispose();
+    throw error;
   } finally {
-    hide.forEach((o, i) => { o.visible = previous[i]!; });
     cube.dispose();
     pmrem.dispose();
   }
   if (!probes.length) return null;
+  return makeRig(track, probes);
+}
 
+function makeRig(track: Track, probes: ReflectionProbe[]): ProbeRig {
   let blended: THREE.Texture = probes[0]!.target.texture;
   let lastA = -1, lastB = -1;
 
@@ -89,4 +98,33 @@ export function bakeReflectionProbes(
       for (const p of probes) p.target.dispose();
     },
   };
+}
+
+/** Bakes every probe in one go (boot, behind the loading screen). */
+export function bakeReflectionProbes(
+  renderer: THREE.WebGLRenderer,
+  scene: THREE.Scene,
+  track: Track,
+  count: number,
+  hide: THREE.Object3D[] = [],
+): ProbeRig | null {
+  const steps = bakeSteps(renderer, scene, track, count, hide);
+  for (;;) { const next = steps.next(); if (next.done) return next.value; }
+}
+
+/** The same bake, handing control back to the event loop after each probe (no long task, no frozen frames). */
+export async function bakeReflectionProbesAsync(
+  renderer: THREE.WebGLRenderer,
+  scene: THREE.Scene,
+  track: Track,
+  count: number,
+  hide: THREE.Object3D[],
+  pause: (done: number, total: number) => Promise<void>,
+): Promise<ProbeRig | null> {
+  const steps = bakeSteps(renderer, scene, track, count, hide);
+  for (let done = 1; ; done++) {
+    const next = steps.next();
+    if (next.done) return next.value;
+    await pause(done, count);
+  }
 }

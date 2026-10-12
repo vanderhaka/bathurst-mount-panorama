@@ -1,5 +1,6 @@
 import { DEFAULT_SETTINGS, type Settings } from '@/types/session';
 import { headMotionAmount } from '@/camera/head-motion';
+import { deviceDefaultQuality } from '@/game/device-tier';
 import { loadQualityChoice } from '@/game/quality-store';
 import { steerOnboarded, TOUCH_STEER_SCALE, touchOptions } from '@/input/touch-model';
 
@@ -15,7 +16,7 @@ export function rescaledTouchSensitivity(old: number): number {
 }
 
 export function loadSettings(): Settings {
-  // Every device starts on High; automatic quality steps it down only when the device cannot keep up.
+  // First visit: the device's own tier (phones start lower); automatic quality adjusts it between races.
   const defaults: Settings = { ...DEFAULT_SETTINGS };
   let saved: Partial<Settings> = {};
   try {
@@ -32,7 +33,7 @@ export function loadSettings(): Settings {
   const settings = { ...defaults, ...saved };
   // Graphics come only from the quality store, so a quality saved here by an older version
   // (often a low automatic result) does not survive the move to High by default.
-  const graphics = loadQualityChoice(defaults);
+  const graphics = loadQualityChoice({ quality: deviceDefaultQuality(), autoQuality: defaults.autoQuality });
   const touch = touchOptions(settings);
   return { ...settings, headMotion: headMotionAmount(settings.headMotion), quality: graphics.quality, autoQuality: graphics.automatic,
     touchMode: touch.mode, touchAnalogThrottle: touch.analogThrottle, touchAnalogBrake: touch.analogBrake,
