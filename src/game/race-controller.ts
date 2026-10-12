@@ -5,6 +5,8 @@ import { DEFAULT_HANDLING, getHandling } from '@/config/handling';
 import { defaultSetup } from '@/config/setup';
 import type { Particles } from '@/fx/particles';
 import type { CarEntity } from '@/game/car-entity';
+import { applyCarHits } from '@/game/field-contacts';
+import type { OpponentField } from '@/game/opponent-field';
 import { buildHudState } from '@/game/hud-bridge';
 import { mirrorView } from '@/game/mirror-view';
 import type { RaceEffects } from '@/game/race-effects';
@@ -14,7 +16,7 @@ import { PhoneVibration } from '@/input/phone-vibration';
 import type { InputManager } from '@/input/input-manager';
 import { TOUCH_STEER_SCALE } from '@/input/touch-model';
 import { impactSeverity } from '@/physics/damage';
-import type { VehicleInput } from '@/physics/types';
+import type { ImpactReport, VehicleInput } from '@/physics/types';
 import { applyAssists } from '@/race/assists';
 import { AutoRecover, facingWrongWay } from '@/race/auto-recover';
 import { updateRaceSetup } from '@/race/setup-controls';
@@ -23,11 +25,14 @@ import { SessionProfiles } from '@/game/session-profiles';
 import type { CarAudio, Surface } from '@/types/audio';
 import type { CarModel } from '@/types/car-model';
 import type { Hud, HudState } from '@/types/hud';
-import type { Settings } from '@/types/session';
+import { isShootoutMode, type Settings } from '@/types/session';
 import type { RacingLineMesh } from '@/world/racing-line-mesh';
 
 /** Distance (m) inside which the ghost is hidden in the cockpit and bonnet views. */
 const GHOST_HIDE_IN_CAR = 14;
+
+/** How long "FINISHED P3" stays up (s). */
+const RESULT_SAY_S = 5;
 
 const SURFACE_RANK: Record<string, number> = { road: 0, asphalt: 0, concrete: 0, kerb: 1, grass: 2, gravel: 3 };
 
@@ -84,7 +89,7 @@ export class RaceController {
   /** Rolling-start countdown number at the end of the last frame (0 = none), for its beeps. */
   private prevCount = 0;
 
-  constructor(readonly session: RaceSession, readonly player: CarEntity, private readonly d: RaceDeps) {
+  constructor(readonly session: RaceSession, readonly player: CarEntity, private readonly d: RaceDeps, readonly field: OpponentField | null = null) {
     this.profiles = new SessionProfiles(player.vehicle, session.line);
     this.prevLights = session.lights;
     d.lineMesh.setProfile(this.profiles.player);
@@ -112,7 +117,7 @@ export class RaceController {
       else if (settings.damage === 'visual') v.repair();
       this.damageMode = settings.damage;
     }
-    const competition = this.session.mode !== 'timeTrial';
+    const competition = isShootoutMode(this.session.mode);
     v.handling = competition ? DEFAULT_HANDLING : getHandling();
     v.setup = competition ? defaultSetup(this.session.car) : updateRaceSetup(this.session.car, input, (text) => this.session.say(text, 'info', 2));
     if (this.autopilot) this.session.invalidateShootout('Verification driving cannot enter the competition.');
@@ -137,14 +142,11 @@ export class RaceController {
       const pilot = this.autopilot;
       const impacts = this.player.simulate(this.vin, h, pilot && this.session.racing ? (vin) => { this.profiles.update(); pilot.drive(v, vin); } : undefined);
       this.profiles.update();
-      for (const imp of impacts) {
-        this.phoneVibration.impact(imp.speed);
-        const sev = impactSeverity(imp.speed);
-        for (let q = 0; q < 6 + sev * 40; q++) this.d.particles.emit('spark', imp.x, imp.y, imp.z, v.vx * 0.6, 0, v.vz * 0.6);
-        this.d.rig.addShake(0.25 + sev);
-        this.d.audio?.impact(Math.min(1, 0.15 + sev));
-        input.rumble(0.4 + sev, 0.6, 120 + sev * 300);
-        if (sev > 0.35) this.session.say(settings.damage === 'full' ? 'HEAVY IMPACT — DAMAGE' : 'HEAVY IMPACT', 'warn');
+      for (const imp of impacts) this.impact(imp, settings.damage);
+      if (this.field) {
+        applyCarHits(this.field.step(h, this.session.racing), this.field, this.d.particles, (imp) => this.impact(imp, settings.damage));
+        const place = this.field.takeFinish();
+        if (place) this.session.say(`FINISHED P${place}`, 'good', RESULT_SAY_S);
       }
       const lap = this.session.update(h);
       // The verification autopilot never counts.
@@ -162,6 +164,7 @@ export class RaceController {
       }
     }
     this.player.sync(dt, cockpitHeaveScale(this.d.rig.mode, settings.headMotion));
+    this.field?.sync(dt, this.d.rig.camera.position);
     this.d.startLights(this.session.lights);
     const beep = startBeepFor(this.prevLights, this.session.lights) ?? countdownBeepFor(this.prevCount, this.session.countdown);
     if (beep) this.d.audio?.startBeep(beep === 'go');
@@ -173,7 +176,7 @@ export class RaceController {
     this.feedback(dt);
     this.d.lineMesh.mode = settings.racingLine;
     this.d.lineMesh.update(v.tp.s, Math.abs(v.speed));
-    this.hudState = buildHudState(this.session, this.profiles.player, settings, fps, this.hudState);
+    this.hudState = buildHudState(this.session, this.profiles.player, settings, fps, this.hudState, this.field?.hud() ?? null);
     this.hudState.view = this.d.rig.mode === 'cockpit' && !this.d.rig.lookBack ? 'cockpit' : 'outside';
     this.d.hud.update(this.hudState);
     if (this.d.rig.mode === 'cockpit' || this.d.rig.mode === 'bonnet') {
@@ -191,7 +194,20 @@ export class RaceController {
   /** Puts the car back on the racing line (repaired) and clears the effects' burst state. */
   resetToTrack(reason: 'manual' | 'auto' = 'manual'): void {
     this.session.resetToTrack(reason);
+    this.field?.placePlayer();
     this.d.effects.resetCar();
+  }
+
+  /** A wall or car impact on the player: sparks, shake, sound, rumble, a warning for a heavy one. */
+  private impact(imp: ImpactReport, damage: Settings['damage']): void {
+    const v = this.player.vehicle;
+    this.phoneVibration.impact(imp.speed);
+    const sev = impactSeverity(imp.speed);
+    for (let q = 0; q < 6 + sev * 40; q++) this.d.particles.emit('spark', imp.x, imp.y, imp.z, v.vx * 0.6, 0, v.vz * 0.6);
+    this.d.rig.addShake(0.25 + sev);
+    this.d.audio?.impact(Math.min(1, 0.15 + sev));
+    this.d.input.rumble(0.4 + sev, 0.6, 120 + sev * 300);
+    if (sev > 0.35) this.session.say(damage === 'full' ? 'HEAVY IMPACT — DAMAGE' : 'HEAVY IMPACT', 'warn');
   }
 
   /** Back to the grid: the lap profiles and every effect start clean. */
@@ -199,6 +215,7 @@ export class RaceController {
     this.prevLights = this.session.lights;
     this.prevCount = 0;
     this.profiles.reset();
+    this.field?.placeOnGrid();
     this.d.effects.resetAll();
   }
 

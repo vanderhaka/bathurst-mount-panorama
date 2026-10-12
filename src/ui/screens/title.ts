@@ -8,6 +8,8 @@ import type { ShootoutMode } from '@/types/session';
 import { TitleBoard } from '@/ui/screens/title-board';
 
 export interface TitleActions {
+  /** Player-vs-AI race: opens the race setup. */
+  raceSetup(): void;
   race(): void;
   shootout(mode: ShootoutMode): void;
   settings(): void;
@@ -66,6 +68,7 @@ export class TitleScreen implements Screen {
     }
     this.board = ACTIVE_CIRCUIT === 'bathurst' ? new TitleBoard(myAttemptIds) : null;
     const options: Array<readonly [string, () => void]> = [
+      ['Race', actions.raceSetup],
       ['Time trial', actions.race],
       ...(ACTIVE_CIRCUIT === 'bathurst' ? [['Shootout Arcade', () => actions.shootout('shootoutArcade')] as const] : []),
       ['Settings', actions.settings],

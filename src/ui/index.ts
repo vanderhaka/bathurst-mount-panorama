@@ -13,12 +13,13 @@ import '@/ui/tabs.css';
 import '@/ui/phone.css';
 import '@/ui/telemetry.css';
 import '@/ui/shootout.css';
+import '@/ui/race.css';
 import { CAR_SPECS, type CarKind } from '@/car/car-specs';
 import { LIVERY_PRESETS, liveryNumber } from '@/car/liveries';
 import { h } from '@/hud/dom';
 import type { PadStyle } from '@/input/pad-style';
 import type { MenuCallbacks, MenuNav, Menus } from '@/types/hud';
-import type { DrivingLevel, LapRecord, RaceMode, SessionConfig, Settings, ShootoutMode } from '@/types/session';
+import { isShootoutMode, type DrivingLevel, type LapRecord, type RaceMode, type SessionConfig, type Settings, type ShootoutMode } from '@/types/session';
 import type { ShootoutAttempt, ShootoutOutcome } from '@/shootout/model';
 import { ShootoutStore } from '@/shootout/store';
 import type { PracticeSummary } from '@/game/arcade-best';
@@ -40,6 +41,10 @@ import { ShootoutScreen } from '@/ui/screens/shootout';
 import { ShootoutResultScreen } from '@/ui/screens/shootout-result';
 import { WarmupStartScreen } from '@/ui/screens/warmup-start';
 import { ACTIVE_CIRCUIT, CIRCUITS } from '@/track/circuits';
+import type { RaceOptions, RaceResult } from '@/types/race';
+import { loadRaceOptions } from '@/ui/race-options-store';
+import { RaceResultsScreen } from '@/ui/screens/race-results';
+import { RaceSetupScreen } from '@/ui/screens/race-setup';
 
 const KEYS: Record<string, MenuNav> = {
   ArrowUp: 'up',
@@ -75,6 +80,8 @@ interface ScreenSet {
   shootout: ShootoutScreen;
   shootoutResult: ShootoutResultScreen;
   warmup: WarmupStartScreen;
+  raceSetup: RaceSetupScreen;
+  raceResults: RaceResultsScreen;
 }
 
 class MenuController implements Menus {
@@ -90,6 +97,7 @@ class MenuController implements Menus {
   private readonly lastFocus = new WeakMap<Screen, HTMLElement>();
   private padStyle: PadStyle = 'xbox';
   private mode: RaceMode = 'timeTrial';
+  private raceOptions: RaceOptions = loadRaceOptions();
   private readonly shootoutStore = new ShootoutStore();
 
   mount(container: HTMLElement, callbacks: MenuCallbacks, initial: Settings): void {
@@ -104,9 +112,9 @@ class MenuController implements Menus {
     const backFromSub = (): void => (this.returnTo ? this.show(this.returnTo) : this.showTitle());
     const screens: ScreenSet = {
       loading: new LoadingScreen(),
-      title: new TitleScreen({ race: () => { this.mode = 'timeTrial'; this.showCarSelect(); }, shootout: mode => this.showShootout(mode), settings: () => sub(screens.settings), controls: () => sub(screens.controls) },
+      title: new TitleScreen({ raceSetup: () => this.showRaceSetup(), race: () => { this.mode = 'timeTrial'; this.showCarSelect(); }, shootout: mode => this.showShootout(mode), settings: () => sub(screens.settings), controls: () => sub(screens.controls) },
         () => new Set(this.shootoutStore.snapshot().attempts.map(a => a.attempt.id))),
-      car: new CarSelectScreen({ preview: (c, l) => this.cb.onPreviewCar(c, l), start: (c, l, t) => this.start(c, l, t), back: () => this.mode === 'timeTrial' ? this.showTitle() : this.showShootout(this.mode) }),
+      car: new CarSelectScreen({ preview: (c, l) => this.cb.onPreviewCar(c, l), start: (c, l, t) => this.start(c, l, t), back: () => (isShootoutMode(this.mode) ? this.showShootout(this.mode) : this.mode === 'race' ? this.showRaceSetup() : this.showTitle()) }),
       onboarding: new OnboardingScreen({ get: () => this.settings, set: (s) => this.applySettings(s), back: () => this.showCarSelect() }),
       steer: new SteerOnboardingScreen({ get: () => this.settings, set: (s) => this.applySettings(s), enableTilt: () => this.cb.onEnableTilt?.() ?? Promise.resolve('unavailable'), back: () => this.showCarSelect() }),
       settings: new SettingsScreen({ get: () => this.settings, set: (s) => this.applySettings(s), back: backFromSub, toggleTuner: () => this.cb.onToggleTuner(), car: () => this.lastConfig?.car ?? 'camaro' }),
@@ -146,6 +154,14 @@ class MenuController implements Menus {
         menu: () => { this.cb.onQuitToMenu(); this.showTitle(); },
       }),
       warmup: new WarmupStartScreen(() => this.showCarSelect()),
+      raceSetup: new RaceSetupScreen({ next: (options) => { this.raceOptions = options; this.mode = 'race'; this.showCarSelect(); }, back: () => this.showTitle() }),
+      raceResults: new RaceResultsScreen({
+        again: () => this.leave(() => this.cb.onRestart()),
+        // The race ends first (records saved, HUD and cars removed), then race setup.
+        change: () => { this.cb.onQuitToMenu(); this.showRaceSetup(); },
+        menu: () => (this.showTitle(), this.cb.onQuitToMenu()),
+        backToSession: () => this.showPause(),
+      }),
     };
     this.screens = screens;
     this.root = h('div', 'bx-menus', { 'data-open': 'false' }, Object.values(screens).map((s: Screen) => s.el));
@@ -163,7 +179,7 @@ class MenuController implements Menus {
 
   private start(car: CarKind, liveryIndex: number, tyres: TyreCompound): void {
     const go = (): void => {
-      const config: SessionConfig = { car, liveryIndex, tyres, settings: { ...this.settings }, ...(this.mode === 'timeTrial' ? {} : { mode: this.mode }) };
+      const config: SessionConfig = { car, liveryIndex, tyres, settings: { ...this.settings }, ...(isShootoutMode(this.mode) ? { mode: this.mode } : {}), ...(this.mode === 'race' ? { mode: 'race' as const, race: { ...this.raceOptions } } : {}) };
       this.lastConfig = config;
       this.leave(() => this.cb.onStart(config));
     };
@@ -171,7 +187,7 @@ class MenuController implements Menus {
     // A Shootout run asks where the warm-up starts first, every time.
     const { steer, onboarding, warmup } = this.screens ?? {};
     const mode = this.mode;
-    const shootout = mode !== 'timeTrial';
+    const shootout = isShootoutMode(mode);
     const steerThenGo = (): void => { if (steer?.required(this.settings, shootout)) { steer.ask(go); this.show(steer); } else go(); };
     if (shootout && warmup) { warmup.ask(mode, steerThenGo); this.lastFocus.set(warmup, warmup.current()); this.show(warmup); }
     else if (!shootout && onboarding?.required(this.settings)) { onboarding.ask(steerThenGo, steer?.required(this.settings) ? 'Continue' : 'Start'); this.lastFocus.delete(onboarding); this.show(onboarding); } else steerThenGo();
@@ -285,6 +301,18 @@ class MenuController implements Menus {
     if (!this.screens) return;
     this.screens.car.setMode(this.mode, this.mode === 'shootoutTop10' ? this.shootoutStore.snapshot().remaining : 3);
     this.show(this.screens.car);
+  }
+
+  showRaceSetup(): void {
+    if (!this.screens) return;
+    this.mode = 'race';
+    this.show(this.screens.raceSetup);
+  }
+
+  showRaceResult(result: RaceResult): void {
+    if (!this.screens) return;
+    this.screens.raceResults.set(result, this.current === this.screens.pause);
+    this.show(this.screens.raceResults);
   }
 
   showShootout(mode: ShootoutMode): void {

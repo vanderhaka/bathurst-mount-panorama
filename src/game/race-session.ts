@@ -12,7 +12,7 @@ import { slowMotionFault } from '@/game/shootout-rules';
 import type { RacingLine } from '@/track/racing-line';
 import type { Track } from '@/track/track-model';
 import type { HudState } from '@/types/hud';
-import { DEFAULT_SETTINGS, type DrivingLevel, type LapRecord, type RaceMode } from '@/types/session';
+import { DEFAULT_SETTINGS, isShootoutMode, type DrivingLevel, type LapRecord, type RaceMode } from '@/types/session';
 import { isPlausibleShootoutLap, isShootoutCar, MAX_SHOOTOUT_LAP_S, type ShootoutAttempt, type ShootoutOutcome } from '@/shootout/model';
 import type { WarmupStart } from '@/shootout/warmup-start';
 import { TYRE_COMPOUNDS, type TyreCompound } from '@/physics/tyre-state';
@@ -88,11 +88,13 @@ export class RaceSession {
   private practiceGhostLabel = '';
   /** Real seconds of the timed lap so far (pauses excluded); the Top 10 lap fails when the game ran slow. */
   realLapTime: (() => number | null) | null = null;
+  /** Mode 'race': the player's grid slot (the last one; pole is for the AI). Null = pole. */
+  raceSlot: { s: number; d: number } | null = null;
 
   constructor(readonly car: CarKind, readonly track: Track, readonly line: RacingLine, readonly entity: CarEntity, readonly tyres: TyreCompound = 'soft',
     rules: Rules = DEFAULT_SETTINGS, readonly mode: RaceMode = 'timeTrial') {
-    if (mode !== 'timeTrial' && (track.id !== 'bathurst' || !isShootoutCar(car))) throw new Error('Shootout requires Bathurst and a Camaro, Mustang or Supra.');
-    this.shootoutRun = mode === 'timeTrial' ? null : { phase: 'warmup' };
+    if (isShootoutMode(mode) && (track.id !== 'bathurst' || !isShootoutCar(car))) throw new Error('Shootout requires Bathurst and a Camaro, Mustang or Supra.');
+    this.shootoutRun = isShootoutMode(mode) ? { phase: 'warmup' } : null;
     this.level = this.rulesLevel = lapLevel(rules);
     this.trackLimits = rules.trackLimits;
     this.records = mode === 'timeTrial' ? loadRecords(car, track.id, this.level) : null;
@@ -162,7 +164,7 @@ export class RaceSession {
     if (this.shootoutRun) { this.shootoutRun = { phase: 'warmup' }; this.shootoutFault = null; this.timedFrames = null; if (this.warmupStart === 'rolling') return this.placeRolling(); }
     this.entity.vehicle.stint.reset({ compound: this.tyres });
     this.entity.vehicle.trackGrip.reset();
-    const pole = gridSlot(this.track, 0);
+    const pole = this.raceSlot ?? gridSlot(this.track, 0);
     this.entity.reset(pole.s, pole.d);
     this.entity.repair();
     this.lights = 0;
@@ -238,7 +240,8 @@ export class RaceSession {
 
   /** Reads another level's records: best lap, sectors, delta trace, ghost, best telemetry and lap history. */
   private useLevel(level: DrivingLevel): void {
-    if (this.shootoutRun) { this.level = level; return; }
+    // Shootout and race laps never read the saved records.
+    if (this.mode !== 'timeTrial') { this.level = level; return; }
     // A save still waiting for an idle moment must reach storage before that level is read again.
     flushRecords();
     this.level = level;
@@ -306,13 +309,15 @@ export class RaceSession {
     const v = this.entity.vehicle;
     const allOff = v.wheels.every((w) => w.surface !== 'road' && w.surface !== 'kerb');
     this.offTrackT = allOff ? this.offTrackT + dt : 0;
-    if (this.trackLimits && this.offTrackT > 0.15 && this.timer.valid && this.timer.lapNumber > 0) {
+    // A race has no valid or invalid laps: track limits and rule changes only matter for timed laps.
+    const timedLaps = this.mode !== 'race';
+    if (timedLaps && this.trackLimits && this.offTrackT > 0.15 && this.timer.valid && this.timer.lapNumber > 0) {
       this.timer.invalidate();
       this.faultLap(`Track limits at ${this.track.placeAt(v.tp.s)}: all four wheels left the track.`);
       this.say(`TRACK LIMITS — LAP INVALIDATED${this.shootoutConsequence()}`, 'warn', this.shootoutRun ? 4 : undefined);
     }
     // A lap counts for a level only when its rules held for the whole lap.
-    if (levelRank(this.rulesLevel) < levelRank(this.level) && this.timer.valid && this.timer.lapNumber > 0) {
+    if (timedLaps && levelRank(this.rulesLevel) < levelRank(this.level) && this.timer.valid && this.timer.lapNumber > 0) {
       this.timer.invalidate();
       this.faultLap('The rules or assists changed during the lap.');
       this.say(`RULES CHANGED — LAP INVALIDATED${this.shootoutConsequence()}`, 'warn', this.shootoutRun ? 4 : undefined);
@@ -336,6 +341,7 @@ export class RaceSession {
       this.say(reason, 'warn', 5);
     } else if (this.timer.crossings !== crossingsBefore) {
       if (this.shootoutRun) this.onShootoutCrossing(res);
+      else if (this.mode === 'race') this.onRaceCrossing(res);
       else this.onLapStart(res);
     }
     else this.telemetryRecorder.record(this.telemetrySample());
@@ -426,6 +432,14 @@ export class RaceSession {
     this.ghostVisible = !!this.ghost;
   }
 
+  /** A race lap is kept for this session's results only: no records, ghost, telemetry or messages. */
+  private onRaceCrossing(res: LapResult | null): void {
+    this.recorder.reset();
+    this.telemetryRecorder.reset();
+    if (!res) return;
+    this.driven.push({ car: this.car, timeS: res.timeS, sectorsS: res.sectorsS, valid: res.valid && !res.standing, dateIso: new Date().toISOString(), level: this.level, ...(res.standing ? { standing: true } : {}) });
+  }
+
   private persist(ghostFrames?: Float32Array): void {
     const save = this.timer.saveData();
     const base: CarRecords = this.records ?? { bestS: Infinity, bestSectors: [], laps: [] };
@@ -458,6 +472,7 @@ export class RaceSession {
    * `auto`: automatic recovery after the car was stuck.
    */
   resetToTrack(reason: 'manual' | 'auto' = 'manual'): void {
+    if (this.mode === 'race' && !this.racing) return; // on the grid the car already has its slot
     if (this.shootoutRun) {
       if (this.shootoutRun.phase === 'warmup') { this.placeOnGrid(); this.say('WARM-UP RESTARTED — NO ATTEMPT USED', 'info', 4); }
       else this.abortShootout('The car was reset during the timed lap. This attempt is used.');
@@ -468,7 +483,7 @@ export class RaceSession {
     const i = Math.round(this.track.wrapS(s) / this.track.spacing) % this.track.n;
     this.entity.reset(s, this.line.offset[i]);
     this.entity.repair();
-    const invalid = this.trackLimits && this.timer.lapNumber > 0;
+    const invalid = this.mode !== 'race' && this.trackLimits && this.timer.lapNumber > 0;
     if (invalid) this.timer.invalidate();
     const what = reason === 'auto' ? 'BACK ON TRACK' : 'CAR RESET AND REPAIRED';
     this.say(invalid ? `${what} — LAP INVALIDATED` : what, reason === 'auto' && !invalid ? 'info' : 'warn');

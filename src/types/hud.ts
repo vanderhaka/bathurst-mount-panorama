@@ -7,6 +7,7 @@ import type { TyreCompound } from '@/physics/tyre-state';
 import type { SessionTelemetry } from '@/types/telemetry';
 import type { BrakeReading } from '@/physics/brake-heat';
 import type { PracticeSummary } from '@/game/arcade-best';
+import type { RaceHud, RaceResult } from '@/types/race';
 
 export type SectorState = 'none' | 'personalBest' | 'overallBest' | 'slower';
 
@@ -86,6 +87,8 @@ export interface HudState {
   /** Real fuel values; when present they replace the HUD's display-only estimate. lapsLeft null = not known yet. */
   fuel?: { litres: number; lapsLeft: number | null };
   shootout?: { mode: ShootoutMode; phase: 'warmup' | 'ready' | 'timed' | 'finished'; attempt: number | null; remaining: number | null };
+  /** Mode 'race' only: position, lap and the running order. */
+  race?: RaceHud;
 }
 
 export interface HudTrackInfo {
@@ -144,6 +147,8 @@ export interface Menus {
   showShootout(mode: ShootoutMode): void;
   /** `practice`: an Arcade lap against the player's Arcade best for the car. */
   showShootoutResult(mode: ShootoutMode, attempt: ShootoutAttempt | null, outcome: ShootoutOutcome, error?: string, practice?: PracticeSummary): void;
+  /** Mode 'race': the classification, a few seconds after the player takes the flag, or the running order from the pause menu. */
+  showRaceResult(result: RaceResult): void;
   showPause(shootout?: { mode: ShootoutMode; timed: boolean; grid?: boolean }): void;
   /** Settings changed in the race (camera, racing line, ghost): menus show and start from these. */
   syncSettings(s: Settings): void;

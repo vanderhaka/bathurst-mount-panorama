@@ -16,6 +16,7 @@ import { Dash } from '@/hud/dash';
 import { DeltaStrip } from '@/hud/delta-strip';
 import { AttrSlot, h, TextSlot } from '@/hud/dom';
 import { MinimalReadout } from '@/hud/minimal-readout';
+import { RaceBadge } from '@/hud/race-tower';
 import { StartLights } from '@/hud/start-lights';
 import { Telemetry } from '@/hud/telemetry';
 import { TimingPanel } from '@/hud/timing-panel';
@@ -28,6 +29,7 @@ interface Parts {
   root: HTMLElement;
   timing: TimingPanel;
   minimal: MinimalReadout;
+  raceBadge: RaceBadge;
   map: TrackMap;
   dash: Dash;
   telemetry: Telemetry;
@@ -44,6 +46,7 @@ interface Parts {
 function build(track: HudTrackInfo): Parts {
   const timing = new TimingPanel(track.city);
   const minimal = new MinimalReadout();
+  const raceBadge = new RaceBadge();
   const map = new TrackMap(track);
   const dash = new Dash(track);
   const telemetry = new Telemetry();
@@ -56,7 +59,7 @@ function build(track: HudTrackInfo): Parts {
   const countdownEl = h('div', 'hud-countdown', { 'data-on': 'false', 'aria-live': 'assertive' });
   const countdown = { text: new TextSlot(countdownEl), on: new AttrSlot(countdownEl, 'data-on') };
   const root = h('div', 'bx-hud', { 'data-visible': 'true' }, [
-    h('div', 'hud-region hud-region--tl', undefined, [timing.el, fps.el]),
+    h('div', 'hud-region hud-region--tl', undefined, [timing.el, raceBadge.el, fps.el]),
     h('div', 'hud-region hud-region--tr', undefined, [map.el]),
     h('div', 'hud-region hud-region--tc', undefined, [lights.el, delta.el, banner.el]),
     h('div', 'hud-region hud-region--bl', undefined, [tyreFuel.el, telemetry.el]),
@@ -65,7 +68,7 @@ function build(track: HudTrackInfo): Parts {
     shootout.el,
     countdownEl,
   ]);
-  return { root, timing, minimal, map, dash, telemetry, tyreFuel, delta, lights, banner, fps, shootout, countdown };
+  return { root, timing, minimal, raceBadge, map, dash, telemetry, tyreFuel, delta, lights, banner, fps, shootout, countdown };
 }
 
 /** Creates the HUD. The container must cover the game viewport; it is made position:relative if static. */
@@ -95,6 +98,7 @@ export function createHud(): Hud {
       const view = state.view ?? 'outside';
       if (parts.root.dataset.view !== view) parts.root.dataset.view = view;
       parts.timing.update(state);
+      parts.raceBadge.update(state.race);
       parts.delta.update(state);
       parts.lights.update(state);
       parts.map.update(state);

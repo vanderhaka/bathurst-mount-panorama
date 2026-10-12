@@ -249,3 +249,52 @@
 @keyframes hud-pulse {
   50% { opacity: 0.35; }
 }
+
+/* ---- race mode: running order in place of the best-lap ghost, position block in the header */
+.hud-timing__racepos,
+.hud-tower__rows--race,
+.hud-racebadge { display: none; }
+.hud-timing[data-race='true'] .hud-tower__rows:not(.hud-tower__rows--race),
+.hud-timing[data-race='true'] .hud-chip--bad { display: none; }
+.hud-timing[data-race='true'] .hud-tower__rows--race { display: flex; }
+.hud-timing[data-race='true'] .hud-timing__racepos {
+  display: flex;
+  align-items: baseline;
+  align-self: center;
+  gap: 0.15em;
+  margin: 0 0.6em 0 auto;
+}
+.hud-timing__racepos b,
+.hud-racebadge__pos b {
+  font-size: 1.5em;
+  font-weight: var(--hud-num-weight);
+  line-height: 1;
+}
+.hud-timing__racepos span,
+.hud-racebadge__pos span {
+  font-size: var(--hud-fs-label);
+  font-weight: 700;
+  color: var(--hud-label);
+}
+.hud-pos--race[data-show='false'] { display: none; }
+.hud-pos--race .hud-pos__stripe { background: var(--hud-text-faint); }
+.hud-pos--race[data-you='true'] { background: var(--hud-row-you-bg); }
+.hud-pos--race[data-you='true'] .hud-pos__stripe { background: var(--team, var(--hud-accent)); }
+.hud-pos--race[data-you='true'] .hud-pos__n { color: var(--hud-tyre-text); background: var(--hud-text); }
+.hud-pos--race .hud-pos__num { min-width: 1.6em; }
+.hud-pos--race .hud-pos__code { margin-left: 0.2em; }
+.hud-pos--race .hud-pos__gap { text-align: right; }
+
+/* Compact position / lap badge: only on phones and in the minimal HUD, where the timing panel is hidden or cut down. */
+.hud-racebadge {
+  align-items: baseline;
+  gap: 0.8em;
+  padding: 0.4em 0.8em;
+  background: var(--hud-panel-bg);
+  border-top: 2px solid var(--hud-accent);
+  clip-path: var(--hud-panel-clip);
+  font-weight: 700;
+}
+.hud-racebadge__pos { display: flex; align-items: baseline; gap: 0.15em; }
+.hud-racebadge__lap { font-size: var(--hud-fs-label); letter-spacing: var(--hud-label-tracking); }
+.bx-hud[data-size='minimal'] .hud-racebadge[data-on='true'] { display: flex; }

@@ -56,3 +56,4 @@
 .hud-minimal__gear { text-align: center; }
 .hud-minimal__gear b { font-size: 3.2em; }
 .hud-minimal__lap b { font: 500 1.6em var(--hud-font-mono); }
+.bx-hud[data-size='minimal'] .hud-racebadge { font-size: var(--hud-min); }

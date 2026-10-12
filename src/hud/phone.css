@@ -34,3 +34,10 @@
     font-size: 0.8em;
   }
 }
+
+/* Race on a phone: the timing panel keeps position and lap, the running order shrinks to the player and the cars
+   either side, and the sector strip goes so the panel stays clear of the touch controls. */
+@media (pointer: coarse) and (max-height: 540px) {
+  .hud-pos--race[data-near='false'] { display: none; }
+  .hud-timing[data-race='true'] .hud-sectors { display: none; }
+}

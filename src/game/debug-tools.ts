@@ -1,8 +1,11 @@
 import * as THREE from 'three';
+import type { CarKind } from '@/car/car-specs';
 import type { RaceController } from '@/game/race-controller';
 import type { VehicleInput } from '@/physics/types';
 import { Autopilot } from '@/race/autopilot';
 import type { SpeedProfile } from '@/track/speed-profile';
+import { DEFAULT_RACE_OPTIONS, type AiSkill } from '@/types/race';
+import type { SessionConfig, Settings } from '@/types/session';
 import type { World } from '@/world/world';
 
 /** Metres the car drives (instantly) before it reaches the teleport point, so that it arrives settled. */
@@ -41,6 +44,18 @@ export function teleport(race: RaceController, world: World, profile: SpeedProfi
     session.timer.lapNumber = 1;
   }
   session.timer.invalidate();
+}
+
+/** What `window.__game.startRace` takes for a browser check: a race with the menus' defaults for what is left out. */
+export interface DebugRaceStart { car: CarKind; liveryIndex?: number; opponents?: number; laps?: number; skill?: AiSkill }
+
+/** The same SessionConfig the menus build for a player-vs-AI race. */
+export function debugRaceConfig(req: DebugRaceStart, settings: Settings): SessionConfig {
+  const d = DEFAULT_RACE_OPTIONS;
+  return {
+    mode: 'race', car: req.car, liveryIndex: req.liveryIndex ?? 0, tyres: 'soft', settings: { ...settings },
+    race: { opponents: req.opponents ?? d.opponents, laps: req.laps ?? d.laps, skill: req.skill ?? d.skill },
+  };
 }
 
 /** Car-select camera: slow orbit, with the projection shifted so that the car sits right of the menu panel. */

@@ -7,6 +7,7 @@ import { circuitCarSpec, type CarKind } from '@/car/car-specs';
 import { DEFAULT_HANDLING, getHandling } from '@/config/handling';
 import { defaultSetup, getSetup } from '@/config/setup';
 import { LIVERY_PRESETS } from '@/car/liveries';
+import { OpponentField } from '@/game/opponent-field';
 import { createCarModel } from '@/car/model-factory';
 import { GraphicsTuner } from '@/debug/tuner';
 import { Particles } from '@/fx/particles';
@@ -39,9 +40,10 @@ import { flushRecords } from '@/race/records-queue';
 import type { CarAudio } from '@/types/audio';
 import type { CarModel } from '@/types/car-model';
 import type { Hud, Menus } from '@/types/hud';
-import type { SessionConfig, Settings } from '@/types/session';
+import type { RaceResult } from '@/types/race';
+import { isShootoutMode, type SessionConfig, type Settings } from '@/types/session';
 import { createMenus } from '@/ui';
-import { teleport } from '@/game/debug-tools';
+import { debugRaceConfig, teleport, type DebugRaceStart } from '@/game/debug-tools';
 import { RacingLineMesh } from '@/world/racing-line-mesh';
 import { buildWorld, type World } from '@/world/world';
 import { carEnvMaterials } from '@/world/car-env';
@@ -93,7 +95,7 @@ export class Game {
         this.effects.setWorld(next, this.settings.quality);
         this.bakeCarEnv();
       },
-      models: () => [this.race?.player.model ?? null, this.ghostModel, this.attract.model],
+      models: () => [this.race?.player.model ?? null, this.ghostModel, this.attract.model, ...(this.race?.field?.models ?? [])],
       // Only the tier changes: graphics holds an older copy of the settings (in-race toggles never reach it).
       changed: (s) => { this.settings = { ...this.settings, quality: s.quality, autoQuality: s.autoQuality }; this.rememberSettings(); this.menus.syncSettings(this.settings); },
       notify: (text) => this.race?.session.say(text, 'info', 4),
@@ -112,7 +114,7 @@ export class Game {
       onResume: () => game?.resume(),
       onRestart: () => game?.restart(),
       onResetCar: () => game?.resetCar(),
-      onResults: () => { if (game?.race) menus.showResults(...sessionResults(game.race.session)); },
+      onResults: () => { if (game?.race?.field) game.showRaceResult(game.race.field.result()); else if (game?.race) menus.showResults(...sessionResults(game.race.session)); },
       telemetry: () => game?.race?.session.telemetrySnapshot() ?? null,
       onToggleTuner: () => { if (!game?.race?.session.shootout) game?.tuner.toggle(); },
       onQuitToMenu: () => game?.quitToTitle(),
@@ -179,40 +181,65 @@ export class Game {
     this.attract.set(entity, this.world.line);
   }
 
-  private startRace(cfg: SessionConfig): void {
+  /** The menus pass a SessionConfig; a browser check may pass a DebugRaceStart (a race with default options). */
+  startRace(request: SessionConfig | DebugRaceStart): void {
     if (this.halted) return;
+    const fromMenus = 'settings' in request;
+    const cfg = fromMenus ? request : debugRaceConfig(request, this.settings);
+    if (!fromMenus) this.menus.hide(); // the menus close themselves when they start a race
     this.endRace();
     this.applySettings(cfg.settings);
     const mode = cfg.mode ?? 'timeTrial';
-    if (mode !== 'timeTrial') {
+    const shootout = isShootoutMode(mode);
+    if (shootout) {
       this.shootoutPreferences = { ...this.settings };
       this.applySettings(this.settings);
       this.menus.syncSettings(this.settings);
     }
     this.attract.drop();
     const player = this.makeEntity(cfg.car, cfg.liveryIndex);
-    if (mode !== 'timeTrial') { player.vehicle.handling = DEFAULT_HANDLING; player.vehicle.setup = defaultSetup(cfg.car); }
-    const session = new RaceSession(cfg.car, this.world.track, this.world.line, player, mode !== 'timeTrial' ? 'soft' : cfg.tyres ?? 'soft', this.settings, mode);
+    if (shootout) { player.vehicle.handling = DEFAULT_HANDLING; player.vehicle.setup = defaultSetup(cfg.car); }
+    const session = new RaceSession(cfg.car, this.world.track, this.world.line, player, shootout ? 'soft' : cfg.tyres ?? 'soft', this.settings, mode);
+    const field = mode === 'race' && cfg.race ? this.makeField(cfg, player) : null;
+    if (field) session.raceSlot = field.playerSlot;
     if (mode === 'shootoutTop10') session.shootoutRemaining = this.shootoutStore.snapshot().remaining;
     session.realLapTime = () => this.lapClock.elapsedS(performance.now());
     if (mode === 'shootoutArcade' && isShootoutCar(cfg.car)) { this.loadPractice(session, cfg.car); this.countPractice(cfg.car, 'start'); }
-    if (mode !== 'timeTrial') session.warmupStart = loadWarmupStart(mode);
+    if (isShootoutMode(mode)) session.warmupStart = loadWarmupStart(mode);
     session.placeOnGrid();
-    this.ghostModel = createCarModel(cfg.car, { livery: LIVERY_PRESETS[cfg.car][0].livery, detail: 'low', quality: this.settings.quality });
-    this.ghostModel.setGhost(true);
-    this.ghostModel.root.visible = false;
-    this.stage.scene.add(this.ghostModel.root);
+    field?.placeOnGrid();
+    if (!field) {
+      this.ghostModel = createCarModel(cfg.car, { livery: LIVERY_PRESETS[cfg.car][0].livery, detail: 'low', quality: this.settings.quality });
+      this.ghostModel.setGhost(true);
+      this.ghostModel.root.visible = false;
+      this.stage.scene.add(this.ghostModel.root);
+    }
     this.audio = createCarAudio(cfg.car);
     void this.audio.start().then(() => this.audio?.setMasterVolume(this.settings.masterVolume)).catch(() => {});
     this.race = new RaceController(session, player, {
       input: this.input, rig: this.rig, hud: this.hud, lineMesh: this.lineMesh,
       audio: this.audio, ghostModel: this.ghostModel, settings: () => this.settings, particles: this.particles, effects: this.effects, startLights: (n) => this.world.setStartLights(n), stage: this.stage,
-    });
+    }, field);
     this.rig.mode = this.settings.camera;
     this.rig.snap();
     this.hud.setVisible(true);
     this.state = 'race';
     this.graphics.startRace();
+  }
+
+  private makeField(cfg: SessionConfig, player: CarEntity): OpponentField {
+    const { track, line, kerbs } = this.world;
+    const livery = LIVERY_PRESETS[cfg.car][cfg.liveryIndex % LIVERY_PRESETS[cfg.car].length].livery;
+    const createModel = (kind: CarKind, options: Parameters<typeof createCarModel>[1]): CarModel => createCarModel(kind, { ...options, quality: this.settings.quality });
+    return new OpponentField({ track, line, kerbs, scene: this.stage.scene, createModel }, { entity: player, car: cfg.car, liveryIndex: cfg.liveryIndex, livery }, cfg.race!);
+  }
+
+  /** Mode 'race': the classification goes to the menus; without a race screen the lap results are shown. */
+  showRaceResult(result: RaceResult): void {
+    this.state = 'paused';
+    this.audio?.suspend();
+    if (this.menus.showRaceResult) this.menus.showRaceResult(result);
+    else if (this.race) this.menus.showResults([...this.race.session.sessionLaps], {}, this.race.session.level);
   }
 
   /** Arcade: the player's own best sets the delta; the ghost is the current #1 lap for this car once it loads, else
@@ -243,6 +270,7 @@ export class Game {
     if (this.race) {
       this.stage.scene.remove(this.race.player.model.root);
       this.race.player.model.dispose();
+      this.race.field?.dispose();
       this.race = null;
     }
     if (this.ghostModel) {
@@ -266,7 +294,7 @@ export class Game {
     this.lapClock.pause(performance.now());
     this.audio?.suspend();
     const session = this.race?.session;
-    this.menus.showPause(session?.mode !== 'timeTrial' && session?.shootout ? { mode: session.mode, timed: session.shootout.phase === 'timed', grid: session.warmupStart === 'grid' } : undefined);
+    this.menus.showPause(session && isShootoutMode(session.mode) && session.shootout ? { mode: session.mode, timed: session.shootout.phase === 'timed', grid: session.warmupStart === 'grid' } : undefined);
   }
 
   /** The WebGL context is lost and main.ts offers a reload: pause for good, releasing wake lock and audio. */
@@ -287,7 +315,7 @@ export class Game {
       this.finishShootout(this.race.session);
       return;
     }
-    if (this.race.session.mode !== 'timeTrial') this.race.session.warmupStart = loadWarmupStart(this.race.session.mode);
+    if (isShootoutMode(this.race.session.mode)) this.race.session.warmupStart = loadWarmupStart(this.race.session.mode);
     this.race.session.placeOnGrid();
     if (this.race.session.mode === 'shootoutArcade' && isShootoutCar(this.race.session.car)) this.countPractice(this.race.session.car, 'start');
     this.race.restart();
@@ -360,7 +388,7 @@ export class Game {
 
   private finishShootout(session: RaceSession): void {
     const run = session.shootout;
-    if (run?.phase !== 'finished' || session.mode === 'timeTrial') return;
+    if (run?.phase !== 'finished' || !isShootoutMode(session.mode)) return;
     this.state = 'paused';
     this.lapClock.stop();
     this.guardUnload(false);
@@ -422,13 +450,13 @@ export class Game {
   }
 
   private bakeCarEnv(): void {
-    const hide = [this.race?.player.model.root, this.ghostModel?.root, this.attract.model?.root].filter(Boolean) as THREE.Object3D[];
+    const hide = [this.race?.player.model.root, this.ghostModel?.root, this.attract.model?.root, ...(this.race?.field?.models.map((m) => m.root) ?? [])].filter(Boolean) as THREE.Object3D[];
     this.stage.carEnv.bakeProbes(this.world.track, hide);
   }
 
   private updateCarEnv(): void {
     const s = this.race?.player.vehicle.tp.s ?? this.attract.trackS ?? this.world.track.gridLineS;
-    this.stage.carEnv.follow(s, carEnvMaterials(this.race?.player.model.root, this.ghostModel?.root, this.attract.model?.root));
+    this.stage.carEnv.follow(s, carEnvMaterials(this.race?.player.model.root, this.ghostModel?.root, this.attract.model?.root, ...(this.race?.field?.models.map((m) => m.root) ?? [])));
   }
 
   private raceFrame(dt: number): void {
@@ -454,7 +482,8 @@ export class Game {
     this.rig.lookBack = input.isHeld('lookBack');
     if (this.timeScale !== 1) race.session.invalidateShootout('Changed simulation speed cannot enter the competition.');
     race.frame(dt * this.timeScale, this.settings.showFps ? this.fps : null);
-    if (race.session.shootout?.phase === 'ready') void this.startShootoutLap(race);
+    if (race.field?.resultDue) this.showRaceResult(race.field.takeResult());
+    else if (race.session.shootout?.phase === 'ready') void this.startShootoutLap(race);
     else if (race.session.shootout?.phase === 'finished') this.finishShootout(race.session);
     this.followCamera(race.player, dt);
   }

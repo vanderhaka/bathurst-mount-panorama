@@ -5,6 +5,7 @@ import type { HudState } from '@/types/hud';
 import { AttrSlot, h, TextSlot } from '@/hud/dom';
 import { formatLapTime, formatSectorTime } from '@/hud/format';
 import { sectorClass } from '@/hud/indicators';
+import { PositionBlock, RaceTower } from '@/hud/race-tower';
 import { PositionTower } from '@/hud/tower';
 
 interface SectorView {
@@ -27,6 +28,9 @@ export class TimingPanel {
   private readonly sectorWrap = h('div', 'hud-sectors');
   private readonly tower = new PositionTower();
   private readonly mode = new TextSlot(h('span'));
+  private readonly raceTower = new RaceTower();
+  private readonly racePos = new PositionBlock('hud-timing__racepos');
+  private readonly raceOn: AttrSlot;
 
   constructor(city = 'Bathurst') {
     this.el = h('section', 'hud-panel hud-timing', { 'aria-label': 'Lap timing', 'data-valid': 'true' }, [
@@ -34,8 +38,10 @@ export class TimingPanel {
         h('span', 'hud-laptab', undefined, [this.lapWord.el, this.lapNo.el]),
         h('span', 'hud-timing__title', undefined, [h('b', undefined, undefined, [city.toUpperCase()]), this.mode.el]),
         h('span', 'hud-chip hud-chip--bad', undefined, ['INVALID']),
+        this.racePos.el,
       ]),
       this.tower.el,
+      this.raceTower.el,
       h('div', 'hud-timing__now', undefined, [this.current.el, this.sectorLabel.el]),
       h('div', 'hud-timing__rows', undefined, [
         h('div', 'hud-kv', undefined, [h('span', 'hud-micro', undefined, ['LAST']), this.last.el]),
@@ -44,6 +50,7 @@ export class TimingPanel {
       this.sectorWrap,
     ]);
     this.valid = new AttrSlot(this.el, 'data-valid');
+    this.raceOn = new AttrSlot(this.el, 'data-race');
     this.bestNone = new AttrSlot(this.best.el.parentElement as Element, 'data-none');
   }
 
@@ -64,9 +71,20 @@ export class TimingPanel {
   update(s: HudState): void {
     const lap = s.lap;
     const warmup = s.shootout && (s.shootout.phase === 'warmup' || s.shootout.phase === 'ready');
-    this.mode.set(s.shootout?.mode === 'shootoutTop10' ? 'TOP 10' : s.shootout ? 'ARCADE' : 'PRACTICE');
-    this.lapWord.set(warmup ? 'WARM' : lap.number > 0 ? 'LAP' : 'OUT');
-    this.lapNo.set(warmup ? 'UP' : lap.number > 0 ? String(lap.number) : 'LAP');
+    const race = s.race;
+    this.raceOn.set(race ? 'true' : 'false');
+    this.mode.set(race ? 'RACE' : s.shootout?.mode === 'shootoutTop10' ? 'TOP 10' : s.shootout ? 'ARCADE' : 'PRACTICE');
+    if (race) {
+      // 'LAP 2/3' (or 'FINISHED'): word in the accent tab, count beside it.
+      const [word, count] = race.finished ? ['FINISHED', ''] : ['LAP', `${race.lap}/${race.laps}`];
+      this.lapWord.set(word);
+      this.lapNo.set(count);
+      this.racePos.update(race);
+      this.raceTower.update(race);
+    } else {
+      this.lapWord.set(warmup ? 'WARM' : lap.number > 0 ? 'LAP' : 'OUT');
+      this.lapNo.set(warmup ? 'UP' : lap.number > 0 ? String(lap.number) : 'LAP');
+    }
     this.sectorLabel.set(`SECTOR ${lap.currentSector + 1}`);
     this.valid.set(lap.valid ? 'true' : 'false');
     this.current.set(warmup ? 'UNTIMED' : formatLapTime(lap.currentS));

@@ -39,7 +39,8 @@ export class DeltaStrip {
 
   update(st: HudState): void {
     // The start-lights gantry takes this spot during the countdown.
-    this.hidden.set((st.startLights ?? -1) >= 0 ? 'true' : 'false');
+    // A race has no reference lap, so the bar stays away there too.
+    this.hidden.set((st.startLights ?? -1) >= 0 || st.race ? 'true' : 'false');
     const d = st.lap.deltaS;
     const best = st.lap.bestS;
     // No reference yet: a clean dash and a plain label instead of placeholder digits.

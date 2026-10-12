@@ -55,6 +55,12 @@ function feedForward(v: Vehicle, kappa: number, v1: number): number {
 export class Autopilot {
   /** Fraction of the profile speed to aim for. Prefer a profile built with a lower gripFactor for a careful AI. */
   pace = 1;
+  /** Lateral target offset from the racing line (m, + = left, along the track's left normal). Traffic code moves it. */
+  offset = 0;
+  /** How fast `offset` is changing (m/s, + = towards the left): steering anticipates it instead of lagging the target. */
+  offsetRate = 0;
+  /** Speed ceiling (m/s) on top of the profile target, e.g. to follow a slower car. */
+  speedCap = Infinity;
   private integral = 0;
 
   constructor(private readonly track: Track, private readonly line: RacingLine, private readonly profile: SpeedProfile) {}
@@ -87,10 +93,16 @@ export class Autopilot {
     const [cx, cz] = lineTangent(line, b, n);
     const lineHeading = Math.atan2(ax + (cx - ax) * u, az + (cz - az) * u);
     let headErr = lineHeading - v.heading;
+    if (this.offsetRate !== 0) headErr += Math.atan2(this.offsetRate, Math.max(4, Math.abs(speed)));
     while (headErr > Math.PI) headErr -= 2 * Math.PI;
     while (headErr < -Math.PI) headErr += 2 * Math.PI;
     // Cross-track error: + = line is to the car's left.
-    const ex = line.x[a] + abx * u - fx, ez = line.z[a] + abz * u - fz;
+    let ex = line.x[a] + abx * u - fx, ez = line.z[a] + abz * u - fz;
+    if (this.offset !== 0) {
+      // Aim at the offset point: shift the target along the track's left normal (interpolated like the line).
+      ex += this.offset * (track.lx[a] + (track.lx[b] - track.lx[a]) * u);
+      ez += this.offset * (track.lz[a] + (track.lz[b] - track.lz[a]) * u);
+    }
     const cross = ex * cos - ez * sin;
     const v1 = Math.max(4, Math.abs(speed));
     const preview = Math.round((Math.max(4, v1 * 0.25)) / track.spacing);
@@ -104,7 +116,7 @@ export class Autopilot {
     // Slow down a little when off the line, so that the car can recover it.
     // Extra care in steep downhill corners (Dipper, Forrest's Elbow): the rear goes light there.
     const downhill = Math.abs(line.curvature[ka]) > 1 / 140 ? Math.min(0.14, Math.max(0, -track.grade[ka] - 0.04) * 1.3) : 0;
-    const target = profile.speed[ka] * this.pace * (1 - downhill) * (1 - Math.min(0.15, Math.max(0, crossErr - 0.8) * 0.05));
+    const target = Math.min(this.speedCap, profile.speed[ka] * this.pace * (1 - downhill) * (1 - Math.min(0.15, Math.max(0, crossErr - 0.8) * 0.05)));
     const err = target - speed;
     // Integrate only near the target (anti-windup): a long braking zone must not
     // leave the car coasting below the target speed through the next corner.

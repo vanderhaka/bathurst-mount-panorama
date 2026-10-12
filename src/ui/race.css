@@ -1,0 +1,70 @@
+/* Race setup and race results (src/ui/screens/race-setup.ts, race-results.ts). Reuses the onboarding rows and the results table. */
+.mn-panel--race-setup {
+  width: min(34em, 94vw);
+}
+.mn-panel--race-results {
+  width: min(52em, 94vw);
+}
+.mn-race-table td,
+.mn-race-table th {
+  white-space: nowrap;
+}
+.mn-race__pos,
+.mn-race__no {
+  width: 1%;
+  font-variant-numeric: tabular-nums;
+}
+.mn-race__time,
+.mn-race__best {
+  font-variant-numeric: tabular-nums;
+}
+.mn-race-table tr.is-mine td {
+  background: var(--hud-row-you-bg);
+  color: var(--hud-text);
+  font-weight: 700;
+}
+.mn-race-table tr.is-mine td:first-child {
+  box-shadow: inset 0.2em 0 0 var(--hud-text);
+}
+
+@media (max-width: 640px), (pointer: coarse) and (max-height: 540px) {
+  .mn-race__car,
+  .mn-race__best {
+    display: none;
+  }
+}
+
+@media (pointer: coarse) and (max-height: 540px) {
+  .mn-panel--race-setup,
+  .mn-panel--race-results {
+    padding: 0.8em 1.2em 0.7em;
+  }
+  .mn-panel--race-setup .mn-panel__head,
+  .mn-panel--race-results .mn-panel__head {
+    margin-bottom: 0.5em;
+  }
+  .mn-panel--race-setup .mn-h2,
+  .mn-panel--race-results .mn-h2 {
+    font-size: 1.9em;
+  }
+  .mn-panel--race-setup .mn-onb__rows {
+    gap: 0.35em;
+  }
+  .mn-panel--race-setup .mn-value--setting {
+    padding-top: 0.3em;
+    padding-bottom: 0.3em;
+  }
+  .mn-panel--race-setup .mn-onb__note {
+    padding-top: 0.15em;
+  }
+  .mn-race-table th,
+  .mn-race-table td {
+    padding-top: 0.25em;
+    padding-bottom: 0.25em;
+  }
+  .mn-panel--race-setup .mn-panel__foot,
+  .mn-panel--race-results .mn-panel__foot {
+    margin-top: 0.5em;
+    padding-top: 0.5em;
+  }
+}

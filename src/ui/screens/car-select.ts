@@ -6,7 +6,7 @@ import { h } from '@/hud/dom';
 import { ACTIVE_CIRCUIT } from '@/track/circuits';
 import { CAR_ORDER, carSheet, hexColour, LIVERY_COUNT } from '@/ui/car-data';
 import { SHOOTOUT_CARS } from '@/shootout/model';
-import type { RaceMode } from '@/types/session';
+import { isShootoutMode, type RaceMode } from '@/types/session';
 import { hintBar, kicker, menuButton, type Screen, screenEl, STD_HINTS, valueRow } from '@/ui/screen';
 
 export interface CarSelectActions {
@@ -69,21 +69,21 @@ export class CarSelectScreen implements Screen {
     return this.cars[this.carIdx];
   }
 
-  private get cars(): readonly CarKind[] { return this.mode === 'timeTrial' ? CAR_ORDER : SHOOTOUT_CARS; }
+  private get cars(): readonly CarKind[] { return isShootoutMode(this.mode) ? SHOOTOUT_CARS : CAR_ORDER; }
 
   setMode(mode: RaceMode, remaining = 3): void {
     const previous = this.car;
     this.mode = mode;
     this.carIdx = Math.max(0, this.cars.indexOf(previous));
-    const shootout = mode !== 'timeTrial';
-    this.modeLabel.textContent = mode === 'timeTrial' ? 'Select car' : mode === 'shootoutArcade' ? 'Shootout Arcade' : 'Shootout Top 10';
+    const shootout = isShootoutMode(mode);
+    this.modeLabel.textContent = mode === 'race' ? 'Race' : !shootout ? 'Select car' : mode === 'shootoutArcade' ? 'Shootout Arcade' : 'Shootout Top 10';
     this.modeNote.hidden = !shootout;
     this.modeNote.textContent = mode === 'shootoutTop10'
       ? `Bathurst · ${remaining} of 3 attempts left · Full damage / track limits / automatic gears`
       : 'Bathurst · Unlimited practice · Pro rules · No official score';
     this.tyreRow.el.hidden = shootout;
     if (shootout) this.tyres = 'soft';
-    const label = shootout ? 'Start warm-up' : 'Start time trial';
+    const label = shootout ? 'Start warm-up' : mode === 'race' ? 'Start race' : 'Start time trial';
     const text = this.race.querySelector('.mn-btn__label');
     if (text) text.textContent = label;
     this.race.setAttribute('aria-label', label);

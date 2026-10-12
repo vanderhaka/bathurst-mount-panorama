@@ -38,17 +38,17 @@ describe('Bathurst Shootout menu', () => {
   it('offers both modes at Bathurst and starts navigation at Top 10', async () => {
     const { doc, title } = await open('bathurst');
     expect(title.querySelectorAll('.mn-btn__label').map((el) => el.textContent)).toEqual([
-      'Shootout Top 10', 'Time trial', 'Shootout Arcade', 'Settings', 'Controls',
+      'Shootout Top 10', 'Race', 'Time trial', 'Shootout Arcade', 'Settings', 'Controls',
     ]);
-    expect(title.querySelectorAll('.mn-btn__idx').map((el) => el.textContent)).toEqual(['01', '02', '03', '04']);
+    expect(title.querySelectorAll('.mn-btn__idx').map((el) => el.textContent)).toEqual(['01', '02', '03', '04', '05']);
     expect(doc.activeElement).toBe(title.querySelector('.mn-shootout-feature'));
   });
 
   it.each(['adelaide', 'gold-coast'] as const)('omits both modes and their navigation items at %s', async (circuit) => {
     const { doc, menus, title } = await open(circuit);
     expect(title.textContent).not.toContain('Shootout');
-    expect(title.querySelectorAll('.mn-btn__label').map((el) => el.textContent)).toEqual(['Time trial', 'Settings', 'Controls']);
-    expect(title.querySelectorAll('.mn-btn__idx').map((el) => el.textContent)).toEqual(['01', '02', '03']);
+    expect(title.querySelectorAll('.mn-btn__label').map((el) => el.textContent)).toEqual(['Race', 'Time trial', 'Settings', 'Controls']);
+    expect(title.querySelectorAll('.mn-btn__idx').map((el) => el.textContent)).toEqual(['01', '02', '03', '04']);
     const items = [...title.querySelectorAll('.mn-item'), ...title.querySelectorAll('a')];
     for (const item of items) {
       expect(doc.activeElement).toBe(item);

@@ -33,9 +33,9 @@ export class CarEntity {
   private readonly q = new THREE.Quaternion();
   private readonly e = new THREE.Euler(0, 0, 0, 'YXZ');
 
-  constructor(spec: CarSpec, track: Track, kerbs: KerbLayout, createModel: CreateCarModel, readonly livery: Livery) {
+  constructor(spec: CarSpec, track: Track, kerbs: KerbLayout, createModel: CreateCarModel, readonly livery: Livery, detail: 'high' | 'low' = 'high') {
     this.vehicle = new Vehicle(spec, track, kerbs);
-    this.model = createModel(spec.kind as CarKind, { livery, detail: 'high' });
+    this.model = createModel(spec.kind as CarKind, { livery, detail });
     this.model.root.traverse((o) => {
       if ((o as THREE.Mesh).isMesh) o.castShadow = true;
     });
@@ -47,6 +47,18 @@ export class CarEntity {
     this.capture(this.cur);
     this.acc = 0;
     this.sync(0);
+  }
+
+  /** Takes the vehicle's current pose as both render poses: after an external move (car contact) the model must not
+   * interpolate across it. */
+  recapture(): void {
+    this.capture(this.prev);
+    this.capture(this.cur);
+  }
+
+  /** A car-to-car hit: dents the body like a wall impact (the caller applies any mechanical damage). */
+  applyCarHit(imp: ImpactReport): void {
+    if (this.visualDamage) this.applyVisualDamage(imp);
   }
 
   private capture(p: Pose): void {

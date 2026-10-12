@@ -3,6 +3,7 @@ import { DEFAULT_HEAD_MOTION } from '@/camera/head-motion';
 import type { QualityPreset } from '@/render/renderer';
 import type { TouchSteeringMode } from '@/input/touch-model';
 import type { TyreCompound } from '@/physics/tyre-state';
+import type { RaceOptions } from '@/types/race';
 
 export type CameraMode = 'chase' | 'chaseFar' | 'bonnet' | 'cockpit' | 'tv';
 
@@ -10,7 +11,13 @@ export type CameraMode = 'chase' | 'chaseFar' | 'bonnet' | 'cockpit' | 'tv';
 export type DrivingLevel = 'casual' | 'experienced' | 'superstar';
 
 export type ShootoutMode = 'shootoutArcade' | 'shootoutTop10';
-export type RaceMode = 'timeTrial' | ShootoutMode;
+/** 'race' = the player against AI cars over a set number of laps (SessionConfig.race). */
+export type RaceMode = 'timeTrial' | ShootoutMode | 'race';
+
+/** True for the two Shootout modes: the competition rules (fixed setup, warm-up, timed lap) apply. */
+export function isShootoutMode(mode: RaceMode): mode is ShootoutMode {
+  return mode === 'shootoutArcade' || mode === 'shootoutTop10';
+}
 
 /** Player settings. Persisted in localStorage (best effort). */
 export interface Settings {
@@ -102,6 +109,8 @@ export interface SessionConfig {
   /** Fitted at session start; Restart keeps this choice and fits a fresh set. */
   tyres?: TyreCompound;
   settings: Settings;
+  /** Mode 'race' only: field size, laps and AI pace. */
+  race?: RaceOptions;
 }
 
 /** A completed lap, for the results table. */

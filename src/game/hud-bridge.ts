@@ -5,7 +5,8 @@ import type { SpeedProfile } from '@/track/speed-profile';
 import type { Track } from '@/track/track-model';
 import { CIRCUITS } from '@/track/circuits';
 import type { HudState, HudTrackInfo } from '@/types/hud';
-import type { Settings } from '@/types/session';
+import type { RaceHud } from '@/types/race';
+import { isShootoutMode, type Settings } from '@/types/session';
 
 /** Three-letter car code in the timing tower. */
 const CAR_CODES: Record<CarKind, string> = { camaro: 'CAM', mustang: 'MUS', supra: 'SUP', torana: 'A9X' };
@@ -48,7 +49,7 @@ export function nextCornerSpeed(track: Track, profile: SpeedProfile, s: number, 
   return Math.round(target * 3.6);
 }
 
-export function buildHudState(session: RaceSession, profile: SpeedProfile, settings: Settings, fps: number | null, out: HudState | null): HudState {
+export function buildHudState(session: RaceSession, profile: SpeedProfile, settings: Settings, fps: number | null, out: HudState | null, race: RaceHud | null = null): HudState {
   const v = session.entity.vehicle;
   const t = v.telemetry;
   const track = session.track;
@@ -82,7 +83,7 @@ export function buildHudState(session: RaceSession, profile: SpeedProfile, setti
     sectors: snap.sectors,
   };
   const shootout = session.shootout;
-  if (shootout && session.mode !== 'timeTrial') {
+  if (shootout && isShootoutMode(session.mode)) {
     const timed = shootout.phase === 'timed' || shootout.phase === 'finished';
     state.shootout = { mode: session.mode, phase: shootout.phase, attempt: timed ? shootout.attempt?.number ?? null : null, remaining: session.shootoutRemaining };
     state.lap.number = timed ? 1 : 0;
@@ -91,6 +92,8 @@ export function buildHudState(session: RaceSession, profile: SpeedProfile, setti
     state.lap.bestS = null;
     state.lap.deltaS = null;
   } else delete state.shootout;
+  if (race) state.race = race;
+  else delete state.race;
   state.progress = track.lapFraction(v.tp.s);
   state.ghostProgress = session.ghostVisible ? progressOf(session) : null;
   state.playerXZ = [v.x, v.z];
