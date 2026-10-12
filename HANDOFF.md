@@ -1,5 +1,19 @@
 # Bathurst handoff — 8 October 2026
 
+## Player-vs-AI races + tilt brake on the left — released 12 October 2026
+
+- **Race mode** (`RaceMode` 'race', every circuit): title > Race > opponents 3/5/7, laps 3/5/10,
+  AI Easy/Medium/Hard > any car. Player starts last on a 2-wide grid; cars collide.
+  Code: `src/race/field/` (AI driver, car contact, race order, grid, roster), `src/game/opponent-field.ts`,
+  HUD `src/hud/race-tower.ts`, menus `src/ui/screens/race-setup.ts` + `race-results.ts`.
+  Every Shootout check now uses `isShootoutMode()`; races never read or write records, ghosts or Shootout stores.
+  Debug start: `__game.startRace({ car, opponents, laps, skill })`.
+- **Open:** Medium AI wins a 1-lap Bathurst race in ~2:04 (James to judge by play). AI cars have no
+  engine audio or tyre smoke. Passing is moderate (narrow track, no slipstream).
+- **Perf:** only the 3 nearest AI cars within 60 m cast shadows; HUD order refreshes at 4 Hz.
+  A 7-car race costs the same GPU time as a time trial at full Retina size.
+- **Tilt brake:** Settings > Steering > "Tilt: brake on left" (default on) moves Brake bottom-left once tilt is ready.
+
 ## Phase 1 car realism (lighting + paint) — in review
 
 Branch work (do **not** merge until James reviews): procedural cars get a photoreal
