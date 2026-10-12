@@ -1,4 +1,5 @@
 import type { Track } from '@/track/track-model';
+import { runSync, type Steps } from '@/world/cooperative';
 
 export interface RacingLine {
   /** Lateral offset of the line from the centreline per sample (m, + = left). */
@@ -30,7 +31,18 @@ const DEFAULTS: RacingLineOptions = { margin: 1.25, kerbAllowance: 0.6, iteratio
  * sweeps on a coarse-to-fine hierarchy (coarse levels move long straights fast).
  */
 export function computeRacingLine(track: Track, opts: Partial<RacingLineOptions> = {}): RacingLine {
+  return runSync(racingLineSteps(track, opts));
+}
+
+const STRIDES = [16, 8, 4, 2, 1];
+
+/** The same solve as `computeRacingLine` (identical output), yielding its fraction done after each sweep. */
+export function* racingLineSteps(track: Track, opts: Partial<RacingLineOptions> = {}): Steps<RacingLine> {
   const o = { ...DEFAULTS, ...opts };
+  const strideIters = STRIDES.map((stride) => Math.round(o.iterations / Math.sqrt(stride * 2)));
+  const peakIters = Math.round(o.iterations * 0.6);
+  const total = strideIters.reduce((a, b) => a + b, 0) + o.peakPasses * peakIters;
+  const sweep = { done: 0, total };
   const n = track.n;
   const lo = new Float32Array(n);
   const hi = new Float32Array(n);
@@ -43,9 +55,9 @@ export function computeRacingLine(track: Track, opts: Partial<RacingLineOptions>
   }
   const offset = new Float32Array(n);
   const weights = new Float32Array(n).fill(1);
-  for (const stride of [16, 8, 4, 2, 1]) {
-    const iters = Math.round(o.iterations / Math.sqrt(stride * 2));
-    relax(track, offset, lo, hi, stride, iters, weights);
+  for (let s = 0; s < STRIDES.length; s++) {
+    const stride = STRIDES[s];
+    yield* relax(track, offset, lo, hi, stride, strideIters[s], weights, sweep);
     if (stride > 1) fillBetween(offset, stride, n);
   }
   // Re-weighted passes: penalise curvature peaks so slow corners use the width
@@ -53,12 +65,15 @@ export function computeRacingLine(track: Track, opts: Partial<RacingLineOptions>
   for (let pass = 0; pass < o.peakPasses; pass++) {
     const k = buildLine(track, offset).curvature;
     for (let i = 0; i < n; i++) weights[i] = 1 + (Math.abs(k[i]) * 50) ** 2;
-    relax(track, offset, lo, hi, 1, Math.round(o.iterations * 0.6), weights);
+    yield* relax(track, offset, lo, hi, 1, peakIters, weights, sweep);
   }
   return buildLine(track, offset);
 }
 
-function relax(track: Track, a: Float32Array, lo: Float32Array, hi: Float32Array, stride: number, iters: number, w: Float32Array): void {
+function* relax(
+  track: Track, a: Float32Array, lo: Float32Array, hi: Float32Array, stride: number, iters: number, w: Float32Array,
+  sweep: { done: number; total: number },
+): Steps<void> {
   const { px, pz, lx, lz } = track;
   const n = track.n;
   const m = Math.floor(n / stride);
@@ -88,6 +103,7 @@ function relax(track: Track, a: Float32Array, lo: Float32Array, hi: Float32Array
       if (v < lo[i]) v = lo[i];
       a[i] = v;
     }
+    yield ++sweep.done / sweep.total;
   }
 }
 

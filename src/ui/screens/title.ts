@@ -83,12 +83,12 @@ export class TitleScreen implements Screen {
     return () => { if (!this.busy) action(); };
   }
 
-  /** (Re)builds the screen for the active circuit: another circuit can be swapped in without a reload. */
+  /** (Re)builds the screen for the active circuit: another circuit can be swapped in without a reload.
+   * A switch can still be under way (the new world is in, its reflections are not): the map and the
+   * waiting race buttons stay until `endSwitch`. */
   render(): void {
     const circuit = activeCircuit();
     this.target = circuit;
-    this.busy = false;
-    this.status.hide();
     this.showTarget();
     const { actions } = this;
     this.featured = titleHasShootout(circuit)
@@ -118,6 +118,7 @@ export class TitleScreen implements Screen {
     ];
     this.buttons = options.map(([label, action, starts], i) => menuButton(label, starts ? this.guarded(action) : action, { index: String(i + 1).padStart(2, '0') }));
     this.starters = [...(this.featured ? [this.featured] : []), ...this.buttons.filter((_b, i) => options[i][2])];
+    this.setBusy(this.busy);
     this.credit = geometryCredit(circuit);
     this.el.replaceChildren(
       h('div', 'mn-side', undefined, [

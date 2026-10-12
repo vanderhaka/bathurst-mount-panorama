@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { setActiveCircuit } from '@/track/circuits';
 import { TitleScreen, titleHasShootout } from '@/ui/screens/title';
+import { SWITCH_FADE_MS } from '@/ui/screens/title-switch';
 import { stubMenuDom, type MenuNode } from './menu-dom-fixture';
 
 beforeEach(() => { vi.useFakeTimers(); stubMenuDom(); vi.stubGlobal('localStorage', { getItem: () => null, setItem: () => {} }); });
@@ -15,6 +16,12 @@ function open() {
   });
   const labels = (): string[] => title.items().map((el) => (el as unknown as MenuNode).textContent);
   return { title, switched, started, labels };
+}
+
+function find(node: MenuNode, cls: string): MenuNode | null {
+  if (node.classList.contains(cls)) return node;
+  for (const c of node.children) { const f = find(c, cls); if (f) return f; }
+  return null;
 }
 
 describe('title screen per circuit', () => {
@@ -75,6 +82,38 @@ describe('title screen per circuit', () => {
     expect(trial.getAttribute('aria-disabled')).toBe('false');
     trial.click();
     expect(started).toEqual(['settings', 'time trial']);
+  });
+
+  it('fades the map out when the switch ends, and keeps it when a new switch starts during the fade', () => {
+    const { title } = open();
+    const map = (): MenuNode => find(title.el as unknown as MenuNode, 'mn-switch')!;
+    title.showSwitch('adelaide', 0.9, 'World ready');
+    title.endSwitch();
+    expect(map().hidden).toBe(false);
+    expect(map().getAttribute('data-leaving')).toBe('true');
+    vi.advanceTimersByTime(SWITCH_FADE_MS);
+    expect(map().hidden).toBe(true);
+    title.showSwitch('gold-coast', 0.1, 'Reading circuit data');
+    title.endSwitch();
+    title.showSwitch('adelaide', 0.2, 'Reading circuit data');
+    vi.advanceTimersByTime(SWITCH_FADE_MS);
+    expect(map().hidden).toBe(false);
+    expect(map().getAttribute('data-leaving')).toBe('false');
+  });
+
+  it('keeps the map and the waiting race buttons when the new world is in but the switch has not ended', () => {
+    const { title } = open();
+    const map = (): MenuNode => find(title.el as unknown as MenuNode, 'mn-switch')!;
+    title.showSwitch('adelaide', 0.9, 'Placing reflections');
+    setActiveCircuit('adelaide');
+    title.render();
+    const trial = (title.items() as unknown as MenuNode[]).find((b) => b.textContent.includes('Time trial'))!;
+    expect(map().hidden).toBe(false);
+    expect(map().getAttribute('data-leaving')).not.toBe('true');
+    expect(trial.getAttribute('aria-disabled')).toBe('true');
+    title.endSwitch();
+    expect(map().getAttribute('data-leaving')).toBe('true');
+    expect(trial.getAttribute('aria-disabled')).toBe('false');
   });
 
   it('shows the target circuit name with its progress, and goes back to the active one when cancelled', () => {

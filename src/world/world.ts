@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { circuitCarSpec } from '@/car/car-specs';
 import { DEFAULT_HANDLING, tunedSpec } from '@/config/handling';
 import { placeKerbs, type KerbLayout } from '@/track/kerbs';
-import { computeRacingLine, type RacingLine } from '@/track/racing-line';
+import { racingLineSteps, type RacingLine } from '@/track/racing-line';
 import { computeSpeedProfile, LINE_PROFILE, type SpeedProfile } from '@/track/speed-profile';
 import type { Track } from '@/track/track-model';
 import { loadTrack } from '@/track/load-track';
@@ -48,7 +48,7 @@ export async function buildWorld(
   const track = reuse?.track ?? (await loadTrack(circuit));
   const circuitWorld = CIRCUIT_WORLDS[track.id];
   await progress(0.12, 'Computing the racing line');
-  const line = reuse?.line ?? computeRacingLine(track);
+  const line = reuse?.line ?? (await runCooperative(racingLineSteps(track), progress, 0.12, 0.25, 'Computing the racing line'));
   const profile = reuse?.profile ?? computeSpeedProfile(track, line, tunedSpec(circuitCarSpec('camaro', track.id), DEFAULT_HANDLING), LINE_PROFILE);
   const kerbs = reuse?.kerbs ?? placeKerbs(track, line);
   await progress(0.25, 'Laying the asphalt');

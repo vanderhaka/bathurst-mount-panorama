@@ -9,7 +9,10 @@
   `WRITE_WORLD_FINGERPRINT=1`.
 - The right column shows the map of the circuit being built, above the Top 10 board on Bathurst.
   The header (location, name, facts) names the target circuit during a switch, so it agrees with the map.
-- **Open:** `computeRacingLine` at Bathurst is still one ~200 ms block; the map panel has no fade-out.
+- The racing line solve yields too (`racingLineSteps`, same output as `computeRacingLine`). The map fades
+  out (`SWITCH_FADE_MS`) and stays until `endSwitch`, also across the title re-render when the world is in.
+- **Open:** shader precompile is the longest task left in a switch (~240 ms); on Bathurst the Top 10 board
+  moves up when the map hides.
 
 ## Auto graphics: no mid-race rebuilds — released 12 October 2026
 

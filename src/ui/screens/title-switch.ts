@@ -4,6 +4,9 @@ import { h, s, TextSlot } from '@/hud/dom';
 import { CIRCUITS, type CircuitId } from '@/track/circuits';
 import { OUTLINE_VIEWBOX, trackOutlinePath } from '@/ui/track-outline';
 
+/** Length of the fade-out (matches `mn-switch-out` in screens.css). */
+export const SWITCH_FADE_MS = 300;
+
 export class CircuitSwitchStatus {
   readonly el = h('div', 'mn-switch', { role: 'status', 'aria-live': 'polite', hidden: true });
   private readonly name = new TextSlot(h('p', 'mn-switch__name'));
@@ -14,6 +17,7 @@ export class CircuitSwitchStatus {
   private draw: SVGPathElement | null = null;
   private head: SVGCircleElement | null = null;
   private shown: CircuitId | null = null;
+  private leaveTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor() {
     this.el.append(this.art, h('div', 'mn-switch__body', undefined, [this.name.el, this.bar, h('div', 'mn-loading__meta', undefined, [this.label.el, this.pct.el])]));
@@ -23,6 +27,7 @@ export class CircuitSwitchStatus {
   show(target: CircuitId, progress: number, label: string): void {
     if (this.shown !== target) this.setTarget(target);
     const p = Math.max(0, Math.min(1, progress));
+    this.stopLeave();
     this.el.hidden = false;
     this.el.setAttribute('data-failed', 'false');
     this.label.set(label);
@@ -40,6 +45,7 @@ export class CircuitSwitchStatus {
 
   /** The switch failed: the message stays until the next request. */
   fail(message: string): void {
+    this.stopLeave();
     this.el.hidden = false;
     this.el.setAttribute('data-failed', 'true');
     this.name.set(message);
@@ -49,9 +55,23 @@ export class CircuitSwitchStatus {
     this.art.replaceChildren();
   }
 
+  /** Fades the panel out, then hides it. A new `show` or `fail` during the fade keeps the panel. */
   hide(): void {
-    this.el.hidden = true;
     this.shown = null;
+    if (this.el.hidden || this.leaveTimer) return;
+    this.el.setAttribute('data-leaving', 'true');
+    this.leaveTimer = setTimeout(() => {
+      this.leaveTimer = null;
+      this.el.setAttribute('data-leaving', 'false');
+      this.el.hidden = true;
+    }, SWITCH_FADE_MS);
+  }
+
+  private stopLeave(): void {
+    if (!this.leaveTimer) return;
+    clearTimeout(this.leaveTimer);
+    this.leaveTimer = null;
+    this.el.setAttribute('data-leaving', 'false');
   }
 
   private setTarget(target: CircuitId): void {

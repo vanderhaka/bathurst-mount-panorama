@@ -185,6 +185,13 @@
 .mn-switch[hidden] {
   display: none;
 }
+/* The circuit is ready (or the switch was cancelled): the map fades out before it is hidden (SWITCH_FADE_MS). */
+.mn-switch[data-leaving='true'] {
+  animation: mn-switch-out 0.3s ease-in both;
+}
+@keyframes mn-switch-out {
+  to { opacity: 0; }
+}
 .mn-switch__art {
   flex: 1 1 26em;
   min-height: 5em;
