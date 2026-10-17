@@ -55,6 +55,8 @@ and head would not inspect a PR diff. Flow collections, quoted mapping/job keys,
 keys, anchors, aliases, tags, multiple documents and non-`run` block scalars fail
 with an `unsupported workflow YAML format` diagnostic. Shell text inside a supported
 `run: |` block is opaque to this structural check; it still needs normal code review.
+The block ends at the mapping key's effective indentation, including the two-column
+offset after a sequence dash, so sibling `env` and later workflow keys are checked.
 Backslashes on YAML scalar lines are also unsupported, including encoded Unicode/hex
 characters and harmless escaped strings. This conservative check happens before
 inline-comment removal so quoted hashes cannot hide encoded context names. Shell

@@ -182,7 +182,7 @@ def workflow_lines(text):
         value = re.sub(r"[ \t]+#.*$", "", value).rstrip()
         if value.startswith(("{", "[", "&", "*", "!", ">", "|")):
             if key == "run" and value in ("|", "|-", "|+"):
-                block_indent = indent
+                block_indent = indent + (2 if sequence else 0)
             else:
                 errors.append("unsupported workflow YAML format at line " + str(number)
                               + ": flow collections, aliases, anchors, tags and non-run block scalars are forbidden")

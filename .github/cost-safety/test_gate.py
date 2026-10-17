@@ -158,6 +158,30 @@ class ScannerTests(unittest.TestCase):
         content = VALID_WORKFLOW + "      - run: |\n          printf '%s\\n' 'ordinary shell text'\n"
         self.assertEqual(gate.workflow_errors(content.encode()), [])
 
+    def test_sibling_env_after_dash_or_named_run_is_checked(self):
+        for header in ("      - run: |\n", "      - name: Shell step\n        run: |\n"):
+            with self.subTest(header=header):
+                content = (VALID_WORKFLOW + header + "          echo ordinary\n        env:\n          LEAK: "
+                           + r'"${{ se\u0063rets.API_KEY }}"' + "\n")
+                self.assertIn("backslash-escaped scalar", " ".join(gate.workflow_errors(content.encode())))
+                benign = content.replace(r'"${{ se\u0063rets.API_KEY }}"', '"ordinary value"')
+                self.assertEqual(gate.workflow_errors(benign.encode()), [])
+
+    def test_timeout_and_action_checks_resume_after_dash_or_named_run(self):
+        for header in ("      - run: |\n", "      - name: Shell step\n        run: |\n"):
+            with self.subTest(header=header):
+                content = VALID_WORKFLOW.replace("    timeout-minutes: 5\n", "") + header + "          echo ordinary\n    timeout-minutes: 999\n"
+                self.assertIn("requires a literal timeout-minutes", " ".join(gate.workflow_errors(content.encode())))
+                content = VALID_WORKFLOW + header + "          echo ordinary\n      - uses: attacker/action@main\n"
+                self.assertIn("actions must be pinned", " ".join(gate.workflow_errors(content.encode())))
+
+    def test_yaml_looking_shell_content_stays_opaque_in_both_run_forms(self):
+        for header in ("      - run: |\n", "      - name: Shell step\n        run: |\n"):
+            with self.subTest(header=header):
+                content = (VALID_WORKFLOW + header + "          cat <<'TEXT'\n          env:\n            VALUE: ordinary\\nvalue\n"
+                           + "          uses: attacker/action@main\n          timeout-minutes: 999\n          TEXT\n")
+                self.assertEqual(gate.workflow_errors(content.encode()), [])
+
     def test_workflow_rejects_privileged_event(self):
         self.assertTrue(gate.workflow_errors(VALID_WORKFLOW.replace("pull_request:", "pull_request_target:").encode()))
 
@@ -430,6 +454,16 @@ class GitIntegrationTests(unittest.TestCase):
         for expression in (r'"${{ se\u0063rets.API_KEY }}"', r'"${{ se\x63rets.API_KEY }}"'):
             with self.subTest(expression=expression):
                 self.write(gate.WORKFLOW_PATH, VALID_WORKFLOW + "    env:\n      LEAK: " + expression + "\n")
+                code, report = self.cli(self.save_review(self.review(gate.WORKFLOW_PATH)))
+                self.assertEqual(code, 1)
+                self.assertIn("backslash-escaped scalar", " ".join(report["errors"]))
+
+    def test_sibling_encoded_env_after_both_run_forms_fails_cli(self):
+        for header in ("      - run: |\n", "      - name: Shell step\n        run: |\n"):
+            with self.subTest(header=header):
+                content = (VALID_WORKFLOW + header + "          echo ordinary\n        env:\n          LEAK: "
+                           + r'"${{ se\u0063rets.API_KEY }}"' + "\n")
+                self.write(gate.WORKFLOW_PATH, content)
                 code, report = self.cli(self.save_review(self.review(gate.WORKFLOW_PATH)))
                 self.assertEqual(code, 1)
                 self.assertIn("backslash-escaped scalar", " ".join(report["errors"]))
