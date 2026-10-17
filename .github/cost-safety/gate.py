@@ -176,6 +176,9 @@ def workflow_lines(text):
                           + ": use unquoted keys and conventional block mappings")
             continue
         key, value = match.group(1), match.group(2) or ""
+        if "\\" in value:
+            errors.append("unsupported workflow YAML format at line " + str(number)
+                          + ": backslash-escaped scalar values are forbidden; use the unescaped vendored layout")
         value = re.sub(r"[ \t]+#.*$", "", value).rstrip()
         if value.startswith(("{", "[", "&", "*", "!", ">", "|")):
             if key == "run" and value in ("|", "|-", "|+"):

@@ -55,6 +55,11 @@ and head would not inspect a PR diff. Flow collections, quoted mapping/job keys,
 keys, anchors, aliases, tags, multiple documents and non-`run` block scalars fail
 with an `unsupported workflow YAML format` diagnostic. Shell text inside a supported
 `run: |` block is opaque to this structural check; it still needs normal code review.
+Backslashes on YAML scalar lines are also unsupported, including encoded Unicode/hex
+characters and harmless escaped strings. This conservative check happens before
+inline-comment removal so quoted hashes cannot hide encoded context names. Shell
+block contents retain their normal backslashes; inline quoted `run` scalars do not
+receive that exception. Use the unescaped vendored scalar layout.
 Use the installed template's formatting when changing this workflow.
 The whole word `secrets` is conservatively forbidden throughout the workflow,
 including whole-context expressions such as `toJSON(secrets)`. This deliberately

@@ -144,6 +144,20 @@ class ScannerTests(unittest.TestCase):
             content = VALID_WORKFLOW + "    env:\n      LEAK: " + expression + "\n"
             self.assertIn("secrets and write credentials", " ".join(gate.workflow_errors(content.encode())))
 
+    def test_encoded_secrets_context_and_ordinary_escaped_scalars_are_rejected(self):
+        for value in (r'"${{ se\u0063rets.API_KEY }}"', r'"${{ se\x63rets.API_KEY }}"',
+                      r'"${{ se\U00000063rets.API_KEY }}"',
+                      r'''"${{ format(' # prefix {0}', se\u0063rets.API_KEY) }}"''',
+                      r'"ordinary\nvalue"', r'"ordinary\x20value"', r'"C:\\build"'):
+            with self.subTest(value=value):
+                content = VALID_WORKFLOW + "    env:\n      VALUE: " + value + "\n"
+                self.assert_unsupported_workflow(content)
+                self.assertIn("backslash-escaped scalar", " ".join(gate.workflow_errors(content.encode())))
+
+    def test_shell_block_backslashes_remain_opaque_to_yaml_structure(self):
+        content = VALID_WORKFLOW + "      - run: |\n          printf '%s\\n' 'ordinary shell text'\n"
+        self.assertEqual(gate.workflow_errors(content.encode()), [])
+
     def test_workflow_rejects_privileged_event(self):
         self.assertTrue(gate.workflow_errors(VALID_WORKFLOW.replace("pull_request:", "pull_request_target:").encode()))
 
@@ -411,6 +425,14 @@ class GitIntegrationTests(unittest.TestCase):
                 code, report = self.cli(self.save_review(self.review(gate.WORKFLOW_PATH)))
                 self.assertEqual(code, 1)
                 self.assertIn(expected, " ".join(report["errors"]))
+
+    def test_encoded_secret_context_fails_cli_even_with_current_review(self):
+        for expression in (r'"${{ se\u0063rets.API_KEY }}"', r'"${{ se\x63rets.API_KEY }}"'):
+            with self.subTest(expression=expression):
+                self.write(gate.WORKFLOW_PATH, VALID_WORKFLOW + "    env:\n      LEAK: " + expression + "\n")
+                code, report = self.cli(self.save_review(self.review(gate.WORKFLOW_PATH)))
+                self.assertEqual(code, 1)
+                self.assertIn("backslash-escaped scalar", " ".join(report["errors"]))
 
     def test_unsupported_workflow_fails_cli_even_with_current_review(self):
         for unsafe in (VALID_WORKFLOW.replace("  contents: read", '  contents: read\n  "id-token": write'),

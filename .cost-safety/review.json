@@ -4,7 +4,7 @@
   "reviews": [
     {
       "path": ".github/cost-safety/README.md",
-      "sha256": "12f7b8c4c50d91279b8e5b5787f0142e1583ca8fec14e5be72473c2aabd471b4",
+      "sha256": "dbecbe00f33209568bef45787906201ec2869b80b74fde27a58bfb551086769c",
       "reviewer": "Codex portfolio implementation review",
       "rationale": "This installs the reviewed change-risk gate and its documentation; it enforces current review evidence, not semantic application traffic bounds.",
       "controls": {
@@ -16,14 +16,14 @@
       "evidence": [
         {
           "path": ".github/cost-safety/test_gate.py",
-          "sha256": "0db266120e9bf30fb8e0be092cad12c1a3e6736128642eae7d1d29c5ef0dc5d9",
+          "sha256": "18fc8f68140fccc0cc0f8b1d02e66b81d7b0f94ce3f91a728f5a2145fe83a01e",
           "anchor": "test_guardrail_changes_are_always_reviewed"
         }
       ]
     },
     {
       "path": ".github/cost-safety/gate.py",
-      "sha256": "ae04401b601e8161cd32734709a5739968cb1218883f115082a6939226055f73",
+      "sha256": "7b15d0447002e84d6fc4c52237823a491497a8f5cdd5f570d15507d92141e80d",
       "reviewer": "Codex portfolio implementation review",
       "rationale": "This installs the reviewed change-risk gate and its documentation; it enforces current review evidence, not semantic application traffic bounds.",
       "controls": {
@@ -35,14 +35,14 @@
       "evidence": [
         {
           "path": ".github/cost-safety/test_gate.py",
-          "sha256": "0db266120e9bf30fb8e0be092cad12c1a3e6736128642eae7d1d29c5ef0dc5d9",
+          "sha256": "18fc8f68140fccc0cc0f8b1d02e66b81d7b0f94ce3f91a728f5a2145fe83a01e",
           "anchor": "test_guardrail_changes_are_always_reviewed"
         }
       ]
     },
     {
       "path": ".github/cost-safety/test_gate.py",
-      "sha256": "0db266120e9bf30fb8e0be092cad12c1a3e6736128642eae7d1d29c5ef0dc5d9",
+      "sha256": "18fc8f68140fccc0cc0f8b1d02e66b81d7b0f94ce3f91a728f5a2145fe83a01e",
       "reviewer": "Codex portfolio implementation review",
       "rationale": "This installs the reviewed change-risk gate and its documentation; it enforces current review evidence, not semantic application traffic bounds.",
       "controls": {
@@ -54,7 +54,7 @@
       "evidence": [
         {
           "path": ".github/cost-safety/test_gate.py",
-          "sha256": "0db266120e9bf30fb8e0be092cad12c1a3e6736128642eae7d1d29c5ef0dc5d9",
+          "sha256": "18fc8f68140fccc0cc0f8b1d02e66b81d7b0f94ce3f91a728f5a2145fe83a01e",
           "anchor": "test_guardrail_changes_are_always_reviewed"
         }
       ]
@@ -73,7 +73,7 @@
       "evidence": [
         {
           "path": ".github/cost-safety/test_gate.py",
-          "sha256": "0db266120e9bf30fb8e0be092cad12c1a3e6736128642eae7d1d29c5ef0dc5d9",
+          "sha256": "18fc8f68140fccc0cc0f8b1d02e66b81d7b0f94ce3f91a728f5a2145fe83a01e",
           "anchor": "test_workflow_requires_bounded_timeout_for_every_job"
         }
       ]
@@ -92,7 +92,7 @@
       "evidence": [
         {
           "path": ".github/cost-safety/test_gate.py",
-          "sha256": "0db266120e9bf30fb8e0be092cad12c1a3e6736128642eae7d1d29c5ef0dc5d9",
+          "sha256": "18fc8f68140fccc0cc0f8b1d02e66b81d7b0f94ce3f91a728f5a2145fe83a01e",
           "anchor": "test_root_policy_truncation_and_removal_require_review"
         }
       ]
