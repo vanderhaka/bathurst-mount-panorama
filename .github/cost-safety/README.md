@@ -49,13 +49,16 @@ workflow fail even when acknowledged. Workflow validation is deliberately limite
 to the conventional vendored workflow layout, not arbitrary YAML semantics. It
 accepts unquoted mapping keys, conventional block mappings/sequences, one explicit
 global `permissions` map containing only `contents: read`, and a numeric bounded
-timeout for every job. The `on` block must contain only `pull_request`; missing or
-manual-only triggers fail. Manual dispatch is excluded because a same-commit base
+timeout for every job. The `on` block must contain only an empty `pull_request`;
+all nested filters/configuration and missing or manual-only triggers fail. Manual dispatch is excluded because a same-commit base
 and head would not inspect a PR diff. Flow collections, quoted mapping/job keys, duplicate mapping
 keys, anchors, aliases, tags, multiple documents and non-`run` block scalars fail
 with an `unsupported workflow YAML format` diagnostic. Shell text inside a supported
 `run: |` block is opaque to this structural check; it still needs normal code review.
 Use the installed template's formatting when changing this workflow.
+The whole word `secrets` is conservatively forbidden throughout the workflow,
+including whole-context expressions such as `toJSON(secrets)`. This deliberately
+also rejects comments or shell strings mentioning that context.
 
 Installation, green CI, a required branch check and semantic application regression
 coverage are separate states. Configure the `Cost safety review` check as required
@@ -137,7 +140,7 @@ evidence is rejected. Extra fields, including a declared command, are inert and
 never executed. Only entries for the currently flagged changes are validated for
 source/evidence freshness; old unrelated review entries convey no coverage.
 
-For an explicitly reviewed removal of a gate file/workflow, use the removed path
+For an explicitly reviewed removal of a guardrail or risky cost configuration, use the removed path
 with SHA-256 of empty bytes
 (`e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`).
 Still cite an existing test and explain why removal is acceptable. Human review
@@ -153,11 +156,21 @@ options (`refetchInterval`, `useSWR`, `refetch`, `retryDelay`, `client.request`)
 They also cover workflow matrix fanout, `cache.set`, `redis.expire`, `cache_ttl`,
 `force-static`, Swift `URLSession`, `Timer` APIs (including `Timer.publish`) and
 `DispatchQueue.main.asyncAfter`, Supabase function invocation
-and common `.from(...).select(...).execute()` chains. The chain matcher bounds each
-argument span to 512 characters; unusual wrappers/long chains still need human review.
-Common source extensions and configuration files are included. Gate files
-and its workflow are always reviewed, including removal. Ordinary source deletion
-does not require review.
+and query-builder reads/mutations with or without `.execute()`, RPCs, storage/auth
+operations, common provider namespaces and AI request helpers. Imports/comments may
+therefore trigger review even when that line itself does not issue a request. Query
+chain matching bounds the `.from(...)` argument span to 512 characters; unusual
+wrappers, aliases and long chains still need human review. Common source extensions,
+including `.mts`/`.cts`, and configuration files are included.
+
+All changed GitHub workflow files require review, covering matrices and ordinary
+job additions without pretending to calculate arbitrary YAML fanout. Gate files,
+the gate workflow and root `AGENTS.md` (case-insensitive) are always reviewed,
+including modification/removal. Deleted recognized configuration files are checked
+against their base risk signatures: JSON/YAML/TOML/INI/configuration/infra formats,
+common `*.config.js`/TypeScript variants, Dockerfile, Makefile and Procfile. Removing
+a risky configuration requires review with the empty-content digest. Other ordinary
+source/documentation deletion does not require review.
 
 It excludes documentation, `.env`/common credential/key files, lockfiles, common
 generated/minified files, and `vendor`, `node_modules`, `generated`, common secret,
@@ -183,3 +196,21 @@ controls, dangling/stale test references, inert commands, unknown revisions, gua
 removal and unsafe workflow fixtures. Real-git tests exercise the CLI across actual
 temporary commits. The tiny test function inside those fixtures is contract data;
 its existence is intentionally **not** evidence of real application correctness.
+
+## Review dispositions and remaining boundaries
+
+The portfolio review batch was checked against the current shared implementation,
+including comments on earlier revisions. The consolidated dispositions are:
+
+| Review class                                                                                                        | Disposition                                                                                                                                                                    |
+| ------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Whole-context secrets and nested PR filters                                                                         | Rejected even with current review evidence.                                                                                                                                    |
+| Supabase query/mutation/RPC, Swift, provider SDK, AI helper, Firebase, storage/auth calls                           | Common signatures expanded; this remains heuristic detection, not comprehensive program analysis.                                                                              |
+| Module TypeScript, workflow matrices and ordinary job additions                                                     | `.mts`/`.cts` scanned; every changed workflow requires review.                                                                                                                 |
+| Deleted cost configuration and root review policy                                                                   | Risky configuration removal and root policy modification/removal require current review.                                                                                       |
+| Quoted/flow YAML bypasses, manual no-op dispatch, malformed review JSON, bytecode files, excluded guardrail helpers | Covered by existing regression checks; unsupported workflow syntax fails closed.                                                                                               |
+| Candidate replacing its workflow with a no-op; first-install bootstrap                                              | Trusted maintainer review or external required-workflow policy remains necessary. The candidate can remove its own checker invocation.                                         |
+| No action references or arbitrary shell bodies                                                                      | No third-party action exists to pin when `uses` is absent. Guardrail changes still require review; shell program behavior is not proven by workflow metadata checks.           |
+| Reviewer identity, generic copied rationale or per-file review quality                                              | Schema checks do not authenticate reviewers or prove truthful prose; reviewers must inspect actual controls/tests.                                                             |
+| Non-UTF-8 filenames                                                                                                 | The CLI fails closed with structured JSON instead of substituting a different path and potentially reviewing the wrong file.                                                   |
+| Lockfile casing and conservative keyword false positives                                                            | Exact conventional lockfile names are excluded. Unusual casing may require review; harmless keyword mentions may also require review. This cannot silently approve risky code. |

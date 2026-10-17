@@ -4,7 +4,7 @@
   "reviews": [
     {
       "path": ".github/cost-safety/README.md",
-      "sha256": "e0e234826220cf5aedc3ef19eb0a16f8bf169cc9bc1da931041f4e87adb291a7",
+      "sha256": "a778c634a57728b7928b86f22d8a789ecd8662dc1e844f6894918a3ef5a3f69c",
       "reviewer": "Codex portfolio implementation review",
       "rationale": "This installs the reviewed change-risk gate and its documentation; it enforces current review evidence, not semantic application traffic bounds.",
       "controls": {
@@ -16,14 +16,14 @@
       "evidence": [
         {
           "path": ".github/cost-safety/test_gate.py",
-          "sha256": "2665cfe898be85642bf7704fff63ad10e8577968c993f52c98053dd3f9789f1e",
+          "sha256": "c10edcae165bdd36bd04307907a5420b0d72eaece2d60e2b5383e98ee28d6ed2",
           "anchor": "test_guardrail_changes_are_always_reviewed"
         }
       ]
     },
     {
       "path": ".github/cost-safety/gate.py",
-      "sha256": "d4302f674a468f44e4b2810c86b9d125b55c3061d2d87492dfad033a6eb54fa1",
+      "sha256": "9f00ee58252b613dbb1874ec745d44d7b9d8b8e1b777fd16400eb3fd16bfc7c2",
       "reviewer": "Codex portfolio implementation review",
       "rationale": "This installs the reviewed change-risk gate and its documentation; it enforces current review evidence, not semantic application traffic bounds.",
       "controls": {
@@ -35,14 +35,14 @@
       "evidence": [
         {
           "path": ".github/cost-safety/test_gate.py",
-          "sha256": "2665cfe898be85642bf7704fff63ad10e8577968c993f52c98053dd3f9789f1e",
+          "sha256": "c10edcae165bdd36bd04307907a5420b0d72eaece2d60e2b5383e98ee28d6ed2",
           "anchor": "test_guardrail_changes_are_always_reviewed"
         }
       ]
     },
     {
       "path": ".github/cost-safety/test_gate.py",
-      "sha256": "2665cfe898be85642bf7704fff63ad10e8577968c993f52c98053dd3f9789f1e",
+      "sha256": "c10edcae165bdd36bd04307907a5420b0d72eaece2d60e2b5383e98ee28d6ed2",
       "reviewer": "Codex portfolio implementation review",
       "rationale": "This installs the reviewed change-risk gate and its documentation; it enforces current review evidence, not semantic application traffic bounds.",
       "controls": {
@@ -54,7 +54,7 @@
       "evidence": [
         {
           "path": ".github/cost-safety/test_gate.py",
-          "sha256": "2665cfe898be85642bf7704fff63ad10e8577968c993f52c98053dd3f9789f1e",
+          "sha256": "c10edcae165bdd36bd04307907a5420b0d72eaece2d60e2b5383e98ee28d6ed2",
           "anchor": "test_guardrail_changes_are_always_reviewed"
         }
       ]
@@ -73,8 +73,46 @@
       "evidence": [
         {
           "path": ".github/cost-safety/test_gate.py",
-          "sha256": "2665cfe898be85642bf7704fff63ad10e8577968c993f52c98053dd3f9789f1e",
+          "sha256": "c10edcae165bdd36bd04307907a5420b0d72eaece2d60e2b5383e98ee28d6ed2",
           "anchor": "test_workflow_requires_bounded_timeout_for_every_job"
+        }
+      ]
+    },
+    {
+      "path": ".cost-safety/review.json",
+      "sha256": "54b9677489dae7d295f5d05957b66052653bb329c9d30d702ec9e3c944a50d8d",
+      "reviewer": "Codex portfolio implementation review",
+      "rationale": "This adds repository instructions and workflow review coverage; it changes no application behavior and requires explicit current evidence for future control-plane changes.",
+      "controls": {
+        "request_bound": "0 production provider requests are made by these instructions or their review gate; application test jobs lack production credentials.",
+        "fanout_bound": "1 bounded existing review or regression job runs per event; changes to workflow jobs require explicit cost review.",
+        "termination": "The review job has a five-minute bound and the incident regression job a fifteen-minute bound; source instruction edits execute no code.",
+        "failure_behavior": "Missing or stale review evidence fails; removing the root policy or changing any workflow requires current acknowledgement and test references."
+      },
+      "evidence": [
+        {
+          "path": ".github/cost-safety/test_gate.py",
+          "sha256": "c10edcae165bdd36bd04307907a5420b0d72eaece2d60e2b5383e98ee28d6ed2",
+          "anchor": "test_ordinary_workflow_job_changes_require_review"
+        }
+      ]
+    },
+    {
+      "path": "AGENTS.md",
+      "sha256": "893e3f39864100dfa158a33d60a055c496c5a8e10908cb7645d744f67a5ca09a",
+      "reviewer": "Codex portfolio implementation review",
+      "rationale": "This adds repository instructions and workflow review coverage; it changes no application behavior and requires explicit current evidence for future control-plane changes.",
+      "controls": {
+        "request_bound": "0 production provider requests are made by these instructions or their review gate; application test jobs lack production credentials.",
+        "fanout_bound": "1 bounded existing review or regression job runs per event; changes to workflow jobs require explicit cost review.",
+        "termination": "The review job has a five-minute bound and the incident regression job a fifteen-minute bound; source instruction edits execute no code.",
+        "failure_behavior": "Missing or stale review evidence fails; removing the root policy or changing any workflow requires current acknowledgement and test references."
+      },
+      "evidence": [
+        {
+          "path": ".github/cost-safety/test_gate.py",
+          "sha256": "c10edcae165bdd36bd04307907a5420b0d72eaece2d60e2b5383e98ee28d6ed2",
+          "anchor": "test_root_policy_truncation_and_removal_require_review"
         }
       ]
     }

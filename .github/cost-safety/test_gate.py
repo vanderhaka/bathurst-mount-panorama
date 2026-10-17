@@ -51,6 +51,7 @@ class ScannerTests(unittest.TestCase):
     def test_guardrail_changes_are_always_reviewed(self):
         self.assertEqual(gate.risks(".github/cost-safety/gate.py", b"pass"), ["guardrail"])
         self.assertEqual(gate.risks(gate.WORKFLOW_PATH, b""), ["guardrail"])
+        self.assertEqual(gate.risks("agents.md", b""), ["guardrail"])
 
     def test_common_client_hooks_and_retry_options_are_detected(self):
         for content in ("refetchInterval: 5", "useSWR(key)", "refetch()", "retryDelay: 0", "client.request(url)"):
@@ -61,6 +62,34 @@ class ScannerTests(unittest.TestCase):
         for content in ("strategy:\n  matrix:\n    version: [1, 2, 3]", 'strategy:\n  "matrix":\n    version: [1, 2]', "parallelism: ${{ strategy.matrix }}", '{"strategy": {"matrix": {"version": [1, 2]}}}'):
             with self.subTest(content=content):
                 self.assertIn("workflow/fanout", gate.risks(".github/workflows/build.yml", content.encode()))
+
+    def test_ordinary_workflow_job_changes_require_review(self):
+        content = "name: CI\non:\n  push:\njobs:\n  first:\n    runs-on: ubuntu-latest\n  second:\n    runs-on: ubuntu-latest\n"
+        self.assertIn("workflow/fanout", gate.risks(".github/workflows/build.yml", content.encode()))
+
+    def test_module_typescript_extensions_are_scanned(self):
+        for path in ("src/provider.mts", "src/provider.cts"):
+            self.assertIn("network/fanout", gate.risks(path, b"fetch(endpoint)"))
+
+    def test_native_query_builders_and_rpc_calls_are_detected(self):
+        for content in ("db.from('messages').select('*')", "db.from('messages').insert(row)",
+                        "db.from('messages').update(row)", "db.from('messages').upsert(row)",
+                        "db.from('messages').delete()", "db.from('messages').execute()",
+                        "db.from('messages').select().maybeSingle()", "db.rpc('expensive')",
+                        'client.functions.invoke("expensive")',
+                        'SupabaseClientProvider.shared.functions.invoke("generate-narration")'):
+            with self.subTest(content=content):
+                self.assertTrue(gate.risks("src/client.ts", content.encode()))
+
+    def test_common_provider_ai_firebase_storage_and_auth_primitives_are_detected(self):
+        for content in ("stripe.v2.core.accounts.create(input)", "stripe.paymentIntents.create(input)",
+                        "resend.emails.send(input)", "openai.responses.create(input)",
+                        "cachedCallLlm(input)", "callLlm(input)", "generateText(input)",
+                        "model.generateContent(input)", 'doc.setData(["name": value])',
+                        'getDoc(ref)', "storage.from(bucket).upload(path, data)",
+                        "client.auth.signIn(input)", "signInWithEmailAndPassword(auth, email, password)"):
+            with self.subTest(content=content):
+                self.assertIn("provider/client", gate.risks("src/provider.ts", content.encode()))
 
     def test_common_cache_calls_and_settings_are_detected(self):
         for content in ("cache.set(key, value)", "redis.expire(key, 60)", "cache_ttl = 60", "export const dynamic = 'force-static'"):
@@ -104,6 +133,16 @@ class ScannerTests(unittest.TestCase):
                         VALID_WORKFLOW.replace("  pull_request:", "  pull_request:\n  workflow_dispatch:")):
             with self.subTest(content=content):
                 self.assertIn("only the pull_request trigger", " ".join(gate.workflow_errors(content.encode())))
+
+    def test_workflow_rejects_every_nested_pr_trigger_filter(self):
+        for value in ("types: closed", "branches: do-not-run", "paths: no-such-file", "paths-ignore: '**'"):
+            content = VALID_WORKFLOW.replace("  pull_request:", "  pull_request:\n    " + value)
+            self.assertIn("nested pull_request trigger configuration", " ".join(gate.workflow_errors(content.encode())))
+
+    def test_workflow_rejects_whole_secrets_context(self):
+        for expression in ("${{ toJSON(secrets) }}", "${{ secrets }}", "${{ format('{0}', secrets) }}"):
+            content = VALID_WORKFLOW + "    env:\n      LEAK: " + expression + "\n"
+            self.assertIn("secrets and write credentials", " ".join(gate.workflow_errors(content.encode())))
 
     def test_workflow_rejects_privileged_event(self):
         self.assertTrue(gate.workflow_errors(VALID_WORKFLOW.replace("pull_request:", "pull_request_target:").encode()))
@@ -275,6 +314,69 @@ class GitIntegrationTests(unittest.TestCase):
                 code, report = self.cli(head)
                 self.assertEqual(code, 1)
                 self.assertIn("rejected without reading contents", " ".join(report["errors"]))
+
+    def test_ordinary_secret_files_are_never_read_even_on_modification_or_removal(self):
+        self.write(".env.production", "synthetic fixture content\n")
+        self.write("secrets/credentials.json", "synthetic fixture content\n")
+        head = self.save()
+        with mock.patch.object(gate, "blob") as reader:
+            self.assertEqual(gate.run(self.repo, self.base, head)["status"], "pass")
+            reader.assert_not_called()
+        self.base = head
+        self.write(".env.production", "changed synthetic fixture content\n")
+        (self.repo / "secrets/credentials.json").unlink()
+        with mock.patch.object(gate, "blob") as reader:
+            self.assertEqual(gate.run(self.repo, self.base, self.save())["status"], "pass")
+            reader.assert_not_called()
+
+    def test_sdk_queries_and_module_source_require_current_review(self):
+        for path, content in (("src/provider.mts", "db.from('events').insert(row)"),
+                              ("src/provider.cts", "cachedCallLlm(input)")):
+            self.write(path, content)
+            code, report = self.cli(self.save())
+            self.assertEqual(code, 1)
+            self.assertIn("current cost review", report["errors"][0])
+
+    def test_deleted_risky_configuration_requires_explicit_current_review(self):
+        self.write("vercel.json", '{"headers": [{"key": "Cache-Control", "value": "max-age=3600"}]}')
+        self.base = self.save()
+        (self.repo / "vercel.json").unlink()
+        code, report = self.cli(self.save())
+        self.assertEqual(code, 1)
+        self.assertIn("current cost review", report["errors"][0])
+        code, report = self.cli(self.save_review(self.review("vercel.json", b"")))
+        self.assertEqual(code, 0)
+        self.assertIn("cost configuration removal", report["review_required"][0]["categories"])
+
+    def test_root_policy_truncation_and_removal_require_review(self):
+        self.write("AGENTS.md", "Keep cost review and application regressions required.\n")
+        self.base = self.save()
+        self.write("AGENTS.md", "")
+        code, report = self.cli(self.save())
+        self.assertEqual(code, 1)
+        self.assertIn("current cost review", report["errors"][0])
+        (self.repo / "AGENTS.md").unlink()
+        code, report = self.cli(self.save())
+        self.assertEqual(code, 1)
+        code, report = self.cli(self.save_review(self.review("AGENTS.md", b"")))
+        self.assertEqual(code, 0)
+
+    def test_lowercase_root_policy_requires_review(self):
+        self.write("agents.md", "Keep cost reviews required.\n")
+        code, report = self.cli(self.save())
+        self.assertEqual(code, 1)
+        self.assertIn("current cost review", report["errors"][0])
+
+    def test_current_review_cannot_allow_secrets_or_narrowed_pr_triggers(self):
+        for content, expected in (
+            (VALID_WORKFLOW + "    env:\n      LEAK: ${{ toJSON(secrets) }}\n", "secrets and write credentials"),
+            (VALID_WORKFLOW.replace("  pull_request:", "  pull_request:\n    types: closed"), "nested pull_request trigger"),
+        ):
+            with self.subTest(content=content):
+                self.write(gate.WORKFLOW_PATH, content)
+                code, report = self.cli(self.save_review(self.review(gate.WORKFLOW_PATH)))
+                self.assertEqual(code, 1)
+                self.assertIn(expected, " ".join(report["errors"]))
 
     def test_unsupported_workflow_fails_cli_even_with_current_review(self):
         for unsafe in (VALID_WORKFLOW.replace("  contents: read", '  contents: read\n  "id-token": write'),

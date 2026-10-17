@@ -11,10 +11,11 @@ from pathlib import PurePosixPath
 REVIEW_PATH = ".cost-safety/review.json"
 GATE_PREFIX = ".github/cost-safety/"
 WORKFLOW_PATH = ".github/workflows/cost-safety.yml"
+POLICY_PATH = "AGENTS.md"
 MAX_FILE_BYTES = 2 * 1024 * 1024
 MAX_CHANGED_FILES = 3000
 SOURCE_SUFFIXES = {
-    ".js", ".jsx", ".ts", ".tsx", ".mjs", ".cjs", ".py", ".go", ".rs",
+    ".js", ".jsx", ".ts", ".tsx", ".mjs", ".cjs", ".mts", ".cts", ".py", ".go", ".rs",
     ".rb", ".php", ".java", ".kt", ".swift", ".sh", ".bash", ".html",
     ".vue", ".svelte", ".json", ".yaml", ".yml", ".toml", ".ini", ".conf",
     ".config", ".sql", ".tf", ".xml", ".cs", ".ex", ".exs", ".dart",
@@ -22,11 +23,24 @@ SOURCE_SUFFIXES = {
 EXCLUDED_PARTS = {"node_modules", "vendor", "generated", "dist", "build", "coverage", ".next", ".git", "__pycache__", ".aws", ".ssh", "secrets", ".secrets"}
 SECRET_PARTS = {".aws", ".ssh", "secrets", ".secrets"}
 EXCLUDED_NAMES = {"package-lock.json", "yarn.lock", "pnpm-lock.yaml", "bun.lock", "bun.lockb", "poetry.lock", "Cargo.lock", "uv.lock"}
+CONFIG_SUFFIXES = {".json", ".yaml", ".yml", ".toml", ".ini", ".conf", ".config", ".tf", ".xml"}
 PATTERNS = {
     "polling/timers": r"\b(?:setInterval|setTimeout|requestAnimationFrame|poll(?:ing)?|ticker|interval|sleep|refetchInterval|useSWR|refetch|Timer|DispatchQueue\s*\.\s*\w+\s*\.\s*asyncAfter)\b",
     "retry/failure": r"\b(?:retr(?:y|ies)|retryDelay|retryCount|backoff|reconnect|recurs(?:e|ion))\b",
     "schedule/cron": r"\b(?:crons?|crontab|schedule(?:d|s)?|PeriodicTask|while\s*\(?\s*(?:true|True|1))\b",
-    "network/fanout": r"\b(?:fetch|axios|https?|requests|urllib|httpx|(?:client|session)\.request|URLSession|supabase\s*\.\s*functions\s*\.\s*invoke|WebSocket|EventSource|Promise\.all(?:Settled)?|ThreadPoolExecutor|gather|fanout|parallel)\b|\.from\s*\([^;]{0,512}?\)\s*\.select\s*\([^;]{0,512}?\)\s*\.execute\s*\(",
+    "network/fanout": (
+        r"\b(?:fetch|axios|https?|requests|urllib|httpx|(?:client|session)\.request|URLSession|"
+        r"functions\s*\.\s*invoke|WebSocket|EventSource|Promise\.all(?:Settled)?|ThreadPoolExecutor|gather|fanout|parallel)\b|"
+        r"\.from\s*\([^;]{0,512}?\)\s*\.(?:select|insert|update|upsert|delete|execute|upload|download|remove)\s*\("
+    ),
+    "provider/client": (
+        r"\b(?:stripe|openai|anthropic|gemini|genai|resend|firebase|firestore|supabase)\b|"
+        r"\.\s*(?:rpc|setData|updateData|addDocument|getDocument|getDocuments|onSnapshot|putData)\s*\(|"
+        r"\bfunctions\s*\.\s*invoke\s*\(|\b(?:auth|storage)\s*(?:\([^;\n]{0,256}?\))?\s*\.|"
+        r"\b(?:(?:cached)?call(?:Llm|AI|Model)|generateText|streamText|generateObject|streamObject|"
+        r"generateContent(?:Stream)?|getDoc|getDocs|setDoc|addDoc|updateDoc|deleteDoc|uploadBytes|"
+        r"signInWith\w+|createUserWith\w+)\s*\("
+    ),
     "workflow/fanout": r"\bstrategy\s*\.\s*matrix\b|\bmatrix[\"']?\s*:",
     "routing/cache": r"\b(?:rewrites?|redirects?|proxy|middleware|cache-control|revalidate|no-store|cache_ttl|force-static|cache\s*\.\s*set|redis\s*\.\s*expire)\b",
 }
@@ -84,8 +98,12 @@ def excluded(path):
             or name.endswith((".min.js", ".map", ".generated.ts", ".generated.js")))
 
 
+def guardrail_path(path):
+    return path.startswith(GATE_PREFIX) or path == WORKFLOW_PATH or path.lower() == POLICY_PATH.lower()
+
+
 def risks(path, content):
-    if path.startswith(GATE_PREFIX) or path == WORKFLOW_PATH:
+    if guardrail_path(path):
         return ["guardrail"]
     if excluded(path):
         return []
@@ -93,7 +111,17 @@ def risks(path, content):
     if p.suffix.lower() not in SOURCE_SUFFIXES and p.name not in {"Dockerfile", "Makefile", "Procfile"}:
         return []
     text = content.decode("utf-8", errors="replace")
-    return [name for name, pattern in RISK_PATTERNS.items() if pattern.search(text)]
+    categories = [name for name, pattern in RISK_PATTERNS.items() if pattern.search(text)]
+    if path.startswith(".github/workflows/") and p.suffix.lower() in {".yml", ".yaml"}:
+        categories = list(dict.fromkeys(["workflow/fanout"] + categories))
+    return categories
+
+
+def cost_config(path):
+    p = PurePosixPath(path)
+    return (p.suffix.lower() in CONFIG_SUFFIXES
+            or re.search(r"(?:^|\.)config\.(?:[cm]?[jt]s|[cm]ts)$", p.name) is not None
+            or p.name in {"Dockerfile", "Makefile", "Procfile"})
 
 
 def digest(content):
@@ -174,11 +202,13 @@ def workflow_errors(content):
             inside_events = (key, value, sequence) == ("on", "", False)
         elif inside_events and indent == 2:
             events.append((key, value, sequence))
+        elif inside_events:
+            errors.append("nested pull_request trigger configuration is unsupported; do not narrow PR coverage")
     if events != [("pull_request", "", False)]:
         errors.append("the supported workflow requires an on block with only the pull_request trigger; manual dispatch is unsupported")
     if re.search(r"\bpull_request_target\b", text):
         errors.append("privileged pull_request_target event is forbidden")
-    if re.search(r"\bsecrets\s*(?:\.|\[|:)|\bwrite-all\b", text):
+    if re.search(r"\bsecrets\b|\bwrite-all\b", text, re.IGNORECASE):
         errors.append("secrets and write credentials are forbidden")
     permission_indices = [i for i, token in enumerate(tokens) if token[1] == "permissions"]
     permission_body = []
@@ -291,7 +321,7 @@ def run(repo, base_ref, head_ref):
         raise GateError("diff exceeds 3000 files; split the change for review")
     required, errors = [], []
     for status, path in changed:
-        guardrail = path.startswith(GATE_PREFIX) or path == WORKFLOW_PATH
+        guardrail = guardrail_path(path)
         if guardrail and secret_path(path):
             errors.append(path + ": secret-bearing guardrail path is unsupported; rejected without reading contents")
             continue
@@ -299,11 +329,15 @@ def run(repo, base_ref, head_ref):
             if guardrail:
                 # Removal has no head blob. A digest of empty bytes explicitly acknowledges it.
                 required.append((path, b"", ["guardrail removal"]))
+            elif not excluded(path) and cost_config(path):
+                categories = risks(path, blob(repo, base, path))
+                if categories:
+                    required.append((path, b"", categories + ["cost configuration removal"]))
             continue
         if path == REVIEW_PATH or (excluded(path) and not guardrail):
             continue
         suffix = PurePosixPath(path).suffix.lower()
-        if suffix not in SOURCE_SUFFIXES and not path.startswith(GATE_PREFIX) and PurePosixPath(path).name not in {"Dockerfile", "Makefile", "Procfile"}:
+        if suffix not in SOURCE_SUFFIXES and not guardrail and PurePosixPath(path).name not in {"Dockerfile", "Makefile", "Procfile"}:
             continue
         content = blob(repo, head, path)
         categories = risks(path, content)
