@@ -22,13 +22,14 @@ SOURCE_SUFFIXES = {
 EXCLUDED_PARTS = {"node_modules", "vendor", "generated", "dist", "build", "coverage", ".next", ".git", "__pycache__", ".aws", ".ssh", "secrets", ".secrets"}
 EXCLUDED_NAMES = {"package-lock.json", "yarn.lock", "pnpm-lock.yaml", "bun.lock", "bun.lockb", "poetry.lock", "Cargo.lock", "uv.lock"}
 PATTERNS = {
-    "polling/timers": r"\b(?:setInterval|setTimeout|requestAnimationFrame|poll(?:ing)?|ticker|interval|sleep|refetchInterval|useSWR|refetch)\b",
+    "polling/timers": r"\b(?:setInterval|setTimeout|requestAnimationFrame|poll(?:ing)?|ticker|interval|sleep|refetchInterval|useSWR|refetch|Timer\s*\.\s*scheduledTimer)\b",
     "retry/failure": r"\b(?:retr(?:y|ies)|retryDelay|retryCount|backoff|reconnect|recurs(?:e|ion))\b",
     "schedule/cron": r"\b(?:crons?|crontab|schedule(?:d|s)?|PeriodicTask|while\s*\(?\s*(?:true|True|1))\b",
-    "network/fanout": r"\b(?:fetch|axios|https?|requests|urllib|httpx|(?:client|session)\.request|WebSocket|EventSource|Promise\.all(?:Settled)?|ThreadPoolExecutor|gather|fanout|parallel)\b",
-    "routing/cache": r"\b(?:rewrites?|redirects?|proxy|middleware|cache-control|revalidate|no-store)\b",
+    "network/fanout": r"\b(?:fetch|axios|https?|requests|urllib|httpx|(?:client|session)\.request|URLSession|supabase\s*\.\s*functions\s*\.\s*invoke|WebSocket|EventSource|Promise\.all(?:Settled)?|ThreadPoolExecutor|gather|fanout|parallel)\b|\.from\s*\([^;]{0,512}?\)\s*\.select\s*\([^;]{0,512}?\)\s*\.execute\s*\(",
+    "workflow/fanout": r"\bstrategy\s*\.\s*matrix\b|\bmatrix[\"']?\s*:",
+    "routing/cache": r"\b(?:rewrites?|redirects?|proxy|middleware|cache-control|revalidate|no-store|cache_ttl|force-static|cache\s*\.\s*set|redis\s*\.\s*expire)\b",
 }
-RISK_PATTERNS = {name: re.compile(pattern, re.IGNORECASE) for name, pattern in PATTERNS.items()}
+RISK_PATTERNS = {name: re.compile(pattern, re.IGNORECASE | re.MULTILINE) for name, pattern in PATTERNS.items()}
 PLACEHOLDER = re.compile(r"^(?:todo|tbd|n/?a|none|unknown|pending|placeholder|test|example|fixme)[.!\s]*$", re.I)
 
 
@@ -112,27 +113,97 @@ def substantive(value, minimum=30, numeric=False):
             and (not numeric or re.search(r"\d", value) is not None))
 
 
+def workflow_lines(text):
+    """Recognize only the vendored block-mapping layout; reject other YAML forms."""
+    tokens, errors = [], []
+    block_indent = None
+    scopes = {}
+    for number, line in enumerate(text.splitlines(), 1):
+        if not line.strip() or line.lstrip().startswith("#"):
+            continue
+        indent = len(line) - len(line.lstrip(" "))
+        if block_indent is not None:
+            if indent > block_indent:
+                continue  # Shell block content is not YAML structure.
+            block_indent = None
+        stripped = line[indent:]
+        sequence = stripped.startswith("- ")
+        if sequence:
+            stripped = stripped[2:]
+        match = re.fullmatch(r"([A-Za-z_][A-Za-z0-9_-]*):(?:[ \t]+(.*))?", stripped)
+        if indent % 2 or "\t" in line[:indent + 1] or not match:
+            errors.append("unsupported workflow YAML format at line " + str(number)
+                          + ": use unquoted keys and conventional block mappings")
+            continue
+        key, value = match.group(1), match.group(2) or ""
+        value = re.sub(r"[ \t]+#.*$", "", value).rstrip()
+        if value.startswith(("{", "[", "&", "*", "!", ">", "|")):
+            if key == "run" and value in ("|", "|-", "|+"):
+                block_indent = indent
+            else:
+                errors.append("unsupported workflow YAML format at line " + str(number)
+                              + ": flow collections, aliases, anchors, tags and non-run block scalars are forbidden")
+        effective_indent = indent + (2 if sequence else 0)
+        # Each sequence item opens a fresh mapping; ordinary mappings share a scope.
+        for depth in list(scopes):
+            if depth > effective_indent or (sequence and depth >= effective_indent):
+                del scopes[depth]
+        seen = scopes.setdefault(effective_indent, set())
+        if key in seen:
+            errors.append("unsupported workflow YAML format at line " + str(number) + ": duplicate mapping key")
+        seen.add(key)
+        tokens.append((indent, key, value, sequence))
+    return tokens, errors
+
+
 def workflow_errors(content):
-    """Conservative checks for this vendored workflow, not a general YAML validator."""
+    """Validate a conservative vendored layout, never arbitrary YAML semantics."""
     text = content.decode("utf-8", errors="replace")
-    errors = []
+    tokens, errors = workflow_lines(text)
+    events = []
+    inside_events = False
+    for indent, key, value, sequence in tokens:
+        if indent == 0:
+            inside_events = (key, value, sequence) == ("on", "", False)
+        elif inside_events and indent == 2:
+            events.append((key, value, sequence))
+    if events != [("pull_request", "", False)]:
+        errors.append("the supported workflow requires an on block with only the pull_request trigger; manual dispatch is unsupported")
     if re.search(r"\bpull_request_target\b", text):
         errors.append("privileged pull_request_target event is forbidden")
-    if re.search(r"\bsecrets\s*(?:\.|\[|:)|\bid-token\s*:\s*write\b|\bwrite-all\b", text):
+    if re.search(r"\bsecrets\s*(?:\.|\[|:)|\bwrite-all\b", text):
         errors.append("secrets and write credentials are forbidden")
-    if not re.search(r"(?m)^permissions:\s*\n  contents: read\s*\n", text):
-        errors.append("explicit global contents: read permissions are required")
-    if re.search(r"(?m)^[ \t]+permissions:|^[ \t]*[\w-]+:[ \t]*write\b", text):
-        errors.append("job permission overrides and write permissions are forbidden")
-    uses = re.findall(r"(?m)^\s*-?\s*uses:\s*([^\s#]+)", text)
+    permission_indices = [i for i, token in enumerate(tokens) if token[1] == "permissions"]
+    permission_body = []
+    if len(permission_indices) == 1:
+        index = permission_indices[0]
+        if tokens[index] == (0, "permissions", "", False):
+            for token in tokens[index + 1:]:
+                if token[0] == 0:
+                    break
+                permission_body.append(token)
+    if permission_body != [(2, "contents", "read", False)]:
+        errors.append("only explicit global permissions with contents: read are supported; job overrides/write permissions are forbidden")
+    uses = [value for _, key, value, _ in tokens if key == "uses"]
     if any(not re.fullmatch(r"[\w.-]+/[\w./-]+@[0-9a-f]{40}", use) for use in uses):
         errors.append("actions must be pinned to full commit IDs")
-    jobs = re.findall(r"(?m)^  ([\w-]+):\s*\n((?: {4}[^\n]*\n|[ \t]*\n)*)", text.split("\njobs:\n", 1)[-1])
-    if "\njobs:\n" not in text or not jobs:
+    jobs, current = [], None
+    inside_jobs = False
+    for indent, key, value, sequence in tokens:
+        if indent == 0:
+            inside_jobs = key == "jobs" and value == "" and not sequence
+            current = None
+        elif inside_jobs and indent == 2:
+            if value or sequence:
+                errors.append("unsupported workflow YAML format: each job must use a conventional block mapping")
+            current = (key, [])
+            jobs.append(current)
+        elif inside_jobs and current is not None and indent == 4 and key == "timeout-minutes" and not sequence:
+            current[1].append(value)
+    if not jobs:
         errors.append("a conventional jobs block is required")
-    for name, body in jobs:
-        match = re.search(r"(?m)^    timeout-minutes:\s*(\d+)\s*$", body)
-        if not match or not 1 <= int(match.group(1)) <= 15:
+    for name, values in jobs:
+        if len(values) != 1 or not re.fullmatch(r"\d+", values[0]) or not 1 <= int(values[0]) <= 15:
             errors.append("job " + name + " requires a literal timeout-minutes between 1 and 15")
     return errors
 
@@ -142,7 +213,9 @@ def check_review(repo, base, head, required):
         document = json.loads(blob(repo, head, REVIEW_PATH))
     except (GateError, ValueError) as exc:
         raise GateError("missing or invalid " + REVIEW_PATH + "; add a current cost review") from exc
-    if not isinstance(document, dict) or document.get("version") != 1 or document.get("base_commit") != base:
+    if not isinstance(document, dict):
+        raise GateError("review document must be a JSON object, not an array or null")
+    if document.get("version") != 1 or document.get("base_commit") != base:
         raise GateError("review requires version 1 and base_commit matching the exact PR base")
     entries = document.get("reviews")
     if not isinstance(entries, list):

@@ -15,10 +15,10 @@ Keep project-specific regression CI alongside this check.
 
 Copy these files without changing their contents:
 
-| Shared file | Repository destination |
-| --- | --- |
-| `gate/gate.py` | `.github/cost-safety/gate.py` |
-| `gate/test_gate.py` | `.github/cost-safety/test_gate.py` |
+| Shared file                 | Repository destination              |
+| --------------------------- | ----------------------------------- |
+| `gate/gate.py`              | `.github/cost-safety/gate.py`       |
+| `gate/test_gate.py`         | `.github/cost-safety/test_gate.py`  |
 | `templates/cost-safety.yml` | `.github/workflows/cost-safety.yml` |
 
 Add this project review instruction to the repository's existing contribution/agent
@@ -31,7 +31,7 @@ instructions without overwriting them:
 > names. Run the actual project regressions separately. Never treat the generic gate
 > as proof that application traffic is bounded or unchanged code is safe.
 
-The workflow runs `pull_request` and manual dispatch, with a read-only token, no
+The workflow runs only on `pull_request`, with a read-only token, no
 secrets, pinned checkout actions and a five-minute job timeout. Checkouts disable
 persisted credentials, LFS and submodules. No app dependency installation is needed.
 It checks out the exact candidate and exact trusted base into separate directories,
@@ -46,13 +46,24 @@ enforcement. Errors, missing self-tests or a damaged existing base gate fail rat
 than trigger fallback. Later candidate changes/removals of the gate and workflow
 require current risk review; unsafe permissions/events/timeouts in a changed gate
 workflow fail even when acknowledged. Workflow validation is deliberately limited
-to the conventional vendored workflow layout, not arbitrary YAML semantics.
+to the conventional vendored workflow layout, not arbitrary YAML semantics. It
+accepts unquoted mapping keys, conventional block mappings/sequences, one explicit
+global `permissions` map containing only `contents: read`, and a numeric bounded
+timeout for every job. The `on` block must contain only `pull_request`; missing or
+manual-only triggers fail. Manual dispatch is excluded because a same-commit base
+and head would not inspect a PR diff. Flow collections, quoted mapping/job keys, duplicate mapping
+keys, anchors, aliases, tags, multiple documents and non-`run` block scalars fail
+with an `unsupported workflow YAML format` diagnostic. Shell text inside a supported
+`run: |` block is opaque to this structural check; it still needs normal code review.
+Use the installed template's formatting when changing this workflow.
 
 Installation, green CI, a required branch check and semantic application regression
 coverage are separate states. Configure the `Cost safety review` check as required
 only after it has actually run, while preserving existing required checks. Workflow
 files still need trusted human review: a PR can propose changing its own workflow,
 and the review JSON itself does not authenticate its claimed reviewer.
+
+A required status check alone cannot prevent a candidate from replacing its own job with a successful no-op; protecting workflow changes requires maintainer review or an external required-workflow policy.
 
 ## Run
 
@@ -72,7 +83,9 @@ prints file contents, review prose, test contents or environment values.
 To review an uncommitted change, first put it in an isolated local commit using
 your normal repository workflow. Do not use this gate as a reason to stage or commit
 unrelated work. The self-tests create and remove disposable git repositories only;
-they do not change the repository under review or contact providers.
+they do not change the repository under review or contact providers. They disable
+bytecode writes before importing the gate, so the documented local command does not
+create an untracked `__pycache__` directory.
 
 ## Review schema
 
@@ -137,6 +150,10 @@ files, not just added lines. Removing the last recognized timer/retry/cache mark
 still requires review; existing risky code touched by a change also requires review.
 New files use their candidate contents. Signatures include common client hooks and
 options (`refetchInterval`, `useSWR`, `refetch`, `retryDelay`, `client.request`).
+They also cover workflow matrix fanout, `cache.set`, `redis.expire`, `cache_ttl`,
+`force-static`, Swift `URLSession`/`Timer.scheduledTimer`, Supabase function invocation
+and common `.from(...).select(...).execute()` chains. The chain matcher bounds each
+argument span to 512 characters; unusual wrappers/long chains still need human review.
 Common source extensions and configuration files are included. Gate files
 and its workflow are always reviewed, including removal. Ordinary source deletion
 does not require review.

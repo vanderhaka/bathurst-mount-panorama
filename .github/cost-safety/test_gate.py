@@ -10,6 +10,7 @@ import sys
 import tempfile
 import unittest
 
+sys.dont_write_bytecode = True
 HERE = Path(__file__).resolve().parent
 SPEC = importlib.util.spec_from_file_location("cost_gate", HERE / "gate.py")
 gate = importlib.util.module_from_spec(SPEC)
@@ -55,6 +56,47 @@ class ScannerTests(unittest.TestCase):
             with self.subTest(content=content):
                 self.assertTrue(gate.risks("src/client.ts", content.encode()))
 
+    def test_workflow_matrix_fanout_is_detected(self):
+        for content in ("strategy:\n  matrix:\n    version: [1, 2, 3]", 'strategy:\n  "matrix":\n    version: [1, 2]', "parallelism: ${{ strategy.matrix }}", '{"strategy": {"matrix": {"version": [1, 2]}}}'):
+            with self.subTest(content=content):
+                self.assertIn("workflow/fanout", gate.risks(".github/workflows/build.yml", content.encode()))
+
+    def test_common_cache_calls_and_settings_are_detected(self):
+        for content in ("cache.set(key, value)", "redis.expire(key, 60)", "cache_ttl = 60", "export const dynamic = 'force-static'"):
+            with self.subTest(content=content):
+                self.assertIn("routing/cache", gate.risks("src/cache.ts", content.encode()))
+
+    def test_swift_and_supabase_network_and_timer_surfaces_are_detected(self):
+        for path, content, category in (
+            ("App/Client.swift", "URLSession.shared.data(for: request)", "network/fanout"),
+            ("App/Client.swift", "Timer.scheduledTimer(withTimeInterval: 1, repeats: true)", "polling/timers"),
+            ("App/Client.swift", 'supabase.functions.invoke("expensive")', "network/fanout"),
+            ("src/client.py", 'database.from("events").select("*").execute()', "network/fanout"),
+        ):
+            with self.subTest(path=path, content=content):
+                self.assertIn(category, gate.risks(path, content.encode()))
+
+    def test_local_dynamic_import_does_not_create_bytecode(self):
+        with tempfile.TemporaryDirectory(prefix="cost-gate-bytecode-") as temp:
+            target = Path(temp)
+            for name in ("gate.py", "test_gate.py"):
+                (target / name).write_bytes((HERE / name).read_bytes())
+            env = dict(os.environ)
+            env.pop("PYTHONDONTWRITEBYTECODE", None)
+            env.pop("PYTHONPYCACHEPREFIX", None)
+            code = "import runpy; runpy.run_path(" + repr(str(target / "test_gate.py")) + ", run_name='fixture_import')"
+            result = subprocess.run([sys.executable, "-c", code], env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=15)
+            self.assertEqual((result.returncode, result.stderr), (0, b""))
+            self.assertEqual(list(target.rglob("*.pyc")), [])
+
+    def test_workflow_requires_pr_trigger_and_rejects_dispatch(self):
+        for content in (VALID_WORKFLOW.replace("on:\n  pull_request:\n", ""),
+                        VALID_WORKFLOW.replace("  pull_request:", "  push:"),
+                        VALID_WORKFLOW.replace("  pull_request:", "  workflow_dispatch:"),
+                        VALID_WORKFLOW.replace("  pull_request:", "  pull_request:\n  workflow_dispatch:")):
+            with self.subTest(content=content):
+                self.assertIn("only the pull_request trigger", " ".join(gate.workflow_errors(content.encode())))
+
     def test_workflow_rejects_privileged_event(self):
         self.assertTrue(gate.workflow_errors(VALID_WORKFLOW.replace("pull_request:", "pull_request_target:").encode()))
 
@@ -73,6 +115,55 @@ class ScannerTests(unittest.TestCase):
 
     def test_workflow_requires_pinned_actions(self):
         self.assertTrue(gate.workflow_errors(VALID_WORKFLOW.replace("11bd71901bbe5b1630ceea73d27597364c9af683", "v4").encode()))
+
+    def assert_unsupported_workflow(self, content):
+        errors = gate.workflow_errors(content.encode())
+        self.assertTrue(errors)
+        self.assertIn("unsupported workflow YAML format", " ".join(errors))
+
+    def test_quoted_write_permission_key_is_rejected(self):
+        for quote in ('"', "'"):
+            self.assert_unsupported_workflow(VALID_WORKFLOW.replace(
+                "  contents: read", "  contents: read\n  " + quote + "id-token" + quote + ": write"))
+
+    def test_quoted_job_without_timeout_is_rejected(self):
+        for quote in ('"', "'"):
+            self.assert_unsupported_workflow(VALID_WORKFLOW + "  " + quote + "unbounded" + quote
+                                             + ":\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo unsafe\n")
+
+    def test_flow_style_unpinned_action_is_rejected(self):
+        self.assert_unsupported_workflow(VALID_WORKFLOW + "      - { uses: attacker/action@main }\n")
+
+    def test_related_unsupported_yaml_forms_fail_closed(self):
+        fixtures = (
+            VALID_WORKFLOW.replace("permissions:\n  contents: read", "permissions: { contents: read, id-token: write }"),
+            VALID_WORKFLOW.replace("permissions:", '"permissions":'),
+            VALID_WORKFLOW.replace("  contents: read", '  "contents": read'),
+            VALID_WORKFLOW.replace("  cost-safety:", '  "cost-safety":'),
+            VALID_WORKFLOW.replace("jobs:", '"jobs":'),
+            VALID_WORKFLOW.replace("    timeout-minutes: 5", '    "timeout-minutes": 5'),
+            VALID_WORKFLOW.replace("    steps:", "    steps: [{ uses: attacker/action@main }]"),
+            VALID_WORKFLOW.replace("      - uses:", '      - "uses":'),
+            VALID_WORKFLOW.replace("  cost-safety:", "  cost-safety: { runs-on: ubuntu-latest }"),
+            VALID_WORKFLOW.replace("permissions:\n  contents: read", "permissions: &read_only\n  contents: read"),
+            VALID_WORKFLOW.replace("permissions:\n  contents: read", "permissions: *read_only"),
+            VALID_WORKFLOW.replace("    timeout-minutes: 5", "    timeout-minutes: 5\n    timeout-minutes: 999"),
+            VALID_WORKFLOW + "---\nname: Second document\n",
+        )
+        for content in fixtures:
+            with self.subTest(content=content):
+                self.assert_unsupported_workflow(content)
+
+    def test_quoted_permission_values_and_unpinned_action_values_fail(self):
+        for content in (VALID_WORKFLOW.replace("contents: read", 'contents: "write"'),
+                        VALID_WORKFLOW.replace("11bd71901bbe5b1630ceea73d27597364c9af683", "main"),
+                        VALID_WORKFLOW.replace("actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683", '"attacker/action@main"')):
+            with self.subTest(content=content):
+                self.assertTrue(gate.workflow_errors(content.encode()))
+
+    def test_run_block_is_not_mistaken_for_yaml_structure(self):
+        content = VALID_WORKFLOW + "      - run: |\n          echo 'permissions: { id-token: write }'\n          echo '\"unbounded\":'\n          echo '- { uses: attacker/action@main }'\n"
+        self.assertEqual(gate.workflow_errors(content.encode()), [])
 
     def test_safe_workflow_passes(self):
         self.assertEqual(gate.workflow_errors(VALID_WORKFLOW.encode()), [])
@@ -155,6 +246,22 @@ class GitIntegrationTests(unittest.TestCase):
         self.assertEqual(code, 1)
         self.assertIn("current cost review", report["errors"][0])
 
+    def test_unsupported_workflow_fails_cli_even_with_current_review(self):
+        for unsafe in (VALID_WORKFLOW.replace("  contents: read", '  contents: read\n  "id-token": write'),
+                       VALID_WORKFLOW + '  "unbounded":\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo unsafe\n',
+                       VALID_WORKFLOW + "      - { uses: attacker/action@main }\n"):
+            with self.subTest(unsafe=unsafe):
+                self.write(gate.WORKFLOW_PATH, unsafe)
+                code, report = self.cli(self.save_review(self.review(gate.WORKFLOW_PATH)))
+                self.assertEqual(code, 1)
+                self.assertIn("unsupported workflow YAML format", " ".join(report["errors"]))
+
+    def test_removed_pr_trigger_fails_cli_even_with_current_review(self):
+        self.write(gate.WORKFLOW_PATH, VALID_WORKFLOW.replace("on:\n  pull_request:\n", ""))
+        code, report = self.cli(self.save_review(self.review(gate.WORKFLOW_PATH)))
+        self.assertEqual(code, 1)
+        self.assertIn("only the pull_request trigger", " ".join(report["errors"]))
+
     def test_current_concrete_review_passes_without_executing_evidence(self):
         self.risky()
         review = self.review()
@@ -215,6 +322,15 @@ class GitIntegrationTests(unittest.TestCase):
         code, report = self.cli(self.save())
         self.assertEqual(code, 1)
         self.assertIn("invalid", report["errors"][0])
+
+    def test_array_and_null_review_documents_fail_as_structured_json(self):
+        self.risky()
+        for value in ([], None):
+            with self.subTest(value=value):
+                self.write(gate.REVIEW_PATH, json.dumps(value))
+                code, report = self.cli(self.save())
+                self.assertEqual((code, report["status"]), (1, "fail"))
+                self.assertIn("JSON object", report["errors"][0])
 
     def test_unknown_commit_or_symbolic_ref_does_not_become_empty_diff(self):
         for base in ("f" * 40, "HEAD"):
