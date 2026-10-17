@@ -20,9 +20,10 @@ SOURCE_SUFFIXES = {
     ".config", ".sql", ".tf", ".xml", ".cs", ".ex", ".exs", ".dart",
 }
 EXCLUDED_PARTS = {"node_modules", "vendor", "generated", "dist", "build", "coverage", ".next", ".git", "__pycache__", ".aws", ".ssh", "secrets", ".secrets"}
+SECRET_PARTS = {".aws", ".ssh", "secrets", ".secrets"}
 EXCLUDED_NAMES = {"package-lock.json", "yarn.lock", "pnpm-lock.yaml", "bun.lock", "bun.lockb", "poetry.lock", "Cargo.lock", "uv.lock"}
 PATTERNS = {
-    "polling/timers": r"\b(?:setInterval|setTimeout|requestAnimationFrame|poll(?:ing)?|ticker|interval|sleep|refetchInterval|useSWR|refetch|Timer\s*\.\s*scheduledTimer)\b",
+    "polling/timers": r"\b(?:setInterval|setTimeout|requestAnimationFrame|poll(?:ing)?|ticker|interval|sleep|refetchInterval|useSWR|refetch|Timer|DispatchQueue\s*\.\s*\w+\s*\.\s*asyncAfter)\b",
     "retry/failure": r"\b(?:retr(?:y|ies)|retryDelay|retryCount|backoff|reconnect|recurs(?:e|ion))\b",
     "schedule/cron": r"\b(?:crons?|crontab|schedule(?:d|s)?|PeriodicTask|while\s*\(?\s*(?:true|True|1))\b",
     "network/fanout": r"\b(?:fetch|axios|https?|requests|urllib|httpx|(?:client|session)\.request|URLSession|supabase\s*\.\s*functions\s*\.\s*invoke|WebSocket|EventSource|Promise\.all(?:Settled)?|ThreadPoolExecutor|gather|fanout|parallel)\b|\.from\s*\([^;]{0,512}?\)\s*\.select\s*\([^;]{0,512}?\)\s*\.execute\s*\(",
@@ -67,13 +68,19 @@ def safe_path(path):
     return not path.startswith("/") and all(p not in (".", "..") for p in parts) and str(PurePosixPath(path)) == path
 
 
+def secret_path(path):
+    p = PurePosixPath(path)
+    name = p.name.lower()
+    return (bool({part.lower() for part in p.parts} & SECRET_PARTS)
+            or name == ".env" or name.startswith(".env.")
+            or name.endswith((".pem", ".key", ".p12", ".pfx", ".crt"))
+            or name in {"credentials", "credentials.json", "secrets.json", "secrets.yml", "secrets.yaml"})
+
+
 def excluded(path):
     p = PurePosixPath(path)
     name = p.name.lower()
-    return (bool(set(p.parts) & EXCLUDED_PARTS) or p.name in EXCLUDED_NAMES
-            or name == ".env" or name.startswith(".env.")
-            or name.endswith((".pem", ".key", ".p12", ".pfx", ".crt"))
-            or name in {"credentials", "credentials.json", "secrets.json", "secrets.yml", "secrets.yaml"}
+    return (secret_path(path) or bool(set(p.parts) & EXCLUDED_PARTS) or p.name in EXCLUDED_NAMES
             or name.endswith((".min.js", ".map", ".generated.ts", ".generated.js")))
 
 
@@ -284,12 +291,16 @@ def run(repo, base_ref, head_ref):
         raise GateError("diff exceeds 3000 files; split the change for review")
     required, errors = [], []
     for status, path in changed:
+        guardrail = path.startswith(GATE_PREFIX) or path == WORKFLOW_PATH
+        if guardrail and secret_path(path):
+            errors.append(path + ": secret-bearing guardrail path is unsupported; rejected without reading contents")
+            continue
         if status == "D":
-            if path.startswith(GATE_PREFIX) or path == WORKFLOW_PATH:
+            if guardrail:
                 # Removal has no head blob. A digest of empty bytes explicitly acknowledges it.
                 required.append((path, b"", ["guardrail removal"]))
             continue
-        if path == REVIEW_PATH or excluded(path):
+        if path == REVIEW_PATH or (excluded(path) and not guardrail):
             continue
         suffix = PurePosixPath(path).suffix.lower()
         if suffix not in SOURCE_SUFFIXES and not path.startswith(GATE_PREFIX) and PurePosixPath(path).name not in {"Dockerfile", "Makefile", "Procfile"}:

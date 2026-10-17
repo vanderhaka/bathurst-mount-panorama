@@ -9,6 +9,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 sys.dont_write_bytecode = True
 HERE = Path(__file__).resolve().parent
@@ -75,6 +76,13 @@ class ScannerTests(unittest.TestCase):
         ):
             with self.subTest(path=path, content=content):
                 self.assertIn(category, gate.risks(path, content.encode()))
+
+    def test_swift_timer_publish_and_dispatch_queue_delays_are_detected(self):
+        for content in ("Timer.publish(every: 1, on: .main, in: .common)",
+                        "Timer(timeInterval: 1, repeats: true)",
+                        "DispatchQueue.main.asyncAfter(deadline: .now() + 1)"):
+            with self.subTest(content=content):
+                self.assertIn("polling/timers", gate.risks("App/Waves.swift", content.encode()))
 
     def test_local_dynamic_import_does_not_create_bytecode(self):
         with tempfile.TemporaryDirectory(prefix="cost-gate-bytecode-") as temp:
@@ -245,6 +253,28 @@ class GitIntegrationTests(unittest.TestCase):
         code, report = self.cli(self.save())
         self.assertEqual(code, 1)
         self.assertIn("current cost review", report["errors"][0])
+
+    def test_guardrail_helpers_in_excluded_folders_still_require_review(self):
+        for path in (".github/cost-safety/vendor/helper.py", ".github/cost-safety/generated/helper.py"):
+            with self.subTest(path=path):
+                self.write(path, "pass\n")
+                code, report = self.cli(self.save())
+                self.assertEqual(code, 1)
+                self.assertIn("current cost review", report["errors"][0])
+
+    def test_secret_guardrail_paths_fail_without_reading_any_blob(self):
+        for path in (".github/cost-safety/vendor/.env.production", ".github/cost-safety/generated/credentials.json"):
+            with self.subTest(path=path):
+                self.write(path, "synthetic fixture content\n")
+                head = self.save()
+                with mock.patch.object(gate, "blob") as reader:
+                    report = gate.run(self.repo, self.base, head)
+                    reader.assert_not_called()
+                self.assertEqual(report["status"], "fail")
+                self.assertIn("rejected without reading contents", " ".join(report["errors"]))
+                code, report = self.cli(head)
+                self.assertEqual(code, 1)
+                self.assertIn("rejected without reading contents", " ".join(report["errors"]))
 
     def test_unsupported_workflow_fails_cli_even_with_current_review(self):
         for unsafe in (VALID_WORKFLOW.replace("  contents: read", '  contents: read\n  "id-token": write'),

@@ -151,7 +151,8 @@ still requires review; existing risky code touched by a change also requires rev
 New files use their candidate contents. Signatures include common client hooks and
 options (`refetchInterval`, `useSWR`, `refetch`, `retryDelay`, `client.request`).
 They also cover workflow matrix fanout, `cache.set`, `redis.expire`, `cache_ttl`,
-`force-static`, Swift `URLSession`/`Timer.scheduledTimer`, Supabase function invocation
+`force-static`, Swift `URLSession`, `Timer` APIs (including `Timer.publish`) and
+`DispatchQueue.main.asyncAfter`, Supabase function invocation
 and common `.from(...).select(...).execute()` chains. The chain matcher bounds each
 argument span to 512 characters; unusual wrappers/long chains still need human review.
 Common source extensions and configuration files are included. Gate files
@@ -162,6 +163,10 @@ It excludes documentation, `.env`/common credential/key files, lockfiles, common
 generated/minified files, and `vendor`, `node_modules`, `generated`, common secret,
 build, distribution and coverage directories. These exclusions reduce noise and avoid reading common
 secret locations; they are not a secret scanner or certification of generated code.
+Guardrail paths under `.github/cost-safety/` override ordinary vendor/generated
+exclusions, so helpers there still require review. Secret-bearing guardrail paths
+are rejected from path metadata without reading their contents; move executable
+helpers to a non-secret filename and keep credentials out of the guardrail tree.
 Unsupported languages, dynamic calls, obfuscated behavior, unusual generated file
 locations and external services can evade signatures. Harmless strings/comments,
 test fixtures and existing calls in a touched file can cause false positives. Use
