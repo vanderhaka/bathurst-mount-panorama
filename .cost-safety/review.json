@@ -79,25 +79,6 @@
       ]
     },
     {
-      "path": ".cost-safety/review.json",
-      "sha256": "8916463d646c02f47345ee3d284e2a507c4f11e9ed9036cf67d7367377de72dc",
-      "reviewer": "Codex portfolio implementation review",
-      "rationale": "This adds repository instructions and workflow review coverage; it changes no application behavior and requires explicit current evidence for future control-plane changes.",
-      "controls": {
-        "request_bound": "0 production provider requests are made by these instructions or their review gate; application test jobs lack production credentials.",
-        "fanout_bound": "1 bounded existing review or regression job runs per event; changes to workflow jobs require explicit cost review.",
-        "termination": "The review job has a five-minute bound and the incident regression job a fifteen-minute bound; source instruction edits execute no code.",
-        "failure_behavior": "Missing or stale review evidence fails; removing the root policy or changing any workflow requires current acknowledgement and test references."
-      },
-      "evidence": [
-        {
-          "path": ".github/cost-safety/test_gate.py",
-          "sha256": "0db266120e9bf30fb8e0be092cad12c1a3e6736128642eae7d1d29c5ef0dc5d9",
-          "anchor": "test_ordinary_workflow_job_changes_require_review"
-        }
-      ]
-    },
-    {
       "path": "AGENTS.md",
       "sha256": "893e3f39864100dfa158a33d60a055c496c5a8e10908cb7645d744f67a5ca09a",
       "reviewer": "Codex portfolio implementation review",
