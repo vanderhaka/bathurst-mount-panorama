@@ -4,7 +4,7 @@
   "reviews": [
     {
       "path": ".github/cost-safety/README.md",
-      "sha256": "a778c634a57728b7928b86f22d8a789ecd8662dc1e844f6894918a3ef5a3f69c",
+      "sha256": "12f7b8c4c50d91279b8e5b5787f0142e1583ca8fec14e5be72473c2aabd471b4",
       "reviewer": "Codex portfolio implementation review",
       "rationale": "This installs the reviewed change-risk gate and its documentation; it enforces current review evidence, not semantic application traffic bounds.",
       "controls": {
@@ -16,14 +16,14 @@
       "evidence": [
         {
           "path": ".github/cost-safety/test_gate.py",
-          "sha256": "c10edcae165bdd36bd04307907a5420b0d72eaece2d60e2b5383e98ee28d6ed2",
+          "sha256": "0db266120e9bf30fb8e0be092cad12c1a3e6736128642eae7d1d29c5ef0dc5d9",
           "anchor": "test_guardrail_changes_are_always_reviewed"
         }
       ]
     },
     {
       "path": ".github/cost-safety/gate.py",
-      "sha256": "9f00ee58252b613dbb1874ec745d44d7b9d8b8e1b777fd16400eb3fd16bfc7c2",
+      "sha256": "ae04401b601e8161cd32734709a5739968cb1218883f115082a6939226055f73",
       "reviewer": "Codex portfolio implementation review",
       "rationale": "This installs the reviewed change-risk gate and its documentation; it enforces current review evidence, not semantic application traffic bounds.",
       "controls": {
@@ -35,14 +35,14 @@
       "evidence": [
         {
           "path": ".github/cost-safety/test_gate.py",
-          "sha256": "c10edcae165bdd36bd04307907a5420b0d72eaece2d60e2b5383e98ee28d6ed2",
+          "sha256": "0db266120e9bf30fb8e0be092cad12c1a3e6736128642eae7d1d29c5ef0dc5d9",
           "anchor": "test_guardrail_changes_are_always_reviewed"
         }
       ]
     },
     {
       "path": ".github/cost-safety/test_gate.py",
-      "sha256": "c10edcae165bdd36bd04307907a5420b0d72eaece2d60e2b5383e98ee28d6ed2",
+      "sha256": "0db266120e9bf30fb8e0be092cad12c1a3e6736128642eae7d1d29c5ef0dc5d9",
       "reviewer": "Codex portfolio implementation review",
       "rationale": "This installs the reviewed change-risk gate and its documentation; it enforces current review evidence, not semantic application traffic bounds.",
       "controls": {
@@ -54,7 +54,7 @@
       "evidence": [
         {
           "path": ".github/cost-safety/test_gate.py",
-          "sha256": "c10edcae165bdd36bd04307907a5420b0d72eaece2d60e2b5383e98ee28d6ed2",
+          "sha256": "0db266120e9bf30fb8e0be092cad12c1a3e6736128642eae7d1d29c5ef0dc5d9",
           "anchor": "test_guardrail_changes_are_always_reviewed"
         }
       ]
@@ -73,14 +73,14 @@
       "evidence": [
         {
           "path": ".github/cost-safety/test_gate.py",
-          "sha256": "c10edcae165bdd36bd04307907a5420b0d72eaece2d60e2b5383e98ee28d6ed2",
+          "sha256": "0db266120e9bf30fb8e0be092cad12c1a3e6736128642eae7d1d29c5ef0dc5d9",
           "anchor": "test_workflow_requires_bounded_timeout_for_every_job"
         }
       ]
     },
     {
       "path": ".cost-safety/review.json",
-      "sha256": "54b9677489dae7d295f5d05957b66052653bb329c9d30d702ec9e3c944a50d8d",
+      "sha256": "8916463d646c02f47345ee3d284e2a507c4f11e9ed9036cf67d7367377de72dc",
       "reviewer": "Codex portfolio implementation review",
       "rationale": "This adds repository instructions and workflow review coverage; it changes no application behavior and requires explicit current evidence for future control-plane changes.",
       "controls": {
@@ -92,7 +92,7 @@
       "evidence": [
         {
           "path": ".github/cost-safety/test_gate.py",
-          "sha256": "c10edcae165bdd36bd04307907a5420b0d72eaece2d60e2b5383e98ee28d6ed2",
+          "sha256": "0db266120e9bf30fb8e0be092cad12c1a3e6736128642eae7d1d29c5ef0dc5d9",
           "anchor": "test_ordinary_workflow_job_changes_require_review"
         }
       ]
@@ -111,7 +111,7 @@
       "evidence": [
         {
           "path": ".github/cost-safety/test_gate.py",
-          "sha256": "c10edcae165bdd36bd04307907a5420b0d72eaece2d60e2b5383e98ee28d6ed2",
+          "sha256": "0db266120e9bf30fb8e0be092cad12c1a3e6736128642eae7d1d29c5ef0dc5d9",
           "anchor": "test_root_policy_truncation_and_removal_require_review"
         }
       ]

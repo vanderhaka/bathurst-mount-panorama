@@ -163,7 +163,7 @@ chain matching bounds the `.from(...)` argument span to 512 characters; unusual
 wrappers, aliases and long chains still need human review. Common source extensions,
 including `.mts`/`.cts`, and configuration files are included.
 
-All changed GitHub workflow files require review, covering matrices and ordinary
+All changed GitHub workflow YAML paths are classified as guardrails before exclusions and require review, covering matrices and ordinary
 job additions without pretending to calculate arbitrary YAML fanout. Gate files,
 the gate workflow and root `AGENTS.md` (case-insensitive) are always reviewed,
 including modification/removal. Deleted recognized configuration files are checked

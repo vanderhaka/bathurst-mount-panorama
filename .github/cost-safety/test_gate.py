@@ -315,6 +315,40 @@ class GitIntegrationTests(unittest.TestCase):
                 self.assertEqual(code, 1)
                 self.assertIn("rejected without reading contents", " ".join(report["errors"]))
 
+    def test_secret_named_workflow_yaml_never_reads_contents_on_add_modify_delete(self):
+        for filename in ("secrets.yml", "secrets.yaml", "Secrets.yml", "Secrets.yaml"):
+            path = ".github/workflows/" + filename
+            for operation in ("add", "modify", "delete"):
+                with self.subTest(filename=filename, operation=operation):
+                    if operation == "delete":
+                        (self.repo / path).unlink()
+                    else:
+                        self.write(path, "synthetic workflow fixture " + operation + "\n")
+                    head = self.save()
+                    with mock.patch.object(gate, "blob") as reader:
+                        report = gate.run(self.repo, self.base, head)
+                        reader.assert_not_called()
+                    self.assertEqual(report["status"], "fail")
+                    self.assertIn(path, " ".join(report["errors"]))
+                    self.assertIn("rejected without reading contents", " ".join(report["errors"]))
+                    code, report = self.cli(head)
+                    self.assertEqual(code, 1)
+                    self.assertIn("rejected without reading contents", " ".join(report["errors"]))
+                    self.assertNotIn("synthetic workflow fixture", json.dumps(report))
+                    self.base = head
+
+    def test_ordinary_workflow_removal_requires_empty_digest_review(self):
+        path = ".github/workflows/ci.yaml"
+        self.write(path, "name: CI\non:\n  push:\n")
+        self.base = self.save()
+        (self.repo / path).unlink()
+        code, report = self.cli(self.save())
+        self.assertEqual(code, 1)
+        self.assertIn("current cost review", report["errors"][0])
+        code, report = self.cli(self.save_review(self.review(path, b"")))
+        self.assertEqual(code, 0)
+        self.assertEqual(report["review_required"][0]["sha256"], gate.digest(b""))
+
     def test_ordinary_secret_files_are_never_read_even_on_modification_or_removal(self):
         self.write(".env.production", "synthetic fixture content\n")
         self.write("secrets/credentials.json", "synthetic fixture content\n")

@@ -99,11 +99,18 @@ def excluded(path):
 
 
 def guardrail_path(path):
-    return path.startswith(GATE_PREFIX) or path == WORKFLOW_PATH or path.lower() == POLICY_PATH.lower()
+    return (path.startswith(GATE_PREFIX) or workflow_path(path)
+            or path.lower() == POLICY_PATH.lower())
+
+
+def workflow_path(path):
+    return path.startswith(".github/workflows/") and PurePosixPath(path).suffix.lower() in {".yml", ".yaml"}
 
 
 def risks(path, content):
     if guardrail_path(path):
+        if workflow_path(path) and path != WORKFLOW_PATH:
+            return ["guardrail", "workflow/fanout"]
         return ["guardrail"]
     if excluded(path):
         return []
@@ -112,8 +119,6 @@ def risks(path, content):
         return []
     text = content.decode("utf-8", errors="replace")
     categories = [name for name, pattern in RISK_PATTERNS.items() if pattern.search(text)]
-    if path.startswith(".github/workflows/") and p.suffix.lower() in {".yml", ".yaml"}:
-        categories = list(dict.fromkeys(["workflow/fanout"] + categories))
     return categories
 
 
