@@ -17,13 +17,13 @@ MAX_CHANGED_FILES = 3000
 SOURCE_SUFFIXES = {
     ".js", ".jsx", ".ts", ".tsx", ".mjs", ".cjs", ".mts", ".cts", ".py", ".go", ".rs",
     ".rb", ".php", ".java", ".kt", ".swift", ".sh", ".bash", ".html",
-    ".vue", ".svelte", ".json", ".yaml", ".yml", ".toml", ".ini", ".conf",
+    ".vue", ".svelte", ".json", ".jsonc", ".yaml", ".yml", ".toml", ".ini", ".conf",
     ".config", ".sql", ".tf", ".xml", ".cs", ".ex", ".exs", ".dart",
 }
 EXCLUDED_PARTS = {"node_modules", "vendor", "generated", "dist", "build", "coverage", ".next", ".git", "__pycache__", ".aws", ".ssh", "secrets", ".secrets"}
 SECRET_PARTS = {".aws", ".ssh", "secrets", ".secrets"}
 EXCLUDED_NAMES = {"package-lock.json", "yarn.lock", "pnpm-lock.yaml", "bun.lock", "bun.lockb", "poetry.lock", "Cargo.lock", "uv.lock"}
-CONFIG_SUFFIXES = {".json", ".yaml", ".yml", ".toml", ".ini", ".conf", ".config", ".tf", ".xml"}
+CONFIG_SUFFIXES = {".json", ".jsonc", ".yaml", ".yml", ".toml", ".ini", ".conf", ".config", ".tf", ".xml"}
 PATTERNS = {
     "polling/timers": r"\b(?:setInterval|setTimeout|requestAnimationFrame|poll(?:ing)?|ticker|interval|sleep|refetchInterval|useSWR|refetch|Timer|DispatchQueue\s*\.\s*\w+\s*\.\s*asyncAfter)\b",
     "retry/failure": r"\b(?:retr(?:y|ies)|retryDelay|retryCount|backoff|reconnect|recurs(?:e|ion))\b",
@@ -105,10 +105,6 @@ def guardrail_path(path):
 
 def workflow_path(path):
     return path.startswith(".github/workflows/") and PurePosixPath(path).suffix.lower() in {".yml", ".yaml"}
-
-
-def gate_workflow_path(path):
-    return path in {WORKFLOW_PATH, ".github/workflows/cost-safety.yaml"}
 
 
 def source_path(path):
@@ -344,27 +340,32 @@ def run(repo, base_ref, head_ref):
     head_gate = git(repo, "ls-tree", head, "--", GATE_PREFIX + "gate.py")
     if (base_workflow or head_gate) and not head_workflow:
         errors.append(WORKFLOW_PATH + ": canonical gate workflow must remain at this path; renaming or removal is forbidden")
-    if head_workflow:
-        errors.extend(WORKFLOW_PATH + ": " + error
-                      for error in workflow_errors(blob(repo, head, WORKFLOW_PATH)))
+    for workflow in (WORKFLOW_PATH, ".github/workflows/cost-safety.yaml"):
+        entry = head_workflow if workflow == WORKFLOW_PATH else git(repo, "ls-tree", head, "--", workflow)
+        if entry:
+            errors.extend(workflow + ": " + error
+                          for error in workflow_errors(blob(repo, head, workflow)))
     for status, path in changed:
         guardrail = guardrail_path(path)
         if guardrail and secret_path(path):
             errors.append(path + ": secret-bearing guardrail path is unsupported; rejected without reading contents")
             continue
+        if path == REVIEW_PATH:
+            continue  # Removing stale acknowledgements must not require self-review.
         if status == "D":
             if guardrail:
                 # Removal has no head blob. A digest of empty bytes explicitly acknowledges it.
                 required.append((path, b"", ["guardrail removal"]))
             elif not excluded(path) and source_path(path):
-                categories = risks(path, blob(repo, base, path))
                 # A deleted limiter/helper need not contain a known network keyword.
-                # Every included source deletion therefore needs explicit review.
-                if categories and cost_config(path):
+                # Path-only classification permits reviewed large/symlink removals
+                # without opening a deleted source blob or its former target.
+                categories = ["source removal"]
+                if cost_config(path):
                     categories.append("cost configuration removal")
-                required.append((path, b"", categories + ["source removal"]))
+                required.append((path, b"", categories))
             continue
-        if path == REVIEW_PATH or (excluded(path) and not guardrail):
+        if excluded(path) and not guardrail:
             continue
         if not source_path(path) and not guardrail:
             continue
@@ -373,10 +374,10 @@ def run(repo, base_ref, head_ref):
         if status == "M":
             # Removing the last marker must not erase the need to review this change.
             categories = list(dict.fromkeys(categories + risks(path, blob(repo, base, path))))
+            if not content.strip():
+                categories = list(dict.fromkeys(categories + ["source truncation"]))
         if categories:
             required.append((path, content, categories))
-        if gate_workflow_path(path) and path != WORKFLOW_PATH:
-            errors.extend(path + ": " + error for error in workflow_errors(content))
     if required:
         errors.extend(check_review(repo, base, head, required))
     return {"base_commit": base, "head_commit": head, "changed_files": len(changed),

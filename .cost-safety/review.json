@@ -4,9 +4,9 @@
   "reviews": [
     {
       "path": ".github/cost-safety/README.md",
-      "sha256": "bef08c90f6c587d0bfb894b22aba3d34e97c77e94a898745c01d5f944be4c3cd",
+      "sha256": "ca3faddda15fc816d392983e64e0de9a7cf6dd309ac6d7534406f4d22dd2eaf1",
       "reviewer": "Codex incident repair; independent Standards and Spec review before merge",
-      "rationale": "Canonical workflow identity and strict candidate validation prevent renamed gate workflows from bypassing restrictions. Every included source deletion now requires review, including keyword-free admission controls. This changes review tooling only.",
+      "rationale": "Preserve the canonical gate workflow and validate both supported workflow filenames on every run. Require review for included source deletion or blank truncation and JSONC cron changes, while permitting reviewed large/symlink removals and stale manifest cleanup without blob or target reads.",
       "controls": {
         "request_bound": "0 application or provider requests are added. Gate inspection remains local Git reads bounded to 3000 changed files and 2 MiB per inspected blob.",
         "fanout_bound": "1 existing cost-safety job per pull-request event; no new workflow, scheduled job or deployment command is added.",
@@ -16,31 +16,56 @@
       "evidence": [
         {
           "path": ".github/cost-safety/test_gate.py",
-          "sha256": "e120b79cde4b70b4aaedd9759e5d8063d2ec3d6ddfc2ae523d5df93ec3577d3e",
+          "sha256": "1ce17d1cd9dd25d437ec7593e2560abc1f8b50fc786f2d8a6c48aa183508aa44",
           "anchor": "test_deleted_source_requires_review_even_without_cost_keywords"
         },
         {
           "path": ".github/cost-safety/test_gate.py",
-          "sha256": "e120b79cde4b70b4aaedd9759e5d8063d2ec3d6ddfc2ae523d5df93ec3577d3e",
+          "sha256": "1ce17d1cd9dd25d437ec7593e2560abc1f8b50fc786f2d8a6c48aa183508aa44",
           "anchor": "test_gate_workflow_rename_cannot_remove_canonical_path_even_with_review"
         },
         {
           "path": ".github/cost-safety/test_gate.py",
-          "sha256": "e120b79cde4b70b4aaedd9759e5d8063d2ec3d6ddfc2ae523d5df93ec3577d3e",
+          "sha256": "1ce17d1cd9dd25d437ec7593e2560abc1f8b50fc786f2d8a6c48aa183508aa44",
           "anchor": "test_alternate_gate_workflow_cannot_gain_privileges_with_review"
         },
         {
           "path": ".github/cost-safety/test_gate.py",
-          "sha256": "e120b79cde4b70b4aaedd9759e5d8063d2ec3d6ddfc2ae523d5df93ec3577d3e",
+          "sha256": "1ce17d1cd9dd25d437ec7593e2560abc1f8b50fc786f2d8a6c48aa183508aa44",
           "anchor": "test_unchanged_canonical_workflow_is_validated"
+        },
+        {
+          "path": ".github/cost-safety/test_gate.py",
+          "sha256": "1ce17d1cd9dd25d437ec7593e2560abc1f8b50fc786f2d8a6c48aa183508aa44",
+          "anchor": "test_unchanged_alternate_workflow_is_validated"
+        },
+        {
+          "path": ".github/cost-safety/test_gate.py",
+          "sha256": "1ce17d1cd9dd25d437ec7593e2560abc1f8b50fc786f2d8a6c48aa183508aa44",
+          "anchor": "test_large_or_symlink_source_deletion_can_be_reviewed_without_reading_base"
+        },
+        {
+          "path": ".github/cost-safety/test_gate.py",
+          "sha256": "1ce17d1cd9dd25d437ec7593e2560abc1f8b50fc786f2d8a6c48aa183508aa44",
+          "anchor": "test_stale_review_manifest_can_be_removed_without_self_review"
+        },
+        {
+          "path": ".github/cost-safety/test_gate.py",
+          "sha256": "1ce17d1cd9dd25d437ec7593e2560abc1f8b50fc786f2d8a6c48aa183508aa44",
+          "anchor": "test_blank_source_truncation_requires_current_review"
+        },
+        {
+          "path": ".github/cost-safety/test_gate.py",
+          "sha256": "1ce17d1cd9dd25d437ec7593e2560abc1f8b50fc786f2d8a6c48aa183508aa44",
+          "anchor": "test_jsonc_cron_configuration_changes_and_removal_require_review"
         }
       ]
     },
     {
       "path": ".github/cost-safety/gate.py",
-      "sha256": "8f0503d99627e7b9a9c01a388da2a84ec9e285f36e3fbb653769ed2916aed0ea",
+      "sha256": "2e0309f6e95b4e3cdf8d2115b9d7b8425834e5d732017d045d9de9b0d4afd69f",
       "reviewer": "Codex incident repair; independent Standards and Spec review before merge",
-      "rationale": "Canonical workflow identity and strict candidate validation prevent renamed gate workflows from bypassing restrictions. Every included source deletion now requires review, including keyword-free admission controls. This changes review tooling only.",
+      "rationale": "Preserve the canonical gate workflow and validate both supported workflow filenames on every run. Require review for included source deletion or blank truncation and JSONC cron changes, while permitting reviewed large/symlink removals and stale manifest cleanup without blob or target reads.",
       "controls": {
         "request_bound": "0 application or provider requests are added. Gate inspection remains local Git reads bounded to 3000 changed files and 2 MiB per inspected blob.",
         "fanout_bound": "1 existing cost-safety job per pull-request event; no new workflow, scheduled job or deployment command is added.",
@@ -50,31 +75,56 @@
       "evidence": [
         {
           "path": ".github/cost-safety/test_gate.py",
-          "sha256": "e120b79cde4b70b4aaedd9759e5d8063d2ec3d6ddfc2ae523d5df93ec3577d3e",
+          "sha256": "1ce17d1cd9dd25d437ec7593e2560abc1f8b50fc786f2d8a6c48aa183508aa44",
           "anchor": "test_deleted_source_requires_review_even_without_cost_keywords"
         },
         {
           "path": ".github/cost-safety/test_gate.py",
-          "sha256": "e120b79cde4b70b4aaedd9759e5d8063d2ec3d6ddfc2ae523d5df93ec3577d3e",
+          "sha256": "1ce17d1cd9dd25d437ec7593e2560abc1f8b50fc786f2d8a6c48aa183508aa44",
           "anchor": "test_gate_workflow_rename_cannot_remove_canonical_path_even_with_review"
         },
         {
           "path": ".github/cost-safety/test_gate.py",
-          "sha256": "e120b79cde4b70b4aaedd9759e5d8063d2ec3d6ddfc2ae523d5df93ec3577d3e",
+          "sha256": "1ce17d1cd9dd25d437ec7593e2560abc1f8b50fc786f2d8a6c48aa183508aa44",
           "anchor": "test_alternate_gate_workflow_cannot_gain_privileges_with_review"
         },
         {
           "path": ".github/cost-safety/test_gate.py",
-          "sha256": "e120b79cde4b70b4aaedd9759e5d8063d2ec3d6ddfc2ae523d5df93ec3577d3e",
+          "sha256": "1ce17d1cd9dd25d437ec7593e2560abc1f8b50fc786f2d8a6c48aa183508aa44",
           "anchor": "test_unchanged_canonical_workflow_is_validated"
+        },
+        {
+          "path": ".github/cost-safety/test_gate.py",
+          "sha256": "1ce17d1cd9dd25d437ec7593e2560abc1f8b50fc786f2d8a6c48aa183508aa44",
+          "anchor": "test_unchanged_alternate_workflow_is_validated"
+        },
+        {
+          "path": ".github/cost-safety/test_gate.py",
+          "sha256": "1ce17d1cd9dd25d437ec7593e2560abc1f8b50fc786f2d8a6c48aa183508aa44",
+          "anchor": "test_large_or_symlink_source_deletion_can_be_reviewed_without_reading_base"
+        },
+        {
+          "path": ".github/cost-safety/test_gate.py",
+          "sha256": "1ce17d1cd9dd25d437ec7593e2560abc1f8b50fc786f2d8a6c48aa183508aa44",
+          "anchor": "test_stale_review_manifest_can_be_removed_without_self_review"
+        },
+        {
+          "path": ".github/cost-safety/test_gate.py",
+          "sha256": "1ce17d1cd9dd25d437ec7593e2560abc1f8b50fc786f2d8a6c48aa183508aa44",
+          "anchor": "test_blank_source_truncation_requires_current_review"
+        },
+        {
+          "path": ".github/cost-safety/test_gate.py",
+          "sha256": "1ce17d1cd9dd25d437ec7593e2560abc1f8b50fc786f2d8a6c48aa183508aa44",
+          "anchor": "test_jsonc_cron_configuration_changes_and_removal_require_review"
         }
       ]
     },
     {
       "path": ".github/cost-safety/test_gate.py",
-      "sha256": "e120b79cde4b70b4aaedd9759e5d8063d2ec3d6ddfc2ae523d5df93ec3577d3e",
+      "sha256": "1ce17d1cd9dd25d437ec7593e2560abc1f8b50fc786f2d8a6c48aa183508aa44",
       "reviewer": "Codex incident repair; independent Standards and Spec review before merge",
-      "rationale": "Canonical workflow identity and strict candidate validation prevent renamed gate workflows from bypassing restrictions. Every included source deletion now requires review, including keyword-free admission controls. This changes review tooling only.",
+      "rationale": "Preserve the canonical gate workflow and validate both supported workflow filenames on every run. Require review for included source deletion or blank truncation and JSONC cron changes, while permitting reviewed large/symlink removals and stale manifest cleanup without blob or target reads.",
       "controls": {
         "request_bound": "0 application or provider requests are added. Gate inspection remains local Git reads bounded to 3000 changed files and 2 MiB per inspected blob.",
         "fanout_bound": "1 existing cost-safety job per pull-request event; no new workflow, scheduled job or deployment command is added.",
@@ -84,23 +134,48 @@
       "evidence": [
         {
           "path": ".github/cost-safety/test_gate.py",
-          "sha256": "e120b79cde4b70b4aaedd9759e5d8063d2ec3d6ddfc2ae523d5df93ec3577d3e",
+          "sha256": "1ce17d1cd9dd25d437ec7593e2560abc1f8b50fc786f2d8a6c48aa183508aa44",
           "anchor": "test_deleted_source_requires_review_even_without_cost_keywords"
         },
         {
           "path": ".github/cost-safety/test_gate.py",
-          "sha256": "e120b79cde4b70b4aaedd9759e5d8063d2ec3d6ddfc2ae523d5df93ec3577d3e",
+          "sha256": "1ce17d1cd9dd25d437ec7593e2560abc1f8b50fc786f2d8a6c48aa183508aa44",
           "anchor": "test_gate_workflow_rename_cannot_remove_canonical_path_even_with_review"
         },
         {
           "path": ".github/cost-safety/test_gate.py",
-          "sha256": "e120b79cde4b70b4aaedd9759e5d8063d2ec3d6ddfc2ae523d5df93ec3577d3e",
+          "sha256": "1ce17d1cd9dd25d437ec7593e2560abc1f8b50fc786f2d8a6c48aa183508aa44",
           "anchor": "test_alternate_gate_workflow_cannot_gain_privileges_with_review"
         },
         {
           "path": ".github/cost-safety/test_gate.py",
-          "sha256": "e120b79cde4b70b4aaedd9759e5d8063d2ec3d6ddfc2ae523d5df93ec3577d3e",
+          "sha256": "1ce17d1cd9dd25d437ec7593e2560abc1f8b50fc786f2d8a6c48aa183508aa44",
           "anchor": "test_unchanged_canonical_workflow_is_validated"
+        },
+        {
+          "path": ".github/cost-safety/test_gate.py",
+          "sha256": "1ce17d1cd9dd25d437ec7593e2560abc1f8b50fc786f2d8a6c48aa183508aa44",
+          "anchor": "test_unchanged_alternate_workflow_is_validated"
+        },
+        {
+          "path": ".github/cost-safety/test_gate.py",
+          "sha256": "1ce17d1cd9dd25d437ec7593e2560abc1f8b50fc786f2d8a6c48aa183508aa44",
+          "anchor": "test_large_or_symlink_source_deletion_can_be_reviewed_without_reading_base"
+        },
+        {
+          "path": ".github/cost-safety/test_gate.py",
+          "sha256": "1ce17d1cd9dd25d437ec7593e2560abc1f8b50fc786f2d8a6c48aa183508aa44",
+          "anchor": "test_stale_review_manifest_can_be_removed_without_self_review"
+        },
+        {
+          "path": ".github/cost-safety/test_gate.py",
+          "sha256": "1ce17d1cd9dd25d437ec7593e2560abc1f8b50fc786f2d8a6c48aa183508aa44",
+          "anchor": "test_blank_source_truncation_requires_current_review"
+        },
+        {
+          "path": ".github/cost-safety/test_gate.py",
+          "sha256": "1ce17d1cd9dd25d437ec7593e2560abc1f8b50fc786f2d8a6c48aa183508aa44",
+          "anchor": "test_jsonc_cron_configuration_changes_and_removal_require_review"
         }
       ]
     },
@@ -118,7 +193,7 @@
       "evidence": [
         {
           "path": ".github/cost-safety/test_gate.py",
-          "sha256": "e120b79cde4b70b4aaedd9759e5d8063d2ec3d6ddfc2ae523d5df93ec3577d3e",
+          "sha256": "1ce17d1cd9dd25d437ec7593e2560abc1f8b50fc786f2d8a6c48aa183508aa44",
           "anchor": "test_workflow_requires_bounded_timeout_for_every_job"
         }
       ]
@@ -137,7 +212,7 @@
       "evidence": [
         {
           "path": ".github/cost-safety/test_gate.py",
-          "sha256": "e120b79cde4b70b4aaedd9759e5d8063d2ec3d6ddfc2ae523d5df93ec3577d3e",
+          "sha256": "1ce17d1cd9dd25d437ec7593e2560abc1f8b50fc786f2d8a6c48aa183508aa44",
           "anchor": "test_root_policy_truncation_and_removal_require_review"
         }
       ]

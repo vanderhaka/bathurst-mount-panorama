@@ -67,7 +67,7 @@ The installed workflow must remain at `.github/workflows/cost-safety.yml`; an
 acknowledged rename or removal still fails when the base workflow or candidate
 gate exists. Its candidate contents are validated on every run, even when unchanged.
 The alternate `.github/workflows/cost-safety.yaml` spelling receives the same strict
-validation. Other workflow files still require ordinary review; this does not make
+validation on every run when present, including when unchanged. Other workflow files still require ordinary review; this does not make
 their deployment-specific permissions subject to the PR-only gate-workflow layout.
 The whole word `secrets` is conservatively forbidden throughout the workflow,
 including whole-context expressions such as `toJSON(secrets)`. This deliberately
@@ -175,18 +175,22 @@ operations, common provider namespaces and AI request helpers. Imports/comments 
 therefore trigger review even when that line itself does not issue a request. Query
 chain matching bounds the `.from(...)` argument span to 512 characters; unusual
 wrappers, aliases and long chains still need human review. Common source extensions,
-including `.mts`/`.cts`, and configuration files are included.
+including `.mts`/`.cts`, and configuration files including `.jsonc` cron files are included.
 
 All changed GitHub workflow YAML paths are classified as guardrails before exclusions and require review, covering matrices and ordinary
 job additions without pretending to calculate arbitrary YAML fanout. Gate files,
 the gate workflow and root `AGENTS.md` (case-insensitive) are always reviewed,
-including modification/removal. Deleted recognized configuration files are checked
-against their base risk signatures: JSON/YAML/TOML/INI/configuration/infra formats,
-common `*.config.js`/TypeScript variants, Dockerfile, Makefile and Procfile. Removing
-a risky configuration requires review with the empty-content digest. Every deleted
+including modification/removal. Recognized configuration paths include
+JSON/JSONC/YAML/TOML/INI/configuration/infra formats,
+common `*.config.js`/TypeScript variants, Dockerfile, Makefile and Procfile. Every deleted
 included source/configuration file requires review, even without recognized risk
 keywords: a small admission/limiter helper may protect costs without issuing any
-request itself. Documentation, lockfiles, recognized secret paths and other normal
+request itself. Deletions are classified from path metadata without opening their
+base contents, so large files and symlinks can be removed with review and no target
+read. A modified included source file reduced to empty/whitespace bytes also
+requires current review. Removing the review manifest alone is exempt; removing it
+alongside another flagged change still fails because that change lacks its review.
+Documentation, lockfiles, recognized secret paths and other normal
 exclusions remain excluded from this deletion rule.
 
 It excludes documentation, `.env`/common credential/key files, lockfiles, common
