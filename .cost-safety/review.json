@@ -1,0 +1,116 @@
+{
+  "version": 1,
+  "base_commit": "5a0a217c8e20fa8ed2813404b668072952392071",
+  "reviews": [
+    {
+      "path": ".github/cost-safety/README.md",
+      "sha256": "f3cee6951e291d26371ae4cda3d724218eb5d074ab84d6ca629fa2b8d5e260dd",
+      "reviewer": "Codex portfolio implementation review",
+      "rationale": "This records the bounded gate workflow validator, encoded-scalar rejection and shell-block boundary regressions. It changes no application behavior or provider state.",
+      "controls": {
+        "request_bound": "0 application or provider requests are made by this review gate; git reads are bounded to 3000 changed files.",
+        "fanout_bound": "1 serial gate process per CI run; no application code or review-supplied command is executed.",
+        "termination": "The CI job stops after five minutes; each git command has a thirty-second timeout and no retry loop.",
+        "failure_behavior": "Missing revisions, stale digests, missing tests or unsafe workflow settings fail closed rather than claiming safety."
+      },
+      "evidence": [
+        {
+          "path": ".github/cost-safety/test_gate.py",
+          "sha256": "4612f662454b5405309778db81e8e4444d5f13e1d68d866d72157066050dea73",
+          "anchor": "test_sibling_encoded_env_after_both_run_forms_fails_cli"
+        },
+        {
+          "path": ".github/cost-safety/test_gate.py",
+          "sha256": "4612f662454b5405309778db81e8e4444d5f13e1d68d866d72157066050dea73",
+          "anchor": "test_yaml_looking_shell_content_stays_opaque_in_both_run_forms"
+        }
+      ]
+    },
+    {
+      "path": ".github/cost-safety/gate.py",
+      "sha256": "353bfc50b9192a7d85efe5d0511a78ef8cd2721dab799ba588650f042cd65df5",
+      "reviewer": "Codex portfolio implementation review",
+      "rationale": "This records the bounded gate workflow validator, encoded-scalar rejection and shell-block boundary regressions. It changes no application behavior or provider state.",
+      "controls": {
+        "request_bound": "0 application or provider requests are made by this review gate; git reads are bounded to 3000 changed files.",
+        "fanout_bound": "1 serial gate process per CI run; no application code or review-supplied command is executed.",
+        "termination": "The CI job stops after five minutes; each git command has a thirty-second timeout and no retry loop.",
+        "failure_behavior": "Missing revisions, stale digests, missing tests or unsafe workflow settings fail closed rather than claiming safety."
+      },
+      "evidence": [
+        {
+          "path": ".github/cost-safety/test_gate.py",
+          "sha256": "4612f662454b5405309778db81e8e4444d5f13e1d68d866d72157066050dea73",
+          "anchor": "test_sibling_encoded_env_after_both_run_forms_fails_cli"
+        },
+        {
+          "path": ".github/cost-safety/test_gate.py",
+          "sha256": "4612f662454b5405309778db81e8e4444d5f13e1d68d866d72157066050dea73",
+          "anchor": "test_yaml_looking_shell_content_stays_opaque_in_both_run_forms"
+        }
+      ]
+    },
+    {
+      "path": ".github/cost-safety/test_gate.py",
+      "sha256": "4612f662454b5405309778db81e8e4444d5f13e1d68d866d72157066050dea73",
+      "reviewer": "Codex portfolio implementation review",
+      "rationale": "This records the bounded gate workflow validator, encoded-scalar rejection and shell-block boundary regressions. It changes no application behavior or provider state.",
+      "controls": {
+        "request_bound": "0 application or provider requests are made by this review gate; git reads are bounded to 3000 changed files.",
+        "fanout_bound": "1 serial gate process per CI run; no application code or review-supplied command is executed.",
+        "termination": "The CI job stops after five minutes; each git command has a thirty-second timeout and no retry loop.",
+        "failure_behavior": "Missing revisions, stale digests, missing tests or unsafe workflow settings fail closed rather than claiming safety."
+      },
+      "evidence": [
+        {
+          "path": ".github/cost-safety/test_gate.py",
+          "sha256": "4612f662454b5405309778db81e8e4444d5f13e1d68d866d72157066050dea73",
+          "anchor": "test_sibling_encoded_env_after_both_run_forms_fails_cli"
+        },
+        {
+          "path": ".github/cost-safety/test_gate.py",
+          "sha256": "4612f662454b5405309778db81e8e4444d5f13e1d68d866d72157066050dea73",
+          "anchor": "test_yaml_looking_shell_content_stays_opaque_in_both_run_forms"
+        }
+      ]
+    },
+    {
+      "path": ".github/workflows/cost-safety.yml",
+      "sha256": "72640325f0c9cf521d2b53a8a9b8c776ef7195df72ffa1b07f595e7ca29ac5ad",
+      "reviewer": "Codex portfolio implementation review",
+      "rationale": "This installs the reviewed change-risk gate and its documentation; it enforces current review evidence, not semantic application traffic bounds.",
+      "controls": {
+        "request_bound": "0 application or provider requests are made by this review gate; git reads are bounded to 3000 changed files.",
+        "fanout_bound": "1 serial gate process per CI run; no application code or review-supplied command is executed.",
+        "termination": "The CI job stops after five minutes; each git command has a thirty-second timeout and no retry loop.",
+        "failure_behavior": "Missing revisions, stale digests, missing tests or unsafe workflow settings fail closed rather than claiming safety."
+      },
+      "evidence": [
+        {
+          "path": ".github/cost-safety/test_gate.py",
+          "sha256": "4612f662454b5405309778db81e8e4444d5f13e1d68d866d72157066050dea73",
+          "anchor": "test_workflow_requires_bounded_timeout_for_every_job"
+        }
+      ]
+    },
+    {
+      "path": "AGENTS.md",
+      "sha256": "893e3f39864100dfa158a33d60a055c496c5a8e10908cb7645d744f67a5ca09a",
+      "reviewer": "Codex portfolio implementation review",
+      "rationale": "This records cost-review instructions in the root policy. The section creates no application requests or jobs; existing application workflows need their own verification.",
+      "controls": {
+        "request_bound": "0 application or provider requests are introduced by this policy change; the new cost gate only reads local Git objects and cited tracked test files.",
+        "fanout_bound": "1 new cost-safety job runs per pull-request event. This review makes no request or job-fanout claim about existing application CI.",
+        "termination": "The new cost-safety job has a five-minute timeout and each gate Git command a thirty-second timeout. Policy text executes no code; existing application CI is separate.",
+        "failure_behavior": "Missing or stale controls or regression evidence fail the new gate. Root-policy changes and removal require current acknowledgement; existing CI failures remain independent."
+      },
+      "evidence": [
+        {
+          "path": ".github/cost-safety/test_gate.py",
+          "sha256": "4612f662454b5405309778db81e8e4444d5f13e1d68d866d72157066050dea73",
+          "anchor": "test_root_policy_truncation_and_removal_require_review"
+        }
+      ]
+    }
+  ]
+}
