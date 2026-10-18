@@ -511,6 +511,45 @@ class GitIntegrationTests(unittest.TestCase):
         self.assertEqual(code, 0)
         self.assertIn("source truncation", report["review_required"][0]["categories"])
 
+    def test_unicode_whitespace_and_bom_source_truncations_require_review(self):
+        for blank in ("\ufeff", "\ufeff \n", "\u00a0\u2003", " \ufeff\u00a0"):
+            with self.subTest(blank=repr(blank)):
+                (self.repo / gate.REVIEW_PATH).unlink(missing_ok=True)
+                self.write("src/admission.ts", "export const admit = count => count < 3;\n")
+                self.base = self.save()
+                self.write("src/admission.ts", blank)
+                code, report = self.cli(self.save())
+                self.assertEqual(code, 1)
+                self.assertIn("current cost review", " ".join(report["errors"]))
+                code, report = self.cli(self.save_review(self.review("src/admission.ts")))
+                self.assertEqual(code, 0)
+
+    def test_large_source_blank_truncation_can_be_reviewed_without_base_read(self):
+        self.write("src/admission.ts", "x" * (gate.MAX_FILE_BYTES + 1))
+        self.base = self.save()
+        self.write("src/admission.ts", " \n")
+        code, report = self.cli(self.save_review(self.review("src/admission.ts")))
+        self.assertEqual(code, 0, report)
+        self.assertIn("source truncation", report["review_required"][0]["categories"])
+
+    def test_source_type_changes_require_review_without_reading_former_target(self):
+        for replacement in ("", " \n", "export const admit = () => true;\n"):
+            with self.subTest(replacement=replacement):
+                path = "src/admission.ts"
+                (self.repo / gate.REVIEW_PATH).unlink(missing_ok=True)
+                (self.repo / path).unlink(missing_ok=True)
+                (self.repo / path).parent.mkdir(parents=True, exist_ok=True)
+                (self.repo / path).symlink_to("not-read-sensitive-target")
+                self.base = self.save()
+                (self.repo / path).unlink()
+                self.write(path, replacement)
+                code, report = self.cli(self.save())
+                self.assertEqual(code, 1)
+                self.assertIn("current cost review", " ".join(report["errors"]))
+                code, report = self.cli(self.save_review(self.review(path)))
+                self.assertEqual(code, 0)
+                self.assertIn("source type change", report["review_required"][0]["categories"])
+
     def test_jsonc_cron_configuration_changes_and_removal_require_review(self):
         path = "wrangler.jsonc"
         self.write(path, '// schedule fixture\n{"triggers":{"crons":["*/5 * * * *"]}}')

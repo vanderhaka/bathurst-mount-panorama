@@ -371,11 +371,17 @@ def run(repo, base_ref, head_ref):
             continue
         content = blob(repo, head, path)
         categories = risks(path, content)
-        if status == "M":
+        blank_source = source_path(path) and not content.decode("utf-8", errors="replace").replace("\ufeff", "").strip()
+        if status == "T":
+            # Replacing a linked guard changes its meaning even with inert content.
+            # Its former symlink/submodule target must not be opened.
+            categories = list(dict.fromkeys(categories + ["source type change"]))
+        elif status == "M" and not blank_source:
             # Removing the last marker must not erase the need to review this change.
             categories = list(dict.fromkeys(categories + risks(path, blob(repo, base, path))))
-            if not content.strip():
-                categories = list(dict.fromkeys(categories + ["source truncation"]))
+        if status in {"M", "T"} and blank_source:
+            # Classify before any base read, including oversized former sources.
+            categories = list(dict.fromkeys(categories + ["source truncation"]))
         if categories:
             required.append((path, content, categories))
     if required:

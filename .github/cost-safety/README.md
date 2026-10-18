@@ -187,11 +187,19 @@ included source/configuration file requires review, even without recognized risk
 keywords: a small admission/limiter helper may protect costs without issuing any
 request itself. Deletions are classified from path metadata without opening their
 base contents, so large files and symlinks can be removed with review and no target
-read. A modified included source file reduced to empty/whitespace bytes also
-requires current review. Removing the review manifest alone is exempt; removing it
+read. A modified included source file reduced to empty/whitespace text also
+requires current review, including Unicode whitespace and UTF-8 byte-order marks.
+Blank truncation is classified before reading any former large source. Included
+file-type changes also require review, including a symlink replaced by an inert
+regular file; the former link target is never opened.
+Removing the review manifest alone is exempt; removing it
 alongside another flagged change still fails because that change lacks its review.
 Documentation, lockfiles, recognized secret paths and other normal
 exclusions remain excluded from this deletion rule.
+Diffs deliberately disable rename detection, so moving an included source file is
+reviewed as removal plus addition. This conservative rule also flags harmless
+refactors. Cite actual relevant test coverage and inspect whether it supports the
+change; a schema-valid citation alone is not evidence of application correctness.
 
 It excludes documentation, `.env`/common credential/key files, lockfiles, common
 generated/minified files, and `vendor`, `node_modules`, `generated`, common secret,
