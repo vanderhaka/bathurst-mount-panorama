@@ -107,6 +107,15 @@ def workflow_path(path):
     return path.startswith(".github/workflows/") and PurePosixPath(path).suffix.lower() in {".yml", ".yaml"}
 
 
+def gate_workflow_path(path):
+    return path in {WORKFLOW_PATH, ".github/workflows/cost-safety.yaml"}
+
+
+def source_path(path):
+    p = PurePosixPath(path)
+    return p.suffix.lower() in SOURCE_SUFFIXES or p.name in {"Dockerfile", "Makefile", "Procfile"}
+
+
 def risks(path, content):
     if guardrail_path(path):
         if workflow_path(path) and path != WORKFLOW_PATH:
@@ -328,6 +337,16 @@ def run(repo, base_ref, head_ref):
     if len(changed) > MAX_CHANGED_FILES:
         raise GateError("diff exceeds 3000 files; split the change for review")
     required, errors = [], []
+    # Keep installation identity stable even if a rename is fully acknowledged.
+    # ls-tree inspects metadata only; it does not open unrelated workflow blobs.
+    base_workflow = git(repo, "ls-tree", base, "--", WORKFLOW_PATH)
+    head_workflow = git(repo, "ls-tree", head, "--", WORKFLOW_PATH)
+    head_gate = git(repo, "ls-tree", head, "--", GATE_PREFIX + "gate.py")
+    if (base_workflow or head_gate) and not head_workflow:
+        errors.append(WORKFLOW_PATH + ": canonical gate workflow must remain at this path; renaming or removal is forbidden")
+    if head_workflow:
+        errors.extend(WORKFLOW_PATH + ": " + error
+                      for error in workflow_errors(blob(repo, head, WORKFLOW_PATH)))
     for status, path in changed:
         guardrail = guardrail_path(path)
         if guardrail and secret_path(path):
@@ -337,15 +356,17 @@ def run(repo, base_ref, head_ref):
             if guardrail:
                 # Removal has no head blob. A digest of empty bytes explicitly acknowledges it.
                 required.append((path, b"", ["guardrail removal"]))
-            elif not excluded(path) and cost_config(path):
+            elif not excluded(path) and source_path(path):
                 categories = risks(path, blob(repo, base, path))
-                if categories:
-                    required.append((path, b"", categories + ["cost configuration removal"]))
+                # A deleted limiter/helper need not contain a known network keyword.
+                # Every included source deletion therefore needs explicit review.
+                if categories and cost_config(path):
+                    categories.append("cost configuration removal")
+                required.append((path, b"", categories + ["source removal"]))
             continue
         if path == REVIEW_PATH or (excluded(path) and not guardrail):
             continue
-        suffix = PurePosixPath(path).suffix.lower()
-        if suffix not in SOURCE_SUFFIXES and not guardrail and PurePosixPath(path).name not in {"Dockerfile", "Makefile", "Procfile"}:
+        if not source_path(path) and not guardrail:
             continue
         content = blob(repo, head, path)
         categories = risks(path, content)
@@ -354,7 +375,7 @@ def run(repo, base_ref, head_ref):
             categories = list(dict.fromkeys(categories + risks(path, blob(repo, base, path))))
         if categories:
             required.append((path, content, categories))
-        if path == WORKFLOW_PATH:
+        if gate_workflow_path(path) and path != WORKFLOW_PATH:
             errors.extend(path + ": " + error for error in workflow_errors(content))
     if required:
         errors.extend(check_review(repo, base, head, required))

@@ -63,6 +63,12 @@ inline-comment removal so quoted hashes cannot hide encoded context names. Shell
 block contents retain their normal backslashes; inline quoted `run` scalars do not
 receive that exception. Use the unescaped vendored scalar layout.
 Use the installed template's formatting when changing this workflow.
+The installed workflow must remain at `.github/workflows/cost-safety.yml`; an
+acknowledged rename or removal still fails when the base workflow or candidate
+gate exists. Its candidate contents are validated on every run, even when unchanged.
+The alternate `.github/workflows/cost-safety.yaml` spelling receives the same strict
+validation. Other workflow files still require ordinary review; this does not make
+their deployment-specific permissions subject to the PR-only gate-workflow layout.
 The whole word `secrets` is conservatively forbidden throughout the workflow,
 including whole-context expressions such as `toJSON(secrets)`. This deliberately
 also rejects comments or shell strings mentioning that context.
@@ -147,11 +153,12 @@ evidence is rejected. Extra fields, including a declared command, are inert and
 never executed. Only entries for the currently flagged changes are validated for
 source/evidence freshness; old unrelated review entries convey no coverage.
 
-For an explicitly reviewed removal of a guardrail or risky cost configuration, use the removed path
+For an explicitly reviewed removal of a guardrail, source file or risky cost configuration, use the removed path
 with SHA-256 of empty bytes
 (`e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`).
 Still cite an existing test and explain why removal is acceptable. Human review
 and branch policy must decide whether to accept weakened future enforcement.
+The canonical gate workflow is required and cannot be removed through an acknowledgement.
 
 ## Scope and limits
 
@@ -176,8 +183,11 @@ the gate workflow and root `AGENTS.md` (case-insensitive) are always reviewed,
 including modification/removal. Deleted recognized configuration files are checked
 against their base risk signatures: JSON/YAML/TOML/INI/configuration/infra formats,
 common `*.config.js`/TypeScript variants, Dockerfile, Makefile and Procfile. Removing
-a risky configuration requires review with the empty-content digest. Other ordinary
-source/documentation deletion does not require review.
+a risky configuration requires review with the empty-content digest. Every deleted
+included source/configuration file requires review, even without recognized risk
+keywords: a small admission/limiter helper may protect costs without issuing any
+request itself. Documentation, lockfiles, recognized secret paths and other normal
+exclusions remain excluded from this deletion rule.
 
 It excludes documentation, `.env`/common credential/key files, lockfiles, common
 generated/minified files, and `vendor`, `node_modules`, `generated`, common secret,

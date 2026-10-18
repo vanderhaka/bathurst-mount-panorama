@@ -1,76 +1,106 @@
 {
   "version": 1,
-  "base_commit": "5a0a217c8e20fa8ed2813404b668072952392071",
+  "base_commit": "e7bf677554c562fcd667d6e326e04ddcdea949f5",
   "reviews": [
     {
       "path": ".github/cost-safety/README.md",
-      "sha256": "f3cee6951e291d26371ae4cda3d724218eb5d074ab84d6ca629fa2b8d5e260dd",
-      "reviewer": "Codex portfolio implementation review",
-      "rationale": "This records the bounded gate workflow validator, encoded-scalar rejection and shell-block boundary regressions. It changes no application behavior or provider state.",
+      "sha256": "bef08c90f6c587d0bfb894b22aba3d34e97c77e94a898745c01d5f944be4c3cd",
+      "reviewer": "Codex incident repair; independent Standards and Spec review before merge",
+      "rationale": "Canonical workflow identity and strict candidate validation prevent renamed gate workflows from bypassing restrictions. Every included source deletion now requires review, including keyword-free admission controls. This changes review tooling only.",
       "controls": {
-        "request_bound": "0 application or provider requests are made by this review gate; git reads are bounded to 3000 changed files.",
-        "fanout_bound": "1 serial gate process per CI run; no application code or review-supplied command is executed.",
-        "termination": "The CI job stops after five minutes; each git command has a thirty-second timeout and no retry loop.",
-        "failure_behavior": "Missing revisions, stale digests, missing tests or unsafe workflow settings fail closed rather than claiming safety."
+        "request_bound": "0 application or provider requests are added. Gate inspection remains local Git reads bounded to 3000 changed files and 2 MiB per inspected blob.",
+        "fanout_bound": "1 existing cost-safety job per pull-request event; no new workflow, scheduled job or deployment command is added.",
+        "termination": "The existing job terminates after five minutes; each Git subprocess terminates after thirty seconds. Real-Git tests use disposable repositories.",
+        "failure_behavior": "Missing canonical workflow and unsafe alternate gate workflow metadata fail even with acknowledgement. Included source deletion requires a current empty digest and cited regression evidence."
       },
       "evidence": [
         {
           "path": ".github/cost-safety/test_gate.py",
-          "sha256": "4612f662454b5405309778db81e8e4444d5f13e1d68d866d72157066050dea73",
-          "anchor": "test_sibling_encoded_env_after_both_run_forms_fails_cli"
+          "sha256": "e120b79cde4b70b4aaedd9759e5d8063d2ec3d6ddfc2ae523d5df93ec3577d3e",
+          "anchor": "test_deleted_source_requires_review_even_without_cost_keywords"
         },
         {
           "path": ".github/cost-safety/test_gate.py",
-          "sha256": "4612f662454b5405309778db81e8e4444d5f13e1d68d866d72157066050dea73",
-          "anchor": "test_yaml_looking_shell_content_stays_opaque_in_both_run_forms"
+          "sha256": "e120b79cde4b70b4aaedd9759e5d8063d2ec3d6ddfc2ae523d5df93ec3577d3e",
+          "anchor": "test_gate_workflow_rename_cannot_remove_canonical_path_even_with_review"
+        },
+        {
+          "path": ".github/cost-safety/test_gate.py",
+          "sha256": "e120b79cde4b70b4aaedd9759e5d8063d2ec3d6ddfc2ae523d5df93ec3577d3e",
+          "anchor": "test_alternate_gate_workflow_cannot_gain_privileges_with_review"
+        },
+        {
+          "path": ".github/cost-safety/test_gate.py",
+          "sha256": "e120b79cde4b70b4aaedd9759e5d8063d2ec3d6ddfc2ae523d5df93ec3577d3e",
+          "anchor": "test_unchanged_canonical_workflow_is_validated"
         }
       ]
     },
     {
       "path": ".github/cost-safety/gate.py",
-      "sha256": "353bfc50b9192a7d85efe5d0511a78ef8cd2721dab799ba588650f042cd65df5",
-      "reviewer": "Codex portfolio implementation review",
-      "rationale": "This records the bounded gate workflow validator, encoded-scalar rejection and shell-block boundary regressions. It changes no application behavior or provider state.",
+      "sha256": "8f0503d99627e7b9a9c01a388da2a84ec9e285f36e3fbb653769ed2916aed0ea",
+      "reviewer": "Codex incident repair; independent Standards and Spec review before merge",
+      "rationale": "Canonical workflow identity and strict candidate validation prevent renamed gate workflows from bypassing restrictions. Every included source deletion now requires review, including keyword-free admission controls. This changes review tooling only.",
       "controls": {
-        "request_bound": "0 application or provider requests are made by this review gate; git reads are bounded to 3000 changed files.",
-        "fanout_bound": "1 serial gate process per CI run; no application code or review-supplied command is executed.",
-        "termination": "The CI job stops after five minutes; each git command has a thirty-second timeout and no retry loop.",
-        "failure_behavior": "Missing revisions, stale digests, missing tests or unsafe workflow settings fail closed rather than claiming safety."
+        "request_bound": "0 application or provider requests are added. Gate inspection remains local Git reads bounded to 3000 changed files and 2 MiB per inspected blob.",
+        "fanout_bound": "1 existing cost-safety job per pull-request event; no new workflow, scheduled job or deployment command is added.",
+        "termination": "The existing job terminates after five minutes; each Git subprocess terminates after thirty seconds. Real-Git tests use disposable repositories.",
+        "failure_behavior": "Missing canonical workflow and unsafe alternate gate workflow metadata fail even with acknowledgement. Included source deletion requires a current empty digest and cited regression evidence."
       },
       "evidence": [
         {
           "path": ".github/cost-safety/test_gate.py",
-          "sha256": "4612f662454b5405309778db81e8e4444d5f13e1d68d866d72157066050dea73",
-          "anchor": "test_sibling_encoded_env_after_both_run_forms_fails_cli"
+          "sha256": "e120b79cde4b70b4aaedd9759e5d8063d2ec3d6ddfc2ae523d5df93ec3577d3e",
+          "anchor": "test_deleted_source_requires_review_even_without_cost_keywords"
         },
         {
           "path": ".github/cost-safety/test_gate.py",
-          "sha256": "4612f662454b5405309778db81e8e4444d5f13e1d68d866d72157066050dea73",
-          "anchor": "test_yaml_looking_shell_content_stays_opaque_in_both_run_forms"
+          "sha256": "e120b79cde4b70b4aaedd9759e5d8063d2ec3d6ddfc2ae523d5df93ec3577d3e",
+          "anchor": "test_gate_workflow_rename_cannot_remove_canonical_path_even_with_review"
+        },
+        {
+          "path": ".github/cost-safety/test_gate.py",
+          "sha256": "e120b79cde4b70b4aaedd9759e5d8063d2ec3d6ddfc2ae523d5df93ec3577d3e",
+          "anchor": "test_alternate_gate_workflow_cannot_gain_privileges_with_review"
+        },
+        {
+          "path": ".github/cost-safety/test_gate.py",
+          "sha256": "e120b79cde4b70b4aaedd9759e5d8063d2ec3d6ddfc2ae523d5df93ec3577d3e",
+          "anchor": "test_unchanged_canonical_workflow_is_validated"
         }
       ]
     },
     {
       "path": ".github/cost-safety/test_gate.py",
-      "sha256": "4612f662454b5405309778db81e8e4444d5f13e1d68d866d72157066050dea73",
-      "reviewer": "Codex portfolio implementation review",
-      "rationale": "This records the bounded gate workflow validator, encoded-scalar rejection and shell-block boundary regressions. It changes no application behavior or provider state.",
+      "sha256": "e120b79cde4b70b4aaedd9759e5d8063d2ec3d6ddfc2ae523d5df93ec3577d3e",
+      "reviewer": "Codex incident repair; independent Standards and Spec review before merge",
+      "rationale": "Canonical workflow identity and strict candidate validation prevent renamed gate workflows from bypassing restrictions. Every included source deletion now requires review, including keyword-free admission controls. This changes review tooling only.",
       "controls": {
-        "request_bound": "0 application or provider requests are made by this review gate; git reads are bounded to 3000 changed files.",
-        "fanout_bound": "1 serial gate process per CI run; no application code or review-supplied command is executed.",
-        "termination": "The CI job stops after five minutes; each git command has a thirty-second timeout and no retry loop.",
-        "failure_behavior": "Missing revisions, stale digests, missing tests or unsafe workflow settings fail closed rather than claiming safety."
+        "request_bound": "0 application or provider requests are added. Gate inspection remains local Git reads bounded to 3000 changed files and 2 MiB per inspected blob.",
+        "fanout_bound": "1 existing cost-safety job per pull-request event; no new workflow, scheduled job or deployment command is added.",
+        "termination": "The existing job terminates after five minutes; each Git subprocess terminates after thirty seconds. Real-Git tests use disposable repositories.",
+        "failure_behavior": "Missing canonical workflow and unsafe alternate gate workflow metadata fail even with acknowledgement. Included source deletion requires a current empty digest and cited regression evidence."
       },
       "evidence": [
         {
           "path": ".github/cost-safety/test_gate.py",
-          "sha256": "4612f662454b5405309778db81e8e4444d5f13e1d68d866d72157066050dea73",
-          "anchor": "test_sibling_encoded_env_after_both_run_forms_fails_cli"
+          "sha256": "e120b79cde4b70b4aaedd9759e5d8063d2ec3d6ddfc2ae523d5df93ec3577d3e",
+          "anchor": "test_deleted_source_requires_review_even_without_cost_keywords"
         },
         {
           "path": ".github/cost-safety/test_gate.py",
-          "sha256": "4612f662454b5405309778db81e8e4444d5f13e1d68d866d72157066050dea73",
-          "anchor": "test_yaml_looking_shell_content_stays_opaque_in_both_run_forms"
+          "sha256": "e120b79cde4b70b4aaedd9759e5d8063d2ec3d6ddfc2ae523d5df93ec3577d3e",
+          "anchor": "test_gate_workflow_rename_cannot_remove_canonical_path_even_with_review"
+        },
+        {
+          "path": ".github/cost-safety/test_gate.py",
+          "sha256": "e120b79cde4b70b4aaedd9759e5d8063d2ec3d6ddfc2ae523d5df93ec3577d3e",
+          "anchor": "test_alternate_gate_workflow_cannot_gain_privileges_with_review"
+        },
+        {
+          "path": ".github/cost-safety/test_gate.py",
+          "sha256": "e120b79cde4b70b4aaedd9759e5d8063d2ec3d6ddfc2ae523d5df93ec3577d3e",
+          "anchor": "test_unchanged_canonical_workflow_is_validated"
         }
       ]
     },
@@ -88,7 +118,7 @@
       "evidence": [
         {
           "path": ".github/cost-safety/test_gate.py",
-          "sha256": "4612f662454b5405309778db81e8e4444d5f13e1d68d866d72157066050dea73",
+          "sha256": "e120b79cde4b70b4aaedd9759e5d8063d2ec3d6ddfc2ae523d5df93ec3577d3e",
           "anchor": "test_workflow_requires_bounded_timeout_for_every_job"
         }
       ]
@@ -107,7 +137,7 @@
       "evidence": [
         {
           "path": ".github/cost-safety/test_gate.py",
-          "sha256": "4612f662454b5405309778db81e8e4444d5f13e1d68d866d72157066050dea73",
+          "sha256": "e120b79cde4b70b4aaedd9759e5d8063d2ec3d6ddfc2ae523d5df93ec3577d3e",
           "anchor": "test_root_policy_truncation_and_removal_require_review"
         }
       ]
