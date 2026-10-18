@@ -63,6 +63,12 @@ inline-comment removal so quoted hashes cannot hide encoded context names. Shell
 block contents retain their normal backslashes; inline quoted `run` scalars do not
 receive that exception. Use the unescaped vendored scalar layout.
 Use the installed template's formatting when changing this workflow.
+The installed workflow must remain at `.github/workflows/cost-safety.yml`; an
+acknowledged rename or removal still fails when the base workflow or candidate
+gate exists. Its candidate contents are validated on every run, even when unchanged.
+The alternate `.github/workflows/cost-safety.yaml` spelling receives the same strict
+validation on every run when present, including when unchanged. Other workflow files still require ordinary review; this does not make
+their deployment-specific permissions subject to the PR-only gate-workflow layout.
 The whole word `secrets` is conservatively forbidden throughout the workflow,
 including whole-context expressions such as `toJSON(secrets)`. This deliberately
 also rejects comments or shell strings mentioning that context.
@@ -147,11 +153,12 @@ evidence is rejected. Extra fields, including a declared command, are inert and
 never executed. Only entries for the currently flagged changes are validated for
 source/evidence freshness; old unrelated review entries convey no coverage.
 
-For an explicitly reviewed removal of a guardrail or risky cost configuration, use the removed path
+For an explicitly reviewed removal of a guardrail, source file or risky cost configuration, use the removed path
 with SHA-256 of empty bytes
 (`e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`).
 Still cite an existing test and explain why removal is acceptable. Human review
 and branch policy must decide whether to accept weakened future enforcement.
+The canonical gate workflow is required and cannot be removed through an acknowledgement.
 
 ## Scope and limits
 
@@ -168,16 +175,31 @@ operations, common provider namespaces and AI request helpers. Imports/comments 
 therefore trigger review even when that line itself does not issue a request. Query
 chain matching bounds the `.from(...)` argument span to 512 characters; unusual
 wrappers, aliases and long chains still need human review. Common source extensions,
-including `.mts`/`.cts`, and configuration files are included.
+including `.mts`/`.cts`, and configuration files including `.jsonc` cron files are included.
 
 All changed GitHub workflow YAML paths are classified as guardrails before exclusions and require review, covering matrices and ordinary
 job additions without pretending to calculate arbitrary YAML fanout. Gate files,
 the gate workflow and root `AGENTS.md` (case-insensitive) are always reviewed,
-including modification/removal. Deleted recognized configuration files are checked
-against their base risk signatures: JSON/YAML/TOML/INI/configuration/infra formats,
-common `*.config.js`/TypeScript variants, Dockerfile, Makefile and Procfile. Removing
-a risky configuration requires review with the empty-content digest. Other ordinary
-source/documentation deletion does not require review.
+including modification/removal. Recognized configuration paths include
+JSON/JSONC/YAML/TOML/INI/configuration/infra formats,
+common `*.config.js`/TypeScript variants, Dockerfile, Makefile and Procfile. Every deleted
+included source/configuration file requires review, even without recognized risk
+keywords: a small admission/limiter helper may protect costs without issuing any
+request itself. Deletions are classified from path metadata without opening their
+base contents, so large files and symlinks can be removed with review and no target
+read. A modified included source file reduced to empty/whitespace text also
+requires current review, including Unicode whitespace and UTF-8 byte-order marks.
+Blank truncation is classified before reading any former large source. Included
+file-type changes also require review, including a symlink replaced by an inert
+regular file; the former link target is never opened.
+Removing the review manifest alone is exempt; removing it
+alongside another flagged change still fails because that change lacks its review.
+Documentation, lockfiles, recognized secret paths and other normal
+exclusions remain excluded from this deletion rule.
+Diffs deliberately disable rename detection, so moving an included source file is
+reviewed as removal plus addition. This conservative rule also flags harmless
+refactors. Cite actual relevant test coverage and inspect whether it supports the
+change; a schema-valid citation alone is not evidence of application correctness.
 
 It excludes documentation, `.env`/common credential/key files, lockfiles, common
 generated/minified files, and `vendor`, `node_modules`, `generated`, common secret,

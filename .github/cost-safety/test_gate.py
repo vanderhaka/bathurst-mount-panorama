@@ -420,6 +420,152 @@ class GitIntegrationTests(unittest.TestCase):
         self.assertEqual(code, 0)
         self.assertIn("cost configuration removal", report["review_required"][0]["categories"])
 
+    def test_deleted_source_requires_review_even_without_cost_keywords(self):
+        for content in ("setInterval(() => fetch('/status'), 30000);\n",
+                        "export const admit = count => count < 3;\n"):
+            with self.subTest(content=content):
+                path = "src/admission.ts"
+                (self.repo / gate.REVIEW_PATH).unlink(missing_ok=True)
+                self.write(path, content)
+                self.base = self.save()
+                (self.repo / path).unlink()
+                code, report = self.cli(self.save())
+                self.assertEqual(code, 1)
+                self.assertIn("current cost review", report["errors"][0])
+                code, report = self.cli(self.save_review(self.review(path, b"")))
+                self.assertEqual(code, 0)
+                self.assertIn("source removal", report["review_required"][0]["categories"])
+
+    def test_gate_workflow_rename_cannot_remove_canonical_path_even_with_review(self):
+        for renamed in (".github/workflows/cost-safety.yaml", ".github/workflows/renamed.yml"):
+            with self.subTest(renamed=renamed):
+                self.write(gate.WORKFLOW_PATH, VALID_WORKFLOW)
+                self.base = self.save()
+                (self.repo / gate.WORKFLOW_PATH).unlink()
+                self.write(renamed, VALID_WORKFLOW)
+                doc = self.review(gate.WORKFLOW_PATH, b"")
+                doc["reviews"].extend(self.review(renamed)["reviews"])
+                code, report = self.cli(self.save_review(doc))
+                self.assertEqual(code, 1)
+                self.assertIn("canonical gate workflow must remain", " ".join(report["errors"]))
+                (self.repo / renamed).unlink()
+
+    def test_alternate_gate_workflow_cannot_gain_privileges_with_review(self):
+        path = ".github/workflows/cost-safety.yaml"
+        self.write(path, VALID_WORKFLOW.replace("contents: read", "contents: write"))
+        code, report = self.cli(self.save_review(self.review(path)))
+        self.assertEqual(code, 1)
+        self.assertIn("contents: read", " ".join(report["errors"]))
+
+    def test_unchanged_canonical_workflow_is_validated(self):
+        self.write(gate.WORKFLOW_PATH, VALID_WORKFLOW.replace("contents: read", "contents: write"))
+        self.base = self.save()
+        self.write("README.md", "Unrelated documentation update\n")
+        code, report = self.cli(self.save())
+        self.assertEqual(code, 1)
+        self.assertIn("contents: read", " ".join(report["errors"]))
+
+    def test_unchanged_alternate_workflow_is_validated(self):
+        path = ".github/workflows/cost-safety.yaml"
+        self.write(path, VALID_WORKFLOW.replace("contents: read", "contents: write"))
+        self.base = self.save()
+        self.write("README.md", "Unrelated documentation update\n")
+        code, report = self.cli(self.save())
+        self.assertEqual(code, 1)
+        self.assertIn("contents: read", " ".join(report["errors"]))
+
+    def test_large_or_symlink_source_deletion_can_be_reviewed_without_reading_base(self):
+        for kind in ("large", "symlink"):
+            with self.subTest(kind=kind):
+                path = "src/admission.ts"
+                (self.repo / gate.REVIEW_PATH).unlink(missing_ok=True)
+                if kind == "large":
+                    self.write(path, "x" * (gate.MAX_FILE_BYTES + 1))
+                else:
+                    (self.repo / path).symlink_to("not-read-sensitive-target")
+                self.base = self.save()
+                (self.repo / path).unlink()
+                code, report = self.cli(self.save_review(self.review(path, b"")))
+                self.assertEqual(code, 0, report)
+                self.assertIn("source removal", report["review_required"][0]["categories"])
+
+    def test_stale_review_manifest_can_be_removed_without_self_review(self):
+        self.write(gate.REVIEW_PATH, '{"version": 1, "reviews": []}')
+        self.base = self.save()
+        (self.repo / gate.REVIEW_PATH).unlink()
+        code, report = self.cli(self.save())
+        self.assertEqual((code, report["review_required"]), (0, []))
+        self.risky()
+        code, report = self.cli(self.save())
+        self.assertEqual(code, 1)
+        self.assertIn("current cost review", " ".join(report["errors"]))
+
+    def test_blank_source_truncation_requires_current_review(self):
+        self.write("src/admission.ts", "export const admit = count => count < 3;\n")
+        self.base = self.save()
+        self.write("src/admission.ts", " \n\t")
+        code, report = self.cli(self.save())
+        self.assertEqual(code, 1)
+        self.assertIn("current cost review", " ".join(report["errors"]))
+        code, report = self.cli(self.save_review(self.review("src/admission.ts")))
+        self.assertEqual(code, 0)
+        self.assertIn("source truncation", report["review_required"][0]["categories"])
+
+    def test_unicode_whitespace_and_bom_source_truncations_require_review(self):
+        for blank in ("\ufeff", "\ufeff \n", "\u00a0\u2003", " \ufeff\u00a0"):
+            with self.subTest(blank=repr(blank)):
+                (self.repo / gate.REVIEW_PATH).unlink(missing_ok=True)
+                self.write("src/admission.ts", "export const admit = count => count < 3;\n")
+                self.base = self.save()
+                self.write("src/admission.ts", blank)
+                code, report = self.cli(self.save())
+                self.assertEqual(code, 1)
+                self.assertIn("current cost review", " ".join(report["errors"]))
+                code, report = self.cli(self.save_review(self.review("src/admission.ts")))
+                self.assertEqual(code, 0)
+
+    def test_large_source_blank_truncation_can_be_reviewed_without_base_read(self):
+        self.write("src/admission.ts", "x" * (gate.MAX_FILE_BYTES + 1))
+        self.base = self.save()
+        self.write("src/admission.ts", " \n")
+        code, report = self.cli(self.save_review(self.review("src/admission.ts")))
+        self.assertEqual(code, 0, report)
+        self.assertIn("source truncation", report["review_required"][0]["categories"])
+
+    def test_source_type_changes_require_review_without_reading_former_target(self):
+        for replacement in ("", " \n", "export const admit = () => true;\n"):
+            with self.subTest(replacement=replacement):
+                path = "src/admission.ts"
+                (self.repo / gate.REVIEW_PATH).unlink(missing_ok=True)
+                (self.repo / path).unlink(missing_ok=True)
+                (self.repo / path).parent.mkdir(parents=True, exist_ok=True)
+                (self.repo / path).symlink_to("not-read-sensitive-target")
+                self.base = self.save()
+                (self.repo / path).unlink()
+                self.write(path, replacement)
+                code, report = self.cli(self.save())
+                self.assertEqual(code, 1)
+                self.assertIn("current cost review", " ".join(report["errors"]))
+                code, report = self.cli(self.save_review(self.review(path)))
+                self.assertEqual(code, 0)
+                self.assertIn("source type change", report["review_required"][0]["categories"])
+
+    def test_jsonc_cron_configuration_changes_and_removal_require_review(self):
+        path = "wrangler.jsonc"
+        self.write(path, '// schedule fixture\n{"triggers":{"crons":["*/5 * * * *"]}}')
+        self.base = self.save()
+        self.write(path, '// schedule fixture\n{"triggers":{"crons":["* * * * *"]}}')
+        code, report = self.cli(self.save())
+        self.assertEqual(code, 1)
+        self.assertIn("current cost review", " ".join(report["errors"]))
+        code, report = self.cli(self.save_review(self.review(path)))
+        self.assertEqual(code, 0)
+        (self.repo / path).unlink()
+        code, report = self.cli(self.save())
+        self.assertEqual(code, 1)
+        code, report = self.cli(self.save_review(self.review(path, b"")))
+        self.assertEqual(code, 0)
+
     def test_root_policy_truncation_and_removal_require_review(self):
         self.write("AGENTS.md", "Keep cost review and application regressions required.\n")
         self.base = self.save()
