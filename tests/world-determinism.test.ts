@@ -33,11 +33,15 @@ function fakeCanvas() {
 const FIXTURE = new URL('./fixtures/world-fingerprint.json', import.meta.url);
 const renderer = { capabilities: { getMaxAnisotropy: () => 8 } } as unknown as THREE.WebGLRenderer;
 
+// x64 and arm64 libm can disagree on the sign and last bits of results that
+// should be exactly zero (around 1e-18), so treat those as zero.
+const NOISE_FLOOR = 1e-9;
+
 function hashFloats(array: ArrayLike<number>): string {
   let h = 2166136261 >>> 0;
   const f = new Float32Array(1), u = new Uint32Array(f.buffer);
   for (let i = 0; i < array.length; i++) {
-    f[0] = array[i];
+    f[0] = Math.abs(array[i]) < NOISE_FLOOR ? 0 : array[i];
     h = Math.imul(h ^ u[0], 16777619) >>> 0;
   }
   return h.toString(16);
