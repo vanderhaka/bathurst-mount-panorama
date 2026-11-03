@@ -1,0 +1,15 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "redirects": [
+    {
+      "source": "/",
+      "destination": "https://racinglive.app/game/?from=bathurst",
+      "permanent": false
+    },
+    {
+      "source": "/index.html",
+      "destination": "https://racinglive.app/game/?from=bathurst",
+      "permanent": false
+    }
+  ]
+}
