@@ -15,6 +15,8 @@ it('retires the old board, lap submissions and practice requests without forward
 
     for (const options of [
       { method: 'GET' },
+      { method: 'HEAD' },
+      { method: 'OPTIONS' },
       ...['start', 'submit', 'practice'].map((action) => ({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -24,8 +26,10 @@ it('retires the old board, lap submissions and practice requests without forward
       const response = await request(url, { ...options, redirect: 'manual' });
       expect(response.status).toBe(410);
       expect(response.headers.get('Location')).toBeNull();
-      expect(response.headers.get('Cache-Control')).toBe('no-store');
-      expect(await response.json()).toEqual({ error: expect.stringContaining('racinglive.app/game/') });
+      const read = options.method === 'GET' || options.method === 'HEAD';
+      expect(response.headers.get('Cache-Control')).toBe(read ? 'public, max-age=0, s-maxage=300' : 'no-store');
+      if (options.method === 'HEAD') expect(await response.text()).toBe('');
+      else expect(await response.json()).toEqual({ error: expect.stringContaining('racinglive.app/game/') });
     }
     expect(upstream).not.toHaveBeenCalled();
   } finally {
