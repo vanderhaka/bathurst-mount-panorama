@@ -29,7 +29,7 @@ it('retires the old board, lap submissions and practice requests without forward
       const read = options.method === 'GET' || options.method === 'HEAD';
       expect(response.headers.get('Cache-Control')).toBe(read ? 'public, max-age=0, s-maxage=300' : 'no-store');
       if (options.method === 'HEAD') expect(await response.text()).toBe('');
-      else expect(await response.json()).toEqual({ error: expect.stringContaining('racinglive.app/game/') });
+      else expect(await response.json()).toEqual({ error: expect.stringContaining('racinglive.app/game/ to play Live Racing') });
     }
     expect(upstream).not.toHaveBeenCalled();
   } finally {
