@@ -1,23 +1,13 @@
 import { resolve } from 'node:path';
 import { defineConfig } from 'vitest/config';
 import type { Connect } from 'vite';
-import { loadEnv } from 'vite';
 import shootout from './api/shootout.js';
 
 const root = import.meta.dirname;
 const production = process.env.VERCEL_ENV === 'production';
 
-function shootoutApi(server: { middlewares: Connect.Server; config: { mode: string } }): void {
-  const env = loadEnv(server.config.mode, root, 'SHOOTOUT_');
-  for (const key of ['SHOOTOUT_SUPABASE_URL', 'SHOOTOUT_SUPABASE_SERVICE_KEY']) {
-    if (!process.env[key] && env[key]) process.env[key] = env[key];
-  }
-  server.middlewares.use('/api/shootout', (request, response) => {
-    void shootout(request, response).catch(() => {
-      if (!response.headersSent) response.writeHead(503, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
-      response.end(JSON.stringify({ available: false, entries: [], error: 'The leaderboard is unavailable.' }));
-    });
-  });
+function shootoutApi(server: { middlewares: Connect.Server }): void {
+  server.middlewares.use('/api/shootout', shootout);
 }
 
 export default defineConfig({
